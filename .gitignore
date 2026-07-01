@@ -1,0 +1,24 @@
+# Large build artifacts + data — shipped as GitHub Release assets, not committed.
+# Keeps `git clone` fast.
+
+# Pre-built / generated tiles
+*.pmtiles
+*.mbtiles
+
+# OSRM graph files
+data-bundle/osrm/
+*.osrm
+*.osrm.*
+
+# Data extracts / bundles
+*.osm.pbf
+*.parquet
+*.geojson
+*.zip
+
+# Planetiler
+01-tiles/planetiler.jar
+
+# Node / tooling
+node_modules/
+.DS_Store

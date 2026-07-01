@@ -1,0 +1,21 @@
+# 03-routing/docker-compose.yml — Module 3 (2:05–2:35): routes
+# Serves OSRM over a PRE-BUILT routing graph so the room starts querying in seconds.
+# The graph is built ahead of time from the Northern California OSM extract and shipped
+# in ../data-bundle/ (see README.md). Building it yourself is an optional stretch.
+#
+# Placeholder: pin the exact OSRM image tag before the session (see ../.tool-versions).
+
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1   # TODO: pin exact tag
+    command: osrm-routed --algorithm mld /data/norcal.osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      # Pre-built graph files (.osrm*) live here; provided in the data bundle.
+      - ../data-bundle/osrm:/data:ro
+    restart: unless-stopped
+
+# Query it once it's up, e.g.:
+#   curl "http://localhost:5000/route/v1/driving/-121.49,38.58;-121.40,38.66?overview=full&geometries=geojson"
+#   curl "http://localhost:5000/table/v1/driving/<neighborhood>;<shelter1>;<shelter2>?sources=0"

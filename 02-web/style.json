@@ -1,0 +1,24 @@
+{
+  "version": 8,
+  "name": "routes-to-safety (placeholder)",
+  "metadata": {
+    "note": "Placeholder MapLibre style. Points at the PMTiles basemap built in ../01-tiles. Real layer paint/filters pinned before the session."
+  },
+  "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+  "sources": {
+    "basemap": {
+      "type": "vector",
+      "url": "pmtiles://./basemap.pmtiles",
+      "attribution": "© OpenStreetMap contributors, © Overture Maps Foundation"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#f7f6f2" } }
+
+    /* TODO: add source-layer styling once basemap.pmtiles layer names are pinned:
+       - water   (fill)
+       - roads   (line)
+       - shelters(circle/symbol)
+       - hazard  (fill, semi-transparent) */
+  ]
+}

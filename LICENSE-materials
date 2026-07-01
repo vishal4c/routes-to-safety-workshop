@@ -1,0 +1,29 @@
+Workshop Materials License
+==========================
+
+The workshop MATERIALS in this repository — slides, documentation, exercises,
+module READMEs, and other prose/instructional content — are licensed under the
+
+    Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+
+You are free to share and adapt these materials for any purpose, even
+commercially, under the following terms:
+
+  - Attribution — You must give appropriate credit ("Routes to Safety —
+    A Wildfire Evacuation Map from Open Data", Vishal Kumar & Shaishav Maisuria),
+    provide a link to this license, and indicate if changes were made.
+  - ShareAlike — If you remix, transform, or build upon the material, you must
+    distribute your contributions under the same license as the original.
+
+Full license text: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+Human-readable summary: https://creativecommons.org/licenses/by-sa/4.0/
+
+---
+
+Note: The CODE in this repository (scripts, configuration, and example
+applications) is licensed separately under the MIT License — see LICENSE.
+
+Third-party DATA used in the workshop retains its own license:
+Overture Maps (Overture Maps Foundation), OpenStreetMap (© OpenStreetMap
+contributors, ODbL), CAL FIRE FRAP perimeters (CC-BY), NIFC/WFIGS (public),
+and FEMA NFHL (US Government Work).
