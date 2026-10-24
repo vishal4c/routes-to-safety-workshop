@@ -4,12 +4,15 @@ html,body{margin:0;height:100%;font:14px/1.35 system-ui,sans-serif;color:#222}
 #panel{position:absolute;top:10px;left:10px;width:320px;max-height:calc(100% - 54px);overflow:auto;background:#fffffff2;border-radius:6px;padding:10px 12px;box-shadow:0 1px 6px #0004;z-index:2}
 h1{font-size:18px;margin:0 0 2px}h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#555;margin:10px 0 4px}
 .sub{margin:0;color:#444}
-.toggles{display:flex;flex-direction:column;gap:4px}
+.views{display:flex}
+.views button{flex:1;text-align:center;border-radius:0;margin:0}
+.views button:first-child{border-radius:4px 0 0 4px}.views button:last-child{border-radius:0 4px 4px 0}.views button+button{border-left:0}
 button{font:inherit;text-align:left;padding:5px 8px;border:1px solid #888;border-radius:4px;background:#fff;cursor:pointer}
 button[aria-pressed=true]{background:#0868ac;color:#fff;border-color:#0868ac}
 button:focus-visible,input:focus-visible{outline:3px solid #f5a623;outline-offset:1px}
 #result{margin:6px 0;font-weight:600}
-#list{margin:0;padding-left:20px;max-height:190px;overflow:auto;font-size:13px}
+#others{margin-top:4px}#others summary{font-size:12px;color:#555;cursor:pointer}
+#list{margin:4px 0 0;padding-left:20px;max-height:160px;overflow:auto;font-size:13px}
 #list li{padding:1px 2px}#list li.chosen{background:#fce4ec;font-weight:700;border-left:3px solid #d81b60}
 #list li button{border:0;background:none;padding:0;color:inherit;text-align:left;text-decoration:underline dotted}
 #legend .row{display:flex;align-items:center;gap:6px;margin:2px 0;font-size:12px}

@@ -4,7 +4,7 @@ Needs routing (OSRM). **Tier 1 Codespaces / Tier 2 Docker:** do the labs. **Tier
 
 Footer rule: the disclaimer stays visible. *Teaching example, not an official evacuation resource.*
 
-## 3a — Hello route (5 min)
+## 3a — Hello route
 
 ```bash
 curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"        # PowerShell: curl.exe
@@ -18,9 +18,9 @@ Then draw a route: in `02-web/index.html` find the line
 
 **Expected:** a pink line (`#d81b60`, white casing) from Foresthill to Placer High School; the console prints `Route: 35.8 min, 31.8 km`.
 
-⏱ No pink line by minute 4? Check the console (F12). A red `/osrm 404` means your port-8080 server is not Caddy — use the tier URL from the card.
+⏱ No pink line? Check the console (F12). A red `/osrm 404` means your port-8080 server is not Caddy — use the tier URL from the card.
 
-## 3b — Nearest shelter by road (10 min)
+## 3b — Nearest shelter by road
 
 Comment out the step1 import, uncomment `…/steps/step2-scaffold.js`. Open that file, find
 `// ===== YOU WRITE THESE 6 LINES =====` and write six lines:
@@ -41,9 +41,9 @@ Check it yourself: drag the pink shelter marker onto Georgetown School (-120.833
 **Drag the pink shelter marker** to any spot: the route is redrawn to where you dropped it (the popup says "Your chosen spot").
 Drag a marker outside the bbox → *"This demo covers the Placer I-80 corridor only"* and no OSRM call.
 
-⏱ Not routing by minute 6 → open `03-routing/steps/step3-solution.js` (or point the import at `../03-routing/route.js`).
+⏱ Not routing? → open `03-routing/steps/step3-solution.js` (or point the import at `../03-routing/route.js`).
 
-## 3c — "I-80 is closed" (5 min)
+## 3c — "I-80 is closed"
 
 Add the toggle: `&exclude=motorway` on both URLs (the `exclude` variable is already there). The finished version has a checkbox; hover it for the caveat.
 

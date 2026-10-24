@@ -1,55 +1,53 @@
-# 04-adapt — Block 5: Reproduce, adapt, scale (2:37–3:00)
+# 04-adapt — Phase 4: Adapt the pipeline to your own community
 
-Everything in this workshop is a pipeline of scripts reading one file, `versions.env`. Change the bounding box and the same
-pipeline builds your town. This lab shows you what it *would* do — offline, in seconds.
+Every script reads one file, [`versions.env`](../versions.env). Change the bounding box, re-run the same pipeline, get the same map for a different place.
+Run everything from the **repo root**.
 
-## Lab 4 — Point it at your town ⏱ 6 min (+2 👀)  · working dir = repo root
+```mermaid
+flowchart LR
+  classDef file fill:#E6F0FF,stroke:#0678FF,color:#161D26
+  classDef tool fill:#161D26,stroke:#161D26,color:#FFFFFF
+  classDef step fill:#FFFFFF,stroke:#8A939B,color:#161D26
+  classDef chk  fill:#E6F5EA,stroke:#2E8B57,color:#161D26
+  classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
+  classDef bail fill:#FFF4E5,stroke:#FF6101,color:#161D26,stroke-dasharray:5 4
 
-1. Open `versions.env` and change the four `BBOX_*` values to a box around your own community (W, S, E, N in lon/lat;
-   [bboxfinder.com](http://bboxfinder.com) draws one). Keep it under about 0.5 sq. degrees for a laptop.
-2. Print the plan — **no network, nothing is written**:
+  V[/"versions.env<br/>BBOX_W S E N · every version pinned"/]:::file
+  PL["1 · Plan<br/>scripts/make-data.sh --plan<br/>prints what will run · downloads nothing"]:::tool
+  RUN["2 · Fetch<br/>scripts/make-data.sh<br/>Overture · hazard · OSM clip · exports"]:::tool
+  SH["3 · Your shelters<br/>data/shelters.geojson"]:::step
+  P["4 · Same pipeline<br/>03-export.sql → 01-tiles/build.sh<br/>→ build-osrm.sh → make-coverage.py"]:::tool
+  CK(["5 · CHECKSUMS.sha256<br/>verify what you pulled or built"]):::chk
+  PUB(["6 · Publish<br/>Pages · S3 · USB stick — static files"]):::out
+  SW["Swap the hazard<br/>FEMA NFHL · USGS · county polygons<br/>same SQL, new source"]:::bail
 
-```bash
-scripts/make-data.sh --plan
+  V --> PL --> RUN --> SH --> P --> CK --> PUB
+  SW -.-> RUN
 ```
 
-3. Read it: which Overture queries run, which files appear, how big they will be. The size estimates scale with the box area.
+## Steps
 
-**Expected** with the default Placer I-80 box (`-121.40,38.72,-120.52,39.20`):
-```
-Study area bbox: -121.40,38.72,-120.52,39.20  (0.422 sq. degrees)   Overture release: 2026-09-23.1
-
-== overture → data/overture/*.parquet  (DuckDB reads s3://overturemaps-us-west-2/release/2026-09-23.1 directly, bbox pushdown)
-   segments.parquet  (roads: id, subtype, class, subclass, name, route_ref)   ~17.7 MB
-   connectors.parquet                                                       ~6.3 MB
-   places.parquet    (id, name, category, basic_category, confidence, address) ~2.1 MB
-   water.parquet · localities.parquet · land_cover.parquet · buildings_auburn.parquet (Auburn bbox only)
-
-== hazard → data/hazard/   (CAL FIRE ArcGIS REST, f=geojson so the server reprojects EPSG:2226 ft → WGS84)
-   fhsz.parquet            FHSZ 2024/25 SRA+LRA polygons intersecting the bbox   ~1–5 MB
-   fire_perimeters.geojson Mosquito 2022 + River 2021 (clipped to bbox)           <1 MB
-
-== osm → data/osm/study-area.osm.pbf + colfax.osm.pbf  (osmium extract from https://download.geofabrik.de/north-america/us/california/norcal-latest.osm.pbf, ~1 GB download)
-
-== exports → data/prebuilt/out/*.geojson  (the fallback copy of what attendees produce in Lab 1c; same SQL as 00-data/03-export.sql)
-
-(plan only — nothing was downloaded or written)
-```
-Edit the box and the first line and the three `~… MB` estimates change.
-
-👀 **Pens down:** what is the new area in sq. degrees, and which estimate grew the most?
-
-⏱ If it misbehaves after your edit: no spaces around `=` in `versions.env`; `git checkout versions.env` restores the default box.
-
-**Homework — the real run** (needs network; ~1 GB OSM download for the Geofabrik step):
-```bash
-scripts/make-data.sh                  # overture + hazard + osm + exports
-scripts/build-osrm.sh                 # routing graph (needs docker / finch / podman)
-01-tiles/build.sh                     # out/evac.pmtiles
-```
-You will also need to replace `data/shelters.geojson` with shelters for your town (id, name, status, type, town, source —
-mark everything `candidate` until a primary source says otherwise) and the Auburn box (`AUBURN_*`) for the buildings layer.
-The FHSZ layer only exists for California; for elsewhere, see below.
+1. **Box** — draw one around your community ([bboxfinder.com](http://bboxfinder.com)), keep it under ~0.5 sq. degrees, put W,S,E,N into the four `BBOX_*` lines (no spaces around `=`). Pick the matching Geofabrik region in `OSM_EXTRACT_URL`.
+2. **Plan** — no network, nothing written:
+   ```bash
+   scripts/make-data.sh --plan
+   ```
+   Expected (default box): `Study area bbox: -121.40,38.72,-120.52,39.20  (0.422 sq. degrees)`, then the Overture queries and output files with size estimates (`segments.parquet ~17.7 MB …`). Edit the box, run again, watch the estimates change.
+   Misbehaves? `git checkout versions.env` restores the default.
+3. **Fetch** — network; the Geofabrik extract is the big download:
+   ```bash
+   scripts/make-data.sh                     # overture · hazard · osm · exports   (one stage: scripts/make-data.sh overture)
+   ```
+4. **Shelters** — replace `data/shelters.geojson` (`id, name, status, type, town, source`); everything is `candidate` until a primary source confirms it. Set `AUBURN_*` to the town whose buildings you want in 3D.
+5. **Rebuild the artifacts**
+   ```bash
+   duckdb -c ".read 00-data/03-export.sql"            # out/*.geojson
+   01-tiles/build.sh                                  # out/evac.pmtiles
+   scripts/build-osrm.sh                              # data/osrm/  — on the laptop (needs Docker/Finch); then: docker compose restart osrm
+   scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson   (laptop: --osrm http://localhost:8080/osrm)
+   ```
+6. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/`, the default pin (`START`) in `03-routing/route.js`.
+7. **Verify and publish** — `sha256sum -c data/CHECKSUMS.sha256`; regenerate your own list with `scripts/make-bundle.sh`; push `out/evac.pmtiles`, `data/coverage/`, `02-web/`, `demo/` to any static host that answers Range requests. Keep the attribution line and the disclaimer on the map.
 
 ## Swap the hazard
 
@@ -79,4 +77,3 @@ The hazard layer is one polygon file with a class column. Replace it, keep the s
 | OSRM MLD graph for 0.4 sq. degrees, 99 MB, 15 s | Large graphs need far more RAM and disk to build (see the OSRM wiki); use regional Geofabrik extracts, or Valhalla / GraphHopper / OpenRouteService if you need isochrones, traffic profiles or alternatives. |
 | `/table` 10 shelters × ~3,300 hexes | `--max-table-size` grows memory quadratically; batch the requests (as `scripts/make-coverage.py` does). |
 
-More: slides S35–S37 (laptop → planet, in the wild, learn more).

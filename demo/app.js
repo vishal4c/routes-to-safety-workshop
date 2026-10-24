@@ -1,14 +1,14 @@
 /* Routes to Safety demo — Placer County I-80 corridor.
-   Static page: MapLibre + PMTiles basemap, GeoJSON shelters/coverage, OSRM routing. */
+   Static page: MapLibre + PMTiles basemap, GeoJSON shelters/coverage, OSRM routing.
+   Three exclusive views (Fire evac map / Base map / Shelter reach); routing works in all of them. */
 /* maplibre-gl 6.x ships ESM only (no UMD maplibre-gl.js), so this file is a module.
    Module scope keeps everything out of window. */
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs';
 {
   const BBOX = [-121.40, 38.72, -120.52, 39.20]; // W,S,E,N study area — keep in sync with versions.env BBOX_*
   const PMTILES_URL = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
-  const PALETTE = ['#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd']; // Set3-like, 10 shelters
   const $ = (id) => document.getElementById(id);
-  const state = { shelters: [], osrm: null, start: null, closed: false, override: null, reach: null, seq: 0, fixtures: false };
+  const state = { shelters: [], osrm: null, start: null, closed: false, override: null, view: 'evac', reach: null, seq: 0, fixtures: false };
   let map, startMarker, destMarker, hoverPopup, resultPopup;
 
   // ---- small helpers -------------------------------------------------------
@@ -148,86 +148,89 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
       startMarker = new maplibregl.Marker({ draggable: true, color: '#3fb1ce' }).setLngLat([lng, lat]).addTo(map);
       startMarker.on('dragend', () => { const l = startMarker.getLngLat(); setStart(l.lng, l.lat); });
     } else startMarker.setLngLat([lng, lat]);
-    const u = new URLSearchParams({ lng: lng.toFixed(5), lat: lat.toFixed(5) });
-    if (state.closed) u.set('closed', '1');
-    history.replaceState(null, '', '?' + u);
+    updateUrl();
     if (!fromUrl && !inBbox(lng, lat)) notice('This demo covers the Placer I-80 corridor only');
     run();
   }
 
-  // ---- map layers / legend ---------------------------------------------------
-  const GROUPS = { bands: ['coverage-bands'], hex: ['coverage-hex'], hazard: ['hazard'], fires: ['fire_perimeters'] };
-  function wireToggles() {
-    document.querySelectorAll('[data-layer]').forEach((b) => {
-      const apply = () => GROUPS[b.dataset.layer].forEach((l) => map.setLayoutProperty(l, 'visibility', b.getAttribute('aria-pressed') === 'true' ? 'visible' : 'none'));
-      b.onclick = () => {
-        const on = b.getAttribute('aria-pressed') !== 'true';
-        b.setAttribute('aria-pressed', on);
-        // Bands and shelter areas are alternatives: turning one on turns the other off.
-        if (on && (b.dataset.layer === 'bands' || b.dataset.layer === 'hex')) {
-          const other = document.querySelector(`[data-layer=${b.dataset.layer === 'bands' ? 'hex' : 'bands'}]`);
-          other.setAttribute('aria-pressed', false); other.onclick && GROUPS[other.dataset.layer].forEach((l) => map.setLayoutProperty(l, 'visibility', 'none'));
-        }
-        apply();
-      };
-    });
+  // ---- views ---------------------------------------------------------------
+  // Exactly one view is on at a time. Switching a view only flips layer visibility;
+  // shelters, the pin and the route are drawn in every view, so routing works everywhere.
+  //   evac   — fire hazard severity + past fire perimeters on our own tiles (default, works offline)
+  //   normal — plain OpenStreetMap basemap (internet needed)
+  //   reach  — 10 / 20 / 30-min drive-time bands per shelter on a plain base; hazard is OFF so colours never mix
+  const THEME = ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'roads-motorway', 'buildings', 'places'];
+  const VIEWS = {
+    evac:   { show: THEME, hide: ['basemap-osm', 'coverage-bands'] },
+    normal: { show: ['basemap-osm'], hide: THEME.concat('coverage-bands') },
+    reach:  { show: ['water', 'roads-minor', 'roads-major', 'roads-motorway', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings'] }
+  };
+  const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
+  function setView(name) {
+    if (!VIEWS[name]) return;
+    state.view = name;
+    document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.view === name));
+    VIEWS[name].hide.forEach((id) => vis(id, false));
+    VIEWS[name].show.forEach((id) => vis(id, true));
+    if (name !== 'reach') showShelterReach(null);
+    if (name === 'normal' && !navigator.onLine) notice('Base map needs internet for the OpenStreetMap tiles.');
+    buildLegend();
+    updateUrl();
   }
+  function wireViews() { document.querySelectorAll('[data-view]').forEach((b) => { b.onclick = () => setView(b.dataset.view); }); }
+
+  // ---- legend (per view) ---------------------------------------------------
   function legendRow(swatch, label) { return el('div', { className: 'row' }, [swatch, label]); }
   const sw = (c) => el('span', { className: 'sw', style: 'background:' + c });
+  const dot = (bg) => el('span', { className: 'chip' }, [el('span', { className: 'dot', style: 'background:' + bg })]);
   function buildLegend() {
-    const L = $('legend');
-    L.append(el('div', { className: 'src', textContent: 'Fire hazard severity' }));
-    [['#fdbb84', 'Moderate'], ['#e34a33', 'High'], ['#b30000', 'Very High']].forEach(([c, t]) => L.append(legendRow(sw(c), t)));
-    L.append(el('div', { className: 'src', textContent: 'Source: CAL FIRE FRAP (CC-BY)' }));
-    L.append(legendRow(el('span', { className: 'sw', style: 'border:0;border-top:2px dashed #4d4d4d;height:0;margin:5px 0' }), 'Past fire perimeter (Mosquito 2022, River 2021)'));
-    [['#a8ddb5', '10 min drive'], ['#7bccc4', '20 min drive'], ['#43a2ca', '30 min drive']].forEach(([c, t]) => L.append(legendRow(sw(c), t + ' (free-flow)')));
-    // legend dots sit on a grey chip so 'white fill' and 'no fill' are distinguishable on the white panel
-    L.append(legendRow(el('span', { className: 'chip' }, [el('span', { className: 'dot', style: 'background:#fff' })]), 'Shelter — verified (documented incident shelter)'));
-    L.append(legendRow(el('span', { className: 'chip' }, [el('span', { className: 'dot', style: 'background:transparent' })]), 'Shelter — candidate (not confirmed)'));
-    L.append(el('div', { className: 'src', id: 'hex-legend', textContent: 'Nearest-shelter colours appear on the map when that layer is on; hover a cell for minutes.' }));
+    const L = $('legend'); L.replaceChildren();
+    if (state.view === 'evac') {
+      L.append(el('div', { className: 'src', textContent: 'Fire hazard severity (CAL FIRE FRAP)' }));
+      [['#fdbb84', 'Moderate'], ['#e34a33', 'High'], ['#b30000', 'Very High']].forEach(([c, t]) => L.append(legendRow(sw(c), t)));
+      L.append(legendRow(el('span', { className: 'sw', style: 'border:0;border-top:2px dashed #4d4d4d;height:0;margin:5px 0' }), 'Past fire perimeter (River 2021, Mosquito 2022)'));
+    } else if (state.view === 'reach') {
+      L.append(el('div', { className: 'src', textContent: 'Drive time to reach a shelter (free-flow, no traffic)' }));
+      [['#a8ddb5', '≤ 10 min'], ['#2b6cb0', '≤ 20 min'], ['#fcae91', '≤ 30 min']].forEach(([c, t]) => L.append(legendRow(sw(c), t)));
+    }
+    L.append(legendRow(dot('#fff'), 'Shelter — verified'));
+    L.append(legendRow(dot('transparent'), 'Shelter — candidate (not confirmed)'));
+    L.append(legendRow(sw('#d81b60'), 'Route to nearest shelter'));
   }
 
-  function colourHexes(style) {
-    const m = ['match', ['get', 'shelter_id']];
-    state.shelters.forEach((s, i) => m.push(s.properties.id, PALETTE[i % PALETTE.length]));
-    m.push('#cccccc');
-    style.layers.find((l) => l.id === 'coverage-hex').paint['fill-color'] = m;
-    const L = $('hex-legend'); L.replaceChildren('Nearest shelter areas:');
-    state.shelters.forEach((s, i) => L.append(legendRow(sw(PALETTE[i % PALETTE.length]), s.properties.name)));
-  }
-
-  // Shelter "isochrone": the precomputed 10/20/30-min bands filtered to one shelter (null = all shelters).
+  // Shelter reach: the precomputed 10/20/30-min bands filtered to one shelter (null = all shelters).
   function showShelterReach(id) {
     state.reach = id;
-    map.setFilter('coverage-bands', id ? ['==', ['get', 'shelter_id'], id] : null);
-    // One shelter's reach reads better when it is opaque and the hazard fill steps back.
-    map.setPaintProperty('coverage-bands', 'fill-opacity', id ? 0.75 : 0.35);
-    map.setPaintProperty('hazard', 'fill-opacity', id ? 0.12 : 0.3);
-    if (id) { // make sure the bands are visible and the alternative layer is off
-      const b = document.querySelector('[data-layer=bands]'); if (b.getAttribute('aria-pressed') !== 'true') b.click();
-    }
+    if (map.getLayer('coverage-bands')) map.setFilter('coverage-bands', id ? ['==', ['get', 'shelter_id'], id] : null);
     const s = state.shelters.find((x) => x.properties.id === id);
-    $('reach-status').textContent = id ? `Drive-time bands: ${s ? s.properties.name : id} only` : '';
+    $('reach-status').textContent = id ? `Showing the reach of ${s ? s.properties.name : id} only — click the map to show all shelters.` : '';
+    updateUrl();
+  }
+
+  function updateUrl() {
+    const u = new URLSearchParams();
+    if (state.start) { u.set('lng', state.start[0].toFixed(5)); u.set('lat', state.start[1].toFixed(5)); }
+    if (state.closed) u.set('closed', '1');
+    if (state.view && state.view !== 'evac') u.set('view', state.view);
+    if (state.reach) u.set('shelter', state.reach);
+    history.replaceState(null, '', u.toString() ? '?' + u : location.pathname);
   }
 
   function wireHover() {
     hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
-    const layers = ['shelters-verified', 'shelters-candidate', 'coverage-hex'];
+    const layers = ['shelters-verified', 'shelters-candidate'];
     map.on('mousemove', (e) => {
-      const f = map.queryRenderedFeatures(e.point, { layers: layers.filter((l) => map.getLayoutProperty(l, 'visibility') !== 'none') })[0];
+      const f = map.queryRenderedFeatures(e.point, { layers })[0];
       map.getCanvas().style.cursor = f ? 'pointer' : '';
       if (!f) return hoverPopup.remove();
-      const p = f.properties;
-      const t = f.layer.id === 'coverage-hex' ? `Nearest shelter: ${(state.shelters.find((s) => s.properties.id === p.shelter_id) || { properties: { name: p.shelter_id } }).properties.name} · ${Math.round(p.minutes)} min` : `${p.name} (${p.status})`;
-      hoverPopup.setLngLat(f.layer.id === 'coverage-hex' ? e.lngLat : f.geometry.coordinates).setText(t).addTo(map);
+      hoverPopup.setLngLat(f.geometry.coordinates).setText(`${f.properties.name} (${f.properties.status})`).addTo(map);
     });
     map.on('click', (e) => {
-      const f = map.queryRenderedFeatures(e.point, { layers: ['shelters-verified', 'shelters-candidate'] })[0];
-      if (f) { // shelter click -> info popup (not a pin drop)
+      const f = map.queryRenderedFeatures(e.point, { layers })[0];
+      if (f) { // shelter click -> info popup (not a pin drop); in the reach view it also isolates that shelter's bands
         const p = f.properties;
-        showShelterReach(p.id);
-        const node = el('div', {}, [el('strong', { textContent: p.name }), el('br'), `Type: ${p.type}`, el('br'), `Town: ${p.town}`, el('br'), `Status: ${p.status}`, el('br'), `Source: ${p.source}`,
-          el('br'), el('em', { textContent: 'Showing the area within 10 / 20 / 30 min of this shelter. Click the map to drop a pin and reset.' })]);
+        const node = el('div', {}, [el('strong', { textContent: p.name }), el('br'), `Type: ${p.type}`, el('br'), `Town: ${p.town}`, el('br'), `Status: ${p.status}`, el('br'), `Source: ${p.source}`]);
+        if (state.view === 'reach') { showShelterReach(p.id); node.append(el('br'), el('em', { textContent: 'Showing only this shelter’s 10 / 20 / 30-min reach. Click the map to show all.' })); }
         new maplibregl.Popup({ offset: 12 }).setLngLat(f.geometry.coordinates).setDOMContent(node).addTo(map);
         return;
       }
@@ -237,22 +240,18 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
 
   // ---- startup -----------------------------------------------------------------
   async function init() {
-    buildLegend();
     const style = await (await fetch('style.json')).json();
     style.sources.evac.url = 'pmtiles://' + PMTILES_URL;
     // Label fonts are vendored in 02-web/fonts (Noto Sans, OFL) so labels also work offline / in the room.
     style.glyphs = new URL('../02-web/fonts/', location.href).href + '{fontstack}/{range}.pbf';
-    const [shelters, bands, hex] = await Promise.all([
+    const [shelters, bands] = await Promise.all([
       loadData('shelters.geojson', 'shelters.geojson'),
-      loadData('coverage/coverage_bands.geojson', 'coverage_bands.geojson'),
-      loadData('coverage/coverage_hex.geojson', 'coverage_hex.geojson')
+      loadData('coverage/coverage_bands.geojson', 'coverage_bands.geojson')
     ]);
     // Data goes straight into the style, so the map never waits on an event to show it.
     state.shelters = shelters.features;
     style.sources.shelters.data = shelters;
     style.sources.coverage_bands.data = bands;
-    style.sources.coverage_hex.data = hex;
-    colourHexes(style);
     maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile);
     map = new maplibregl.Map({ container: 'map', style, center: [-121.10, 38.93], zoom: 10, attributionControl: false });
     map.addControl(new maplibregl.AttributionControl({ compact: false }));
@@ -264,7 +263,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
       console.warn('map error:', msg);
       if (!tileWarned && (e.sourceId === 'evac' || /pmtiles|evac|404|Range/i.test(msg))) { tileWarned = true; notice('Basemap tiles (data/prebuilt/evac.pmtiles) not found — shelters and coverage still work.'); }
     });
-    wireToggles(); wireHover();
+    wireViews(); wireHover();
 
     $('closed').onchange = (e) => { state.closed = e.target.checked; state.override = null; if (state.start) setStart(state.start[0], state.start[1]); };
     // Never block the map on routing: detect after everything else is drawn.
@@ -273,9 +272,10 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     const q = new URLSearchParams(location.search);
     if (q.get('closed') === '1') { state.closed = true; $('closed').checked = true; }
     if (q.has('lng') && q.has('lat')) setStart(+q.get('lng'), +q.get('lat'), true);
-    if (q.get('shelter')) showShelterReach(q.get('shelter'));
-    // Console / automation hook (the module scope hides everything else): rts.setStart(lng, lat), rts.showShelterReach(id)
-    window.rts = { map, setStart, showShelterReach, state };
+    const applyView = () => { setView(VIEWS[q.get('view')] ? q.get('view') : 'evac'); if (q.get('shelter') && state.view === 'reach') showShelterReach(q.get('shelter')); };
+    if (map.isStyleLoaded()) applyView(); else map.once('load', applyView);
+    // Console / automation hook (the module scope hides everything else): rts.setView('reach'), rts.setStart(lng, lat), rts.showShelterReach(id)
+    window.rts = { map, setStart, setView, showShelterReach, state };
   }
   init().catch((e) => { console.error(e); notice('Demo failed to start: ' + e.message); });
 }

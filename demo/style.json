@@ -5,14 +5,7 @@
     "evac": {
       "type": "vector",
       "url": "pmtiles://__PMTILES__",
-      "attribution": "\u00a9 OpenStreetMap contributors \u00b7 \u00a9 Overture Maps Foundation \u00b7 Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) \u00b7 Land cover: ESA WorldCover (CC-BY)"
-    },
-    "coverage_hex": {
-      "type": "geojson",
-      "data": {
-        "type": "FeatureCollection",
-        "features": []
-      }
+      "attribution": "© OpenStreetMap contributors · © Overture Maps Foundation · Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) · Land cover: ESA WorldCover (CC-BY)"
     },
     "coverage_bands": {
       "type": "geojson",
@@ -34,9 +27,33 @@
         "type": "FeatureCollection",
         "features": []
       }
+    },
+    "osm": {
+      "type": "raster",
+      "tiles": [
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+      ],
+      "tileSize": 256,
+      "maxzoom": 19,
+      "attribution": "© OpenStreetMap contributors"
     }
   },
   "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#f7f5f0"
+      }
+    },
+    {
+      "id": "basemap-osm",
+      "type": "raster",
+      "source": "osm",
+      "layout": {
+        "visibility": "none"
+      }
+    },
     {
       "id": "water",
       "type": "fill",
@@ -94,19 +111,6 @@
       "source-layer": "fire_perimeters"
     },
     {
-      "id": "coverage-hex",
-      "type": "fill",
-      "source": "coverage_hex",
-      "paint": {
-        "fill-color": "#cccccc",
-        "fill-opacity": 0.55,
-        "fill-outline-color": "#00000033"
-      },
-      "layout": {
-        "visibility": "none"
-      }
-    },
-    {
       "id": "coverage-bands",
       "type": "fill",
       "source": "coverage_bands",
@@ -120,17 +124,19 @@
           10,
           "#a8ddb5",
           20,
-          "#7bccc4",
+          "#2b6cb0",
           30,
-          "#43a2ca",
-          "#43a2ca"
+          "#fcae91",
+          "#fcae91"
         ],
-        "fill-opacity": 0.35,
-        "fill-outline-color": "#0868ac"
+        "fill-opacity": 0.92,
+        "fill-outline-color": "#ffffff80"
       },
       "layout": {
+        "visibility": "none",
         "fill-sort-key": [
           "-",
+          0,
           [
             "get",
             "band"

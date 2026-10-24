@@ -1,4 +1,4 @@
-# Block 2 exercises (5 min)
+# Block 2 exercises (optional)
 
 Run from the repo root. Solutions are collapsed — try first.
 

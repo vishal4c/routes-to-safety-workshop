@@ -1,19 +1,38 @@
-# Setup guide (send at T‑7)
+# Setup — pick one way to run
 
-Pick **one tier**. Do the install the week before; on the day, run `python3 setup/check_setup.py` and it tells you what is missing.
+```mermaid
+flowchart LR
+  classDef q    fill:#E6F0FF,stroke:#0678FF,color:#161D26
+  classDef step fill:#FFFFFF,stroke:#8A939B,color:#161D26
+  classDef tool fill:#161D26,stroke:#161D26,color:#FFFFFF
+  classDef chk  fill:#E6F5EA,stroke:#2E8B57,color:#161D26
+  classDef bail fill:#FFF4E5,stroke:#FF6101,color:#161D26,stroke-dasharray:5 4
 
-| Tier | For | Routing (Lab 3) | Survives wifi loss |
+  Q{"Docker or Finch<br/>on this laptop?"}:::q
+  T1["Tier 1 · Codespaces<br/>personal GitHub account<br/>Ports → 8080 → globe"]:::step
+  T2["Tier 2 · Docker image<br/>docker compose up -d<br/>docker compose exec workshop bash"]:::step
+  T3["Tier 3 · Native<br/>DuckDB + Java + Node + pmtiles<br/>everything except routing"]:::step
+  C["python3 setup/check_setup.py<br/>green / red per tool · your tier · next command"]:::tool
+  H["duckdb -c &quot;.read setup/hello-geo.sql&quot;"]:::tool
+  OK(["OK — DuckDB 2.0.0 · 10 shelters<br/>nearest to Colfax: Sierra Vista CC, 0.2 km"]):::chk
+  B["Still red?<br/>switch tier · or follow on the Pages site"]:::bail
+
+  Q -- yes --> T2
+  Q -- no --> T1
+  Q -- "no GitHub" --> T3
+  T1 & T2 & T3 --> C --> H --> OK
+  C -.-> B
+```
+
+| Tier | For | Routing | Survives wifi loss |
 |---|---|---|---|
 | 1 Codespaces | no Docker, corporate laptop | yes | no |
-| 2 Local containers — **recommended if you can run containers** | wants offline | yes | yes |
+| 2 Local containers — **recommended if you can run containers** | wants offline, nothing to install | yes | yes |
 | 3 Native, no containers | containers blocked | **no** (pair with a neighbour) | yes |
 | 4 Browser only (GitHub Pages) | laptop failed | no | no |
 
-> **Red for more than 10 minutes → switch tier.** Don't debug an install while the room moves on. Raise a red sticky; an instructor will come, or just open the tier‑1 or tier‑4 link on the slide.
-
-Always clone shallow: `git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git` (≈ 60–70 MB). **Windows: use Git Bash** for every command in the labs (PowerShell equivalents are at the bottom).
-
-Pinned versions (from `versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · go‑pmtiles v1.31.2 · Planetiler v0.10.2 · OSRM `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian` · maplibre‑gl 6.14.0 · pmtiles JS 4.5.0 · Marp CLI 4.5.1.
+Clone shallow: `git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git`. **Windows: use Git Bash** (PowerShell equivalents at the bottom).
+Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · go-pmtiles v1.31.2 · Planetiler v0.10.2 · OSRM `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian` · maplibre-gl 6.14.0 · pmtiles JS 4.5.0.
 
 ---
 
@@ -37,7 +56,7 @@ Pinned versions (from `versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22
 
 Podman / nerdctl also work. The scripts and `check_setup.py` auto‑detect `docker → finch → podman → nerdctl`; override with `CONTAINER_CLI=finch`.
 
-### 2b. Pull images and data (do this at home — it is ~1 GB)
+### 2b. Pull images and data (~1 GB, once)
 
 ```bash
 git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git
@@ -59,7 +78,7 @@ docker compose up -d                  # Finch: finch compose up -d
 docker compose down                   # when finished
 ```
 
-### 2d. Work inside the tool container (recommended — nothing to install)
+### 2d. Work inside the tool container (recommended — nothing else to install)
 
 ```bash
 docker compose exec workshop bash     # Finch: finch compose exec workshop bash
@@ -67,12 +86,10 @@ python3 setup/check_setup.py          # expect: tier 2, OSRM reachable via http:
 duckdb -c ".read setup/hello-geo.sql"
 ```
 
-The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the container's working directory), so every lab command in the
-module READMEs runs unchanged and whatever you write to `out/` is served by Caddy immediately at <http://localhost:8080/> on your laptop.
-Inside the container use `$OSRM_URL` (= `http://caddy:8080/osrm`) for `curl`; in the browser the page uses `/osrm` on port 8080 automatically.
-The tool container has no Docker inside, so `scripts/build-osrm.sh` (only needed for your own town) runs on the laptop.
-
-Prefer native tools? Install them as in Tier 3 and run the labs on the host; `osrm` + `caddy` from `docker compose up -d` are all you need from Docker.
+- The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the working directory): every command in the module READMEs runs unchanged; what you write to `out/` is served at <http://localhost:8080/> on your laptop.
+- `curl` inside the container: `$OSRM_URL` (= `http://caddy:8080/osrm`). The browser uses `/osrm` on :8080 automatically.
+- No Docker inside the tool container → `scripts/build-osrm.sh` (your own town only) runs on the laptop.
+- Prefer native tools? Install as in Tier 3; `osrm` + `caddy` from `docker compose up -d` are all you need from Docker.
 
 ## Tier 3 — Native, no containers (no routing)
 
