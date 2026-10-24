@@ -117,7 +117,7 @@ duckdb → read Overture (S3) → filter to bbox
 ```
 
 - Files: `segments`, `connectors`, `places`, `water`, `localities`, `buildings_auburn`
-- Committed to git (≈ 40 MB of data; shallow clone) — no network needed in the room
+- Committed to git — `git clone --depth 1` is 38 MB, 3 s; no network needed in the room
 - Re-run for your own town: `scripts/make-data.sh` (Block 5)
 
 ---

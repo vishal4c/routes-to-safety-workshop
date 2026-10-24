@@ -33,7 +33,7 @@ Mosquito 2022 footprint). Bounding box (W,S,E,N) = **-121.40, 38.72, -120.52, 39
 
 | In git (`git clone --depth 1`) | In `data-bundle.zip` (Release asset + USB + baked into the image) |
 |---|---|
-| `overture/*.parquet` (29 MB), `hazard/*` (5.9 MB), `shelters.geojson`, `coverage/*` (1.5 MB), `prebuilt/out/*.geojson` (39 MB) — about 76 MB on disk, **≈ 39 MB compressed** (`tar czf` measurement; real `git clone --depth 1` size: TBD, prep task f) | `osm/*.osm.pbf` (17.4 MB), `osrm/*` (99 MB), `prebuilt/evac.pmtiles` (6.5 MB), `01-tiles/planetiler.jar` (93 MB) |
+| `overture/*.parquet` (29 MB), `hazard/*` (5.9 MB), `shelters.geojson`, `coverage/*` (1.5 MB), `prebuilt/out/*.geojson` (39 MB) — about 76 MB on disk, **38 MB transferred** by `git clone --depth 1` (measured 2026-10-23), 109 MB on disk | `osm/*.osm.pbf` (17.4 MB), `osrm/*` (99 MB), `prebuilt/evac.pmtiles` (6.5 MB), `01-tiles/planetiler.jar` (93 MB) |
 
 `scripts/get-bundle.sh` (`.ps1` on PowerShell) downloads the bundle and checks it against `CHECKSUMS.sha256`. No Git LFS.
 Verify by hand from the repo root: `shasum -a 256 -c data/CHECKSUMS.sha256` (Linux: `sha256sum -c`).
