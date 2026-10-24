@@ -57,7 +57,7 @@
   <div id="legend-reach" style="display:none">
     <b>Shelter reach (drive time by road)</b>
     <div><i style="background:#a8ddb5"></i>≤ 10 min</div>
-    <div><i style="background:#2b6cb0"></i>≤ 20 min</div>
+    <div><i style="background:#74a9cf"></i>≤ 20 min</div>
     <div><i style="background:#fcae91"></i>≤ 30 min</div>
     <small>OSRM /table over H3 cells, free-flow speeds · click a shelter → its reach only · click the map → all</small>
   </div>
@@ -205,7 +205,7 @@ window.setView = setView;   // console / automation: setView('reach')
 // Shelter reach data: precomputed drive-time isochrones — for every shelter, the area it can be reached from within
 // 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
 // Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Lab 3 stretch A shows the recipe).
-const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#2b6cb0', 30, '#fcae91', '#fcae91'];
+const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#74a9cf', 30, '#fcae91', '#fcae91'];
 const reachStatus = document.getElementById('reach-status');
 let reachShelter = null;          // null = all shelters, otherwise one shelter id
 let reachData = null;             // the loaded GeoJSON (for shelter names in the status line)
@@ -229,7 +229,7 @@ async function ensureReachLayer() {
   map.addLayer({
     id: 'coverage-bands', type: 'fill', source: 'coverage',
     layout: { visibility: 'none', 'fill-sort-key': ['-', ['get', 'band']] },   // 30-min drawn first, 10-min on top
-    paint: { 'fill-color': REACH_COLORS, 'fill-opacity': 0.45, 'fill-outline-color': '#ffffff00' }   // rings never overlap (make-coverage.py), so they can be translucent without blending
+    paint: { 'fill-color': REACH_COLORS, 'fill-opacity': 0.4, 'fill-outline-color': '#ffffff00' }   // rings never overlap (make-coverage.py), so they can be translucent without blending
   }, before);
   return true;
 }

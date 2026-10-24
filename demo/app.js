@@ -191,7 +191,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
       L.append(legendRow(el('span', { className: 'sw', style: 'border:0;border-top:2px dashed #4d4d4d;height:0;margin:5px 0' }), 'Past fire perimeter (River 2021, Mosquito 2022)'));
     } else if (state.view === 'reach') {
       L.append(el('div', { className: 'src', textContent: 'Drive time to reach a shelter (free-flow, no traffic)' }));
-      [['#a8ddb5', '≤ 10 min'], ['#2b6cb0', '≤ 20 min'], ['#fcae91', '≤ 30 min']].forEach(([c, t]) => L.append(legendRow(sw(c), t)));
+      [['#a8ddb5', '≤ 10 min'], ['#74a9cf', '≤ 20 min'], ['#fcae91', '≤ 30 min']].forEach(([c, t]) => L.append(legendRow(sw(c), t)));
     }
     L.append(legendRow(dot('#fff'), 'Shelter — verified'));
     L.append(legendRow(dot('transparent'), 'Shelter — candidate (not confirmed)'));
