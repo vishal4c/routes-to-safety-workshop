@@ -32,11 +32,12 @@ PMTiles reads a few KB at a time with HTTP `Range` requests. `python -m http.ser
 
 Layer order is automatic: the page sorts pasted layers (water < land cover < hazard < perimeters < roads < buildings < route < shelters), so paste order does not matter. Pasting the same layer id twice is fine — the last paste wins.
 
-## "Normal view" button (top-left, next to zoom)
-Swaps our thematic layers for the standard OpenStreetMap raster basemap (roads, places, land use, boundaries) while keeping shelters, fire perimeters and the route on top — handy to orient yourself, and a nice way to show *why* we built our own tiles. It needs internet (`tile.openstreetmap.org`); the evac view works fully offline. Implementation: one raster source + `setLayoutProperty(id, 'visibility', …)` on a list of layer ids — no style swap, so routing keeps working.
+## Three views, one at a time (buttons top-left, next to zoom)
+- **Evac view** (default, offline): our tiles — fire hazard, land cover, water, roads, buildings, places, shelters.
+- **Normal view**: the standard OpenStreetMap raster basemap (roads, places, land use, boundaries) with shelters, perimeters and the route kept on top — handy to orient yourself and a nice way to show *why* we built our own tiles. Needs internet (`tile.openstreetmap.org`).
+- **Shelter reach view**: drive-time isochrones on a plain base (water + roads + places). For every shelter, the area it can be reached **from** within ≤ 10 min (green), ≤ 20 min (blue), ≤ 30 min (light red). Click a shelter to isolate its own reach; click anywhere else to return to all shelters. The hazard and land-cover layers are switched off here on purpose: the bands must never be read on top of the hazard colours. Data: `data/coverage/coverage_bands.geojson`, precomputed by `scripts/make-coverage.py` — H3 res-8 cell centroids → OSRM `/table` → minutes to each shelter → dissolved per shelter and band (free-flow speeds, no closures; cells more than 1.5 km from a road are skipped, hence the holes). Loaded lazily on first use; `window.setView('reach')` / `window.setReachShelter('placer-high')` from the console.
 
-## "Shelter reach" button (isochrones)
-Shows, for every shelter, the area it can be reached **from** within 10 / 20 / 30 minutes of driving (green → blue). Click a shelter to isolate its own reach (the hazard fill dims so the bands read clearly); click anywhere else to return to all shelters. The data is `data/coverage/coverage_bands.geojson`, precomputed by `scripts/make-coverage.py`: H3 res-8 cell centroids → one OSRM `/table` call per batch → minutes to each shelter → dissolved per shelter and band. Free-flow speeds, no closures, cells more than 1.5 km from a road are skipped (the holes you see). The page loads the file lazily on first click; `window.setReachShelter('placer-high')` does the same from the console. Lab 3 stretch A shows how the file is made.
+Implementation: no style swap — each view is `setLayoutProperty(id, 'visibility', …)` over a list of layer ids (`VIEW_LAYERS` in index.html), so routing keeps working in every view.
 
 ## Legend copy (already in the page)
 - **Fire hazard (FHSZ):** Moderate `#fdbb84` · High `#e34a33` · Very High `#b30000` — Source: CAL FIRE FRAP (CC-BY)

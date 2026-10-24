@@ -22,7 +22,10 @@
   #legend small { color: #555; }
   #view-toggle { position: absolute; top: 10px; left: 50px; z-index: 6; }
   #view-toggle button { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid #0003; border-radius: 4px; background: #fff; cursor: pointer; box-shadow: 0 1px 4px #0004; }
-  #view-toggle button { margin-right: 6px; }
+  #view-toggle button { margin-right: 0; border-radius: 0; }
+  #view-toggle button:first-child { border-radius: 4px 0 0 4px; }
+  #view-toggle button:last-child { border-radius: 0 4px 4px 0; }
+  #view-toggle button + button { border-left: 0; }
   #view-toggle button[aria-pressed="true"] { background: #263238; color: #fff; }
   #reach-status { position: absolute; top: 40px; left: 50px; z-index: 6; font-size: 12px; background: #fffffff0; border-radius: 4px; padding: 2px 8px; display: none; box-shadow: 0 1px 4px #0004; }
   #routing-panel { position: absolute; top: 8px; right: 50px; z-index: 5; background: #fffffff0; border-radius: 4px; padding: 6px 10px; font-size: 12px; display: none; }
@@ -33,18 +36,21 @@
      attribution on, and 03-routing/route.js imported. Open this if you are behind; otherwise work in index.html. -->
 <div id="map"></div>
 <div id="notice"></div>
-<div id="view-toggle">
-  <button id="btn-normal" type="button" aria-pressed="false" title="Standard OpenStreetMap basemap (needs internet) with the shelters on top">Normal view</button>
-  <button id="btn-reach" type="button" aria-pressed="false" title="Drive-time isochrones: the area each shelter can be reached from within 10 / 20 / 30 minutes by road (OSRM, no traffic). Click a shelter to see only its reach.">Shelter reach</button>
+<div id="view-toggle" role="radiogroup" aria-label="Map view">
+  <button data-view="evac"   type="button" aria-pressed="true"  title="Our tiles: fire hazard, land cover, water, roads, shelters">Evac view</button>
+  <button data-view="normal" type="button" aria-pressed="false" title="Standard OpenStreetMap basemap (needs internet) with shelters, perimeters and the route on top">Normal view</button>
+  <button data-view="reach"  type="button" aria-pressed="false" title="Drive-time isochrones on a plain base: the area each shelter can be reached from within 10 / 20 / 30 minutes by road (OSRM, no traffic). Click a shelter to see only its reach.">Shelter reach view</button>
 </div>
 <div id="reach-status"></div>
 
 <div id="legend">
+  <div id="legend-evac">
   <b style="margin-top:0">Fire hazard (FHSZ)</b>
   <div><i style="background:#fdbb84"></i>Moderate</div>
   <div><i style="background:#e34a33"></i>High</div>
   <div><i style="background:#b30000"></i>Very High</div>
   <small>Source: CAL FIRE FRAP (CC-BY)</small>
+  </div>
   <b>Fire perimeters</b>
   <div><i style="background:none;border:0;border-top:2px dashed #4d4d4d;height:0"></i>River 2021 · Mosquito 2022</div>
   <b>Shelters</b>
@@ -53,8 +59,8 @@
   <div id="legend-reach" style="display:none">
     <b>Shelter reach (drive time by road)</b>
     <div><i style="background:#a8ddb5"></i>≤ 10 min</div>
-    <div><i style="background:#7bccc4"></i>≤ 20 min</div>
-    <div><i style="background:#43a2ca"></i>≤ 30 min</div>
+    <div><i style="background:#2b6cb0"></i>≤ 20 min</div>
+    <div><i style="background:#fcae91"></i>≤ 30 min</div>
     <small>OSRM /table over H3 cells, free-flow speeds · click a shelter → its reach only · click the map → all</small>
   </div>
 </div>
@@ -102,7 +108,7 @@ function assemble(...pastes) {
   const byId = {};
   for (const layer of pastes.flat()) byId[layer.id] = layer;
   const sorted = Object.values(byId).sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
-  // 'basemap-osm' is the "Normal view": standard OpenStreetMap raster tiles (internet needed), hidden until toggled.
+  // 'basemap-osm' is the "Normal view": standard OpenStreetMap raster tiles (internet needed), hidden until selected.
   const basemap = { id: 'basemap-osm', type: 'raster', source: 'osm', layout: { visibility: 'none' } };
   return [{ id: 'background', type: 'background', paint: { 'background-color': '#f7f5f0' } }, basemap, ...sorted];
 }
@@ -481,26 +487,44 @@ map.on('error', (e) => {
   showNotice('Some map data failed to load — see the browser console (F12).');
 });
 
-// "Normal view" toggle: standard OSM basemap under the shelters / route / perimeters; our thematic layers hide.
-const EVAC_ONLY = ['water', 'land_cover', 'hazard', 'roads-minor', 'roads-major', 'buildings_auburn', 'places'];
-const btnNormal = document.getElementById('btn-normal');
-btnNormal.onclick = () => {
-  const normal = btnNormal.getAttribute('aria-pressed') !== 'true';
-  btnNormal.setAttribute('aria-pressed', normal);
-  btnNormal.textContent = normal ? 'Evac view' : 'Normal view';
-  const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
-  vis('basemap-osm', normal);
-  for (const id of EVAC_ONLY) vis(id, !normal);
-  if (normal && !navigator.onLine) showNotice('Normal view needs internet for the OpenStreetMap tiles.');
+// ---------------------------------------------------------------------------
+// Three views, one at a time (radio buttons top-left):
+//   evac   — our tiles: hazard, land cover, water, roads, buildings, places, shelters (default, works offline)
+//   normal — OpenStreetMap raster underneath; only shelters, perimeters and the route stay on top (needs internet)
+//   reach  — drive-time isochrones on a plain base (water + roads + places); the thematic evac layers are OFF so the
+//            bands are never read on top of the hazard colours.
+// Nothing is re-styled: each view is just setLayoutProperty(id, 'visibility', ...) on a list of layer ids.
+// ---------------------------------------------------------------------------
+const VIEW_LAYERS = {
+  evac:   { show: ['water', 'land_cover', 'hazard', 'roads-minor', 'roads-major', 'buildings_auburn', 'places'], hide: ['basemap-osm', 'coverage-bands'] },
+  normal: { show: ['basemap-osm'], hide: ['water', 'land_cover', 'hazard', 'roads-minor', 'roads-major', 'buildings_auburn', 'places', 'coverage-bands'] },
+  reach:  { show: ['water', 'roads-minor', 'roads-major', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'buildings_auburn'] }
 };
+const viewButtons = [...document.querySelectorAll('#view-toggle button')];
+let view = 'evac';
+const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
 
-// "Shelter reach" toggle: precomputed drive-time isochrones — for every shelter, the area it can be reached from
-// within 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
+async function setView(name) {
+  if (name === 'reach' && !(await ensureReachLayer())) return;   // data missing -> stay where we are
+  view = name;
+  for (const b of viewButtons) b.setAttribute('aria-pressed', b.dataset.view === name);
+  const { show, hide } = VIEW_LAYERS[name];
+  for (const id of hide) vis(id, false);
+  for (const id of show) vis(id, true);
+  document.getElementById('legend-evac').style.display = name === 'evac' ? 'block' : 'none';
+  document.getElementById('legend-reach').style.display = name === 'reach' ? 'block' : 'none';
+  if (name !== 'reach') setReachShelter(null);
+  if (name === 'normal' && !navigator.onLine) showNotice('Normal view needs internet for the OpenStreetMap tiles.');
+}
+for (const b of viewButtons) b.onclick = () => setView(b.dataset.view);
+window.setView = setView;   // console / automation: setView('reach')
+
+// Shelter reach data: precomputed drive-time isochrones — for every shelter, the area it can be reached from within
+// 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
 // Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Lab 3 stretch A shows the recipe).
-const btnReach = document.getElementById('btn-reach');
+const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#2b6cb0', 30, '#fcae91', '#fcae91'];
 const reachStatus = document.getElementById('reach-status');
 let reachShelter = null;          // null = all shelters, otherwise one shelter id
-let hazardOpacity = null;         // remembered so we can dim the hazard fill under one shelter's bands
 let reachData = null;             // the loaded GeoJSON (for shelter names in the status line)
 
 async function ensureReachLayer() {
@@ -521,12 +545,8 @@ async function ensureReachLayer() {
   const before = ['roads-minor', 'roads-major', 'shelters', 'places'].find((id) => map.getLayer(id));
   map.addLayer({
     id: 'coverage-bands', type: 'fill', source: 'coverage',
-    layout: { 'fill-sort-key': ['-', ['get', 'band']] },           // 30-min band drawn first, 10-min on top
-    paint: {
-      'fill-color': ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#7bccc4', 30, '#43a2ca', '#43a2ca'],
-      'fill-opacity': 0.35,
-      'fill-outline-color': '#0868ac'
-    }
+    layout: { visibility: 'none', 'fill-sort-key': ['-', ['get', 'band']] },   // 30-min drawn first, 10-min on top
+    paint: { 'fill-color': REACH_COLORS, 'fill-opacity': 0.6, 'fill-outline-color': '#ffffff80' }
   }, before);
   return true;
 }
@@ -535,36 +555,21 @@ function setReachShelter(id) {
   reachShelter = id;
   if (!map.getLayer('coverage-bands')) return;
   map.setFilter('coverage-bands', id ? ['==', ['get', 'shelter_id'], id] : null);
-  map.setPaintProperty('coverage-bands', 'fill-opacity', id ? 0.72 : 0.35);
-  if (map.getLayer('hazard')) {
-    if (hazardOpacity === null) hazardOpacity = map.getPaintProperty('hazard', 'fill-opacity') ?? 0.45;
-    map.setPaintProperty('hazard', 'fill-opacity', id ? 0.12 : hazardOpacity);
-  }
+  map.setPaintProperty('coverage-bands', 'fill-opacity', id ? 0.8 : 0.6);
   const f = id && reachData && reachData.features.find((x) => x.properties.shelter_id === id);
   reachStatus.textContent = id ? 'Reach of ' + (f ? f.properties.shelter_name : id) + ' — 10 / 20 / 30 min by road. Click the map for all shelters.' : '';
   reachStatus.style.display = id ? 'block' : 'none';
 }
-
-btnReach.onclick = async () => {
-  const on = btnReach.getAttribute('aria-pressed') !== 'true';
-  if (on && !(await ensureReachLayer())) return;
-  btnReach.setAttribute('aria-pressed', on);
-  map.setLayoutProperty('coverage-bands', 'visibility', on ? 'visible' : 'none');
-  document.getElementById('legend-reach').style.display = on ? 'block' : 'none';
-  setReachShelter(on ? reachShelter : null);
-  if (!on) reachShelter = null;
-};
 window.setReachShelter = setReachShelter;   // console / automation: setReachShelter('sierra-vista-cc')
 
 // Click a shelter -> popup with its name (works once the "shelters" layer exists: Lab 2c).
-// With "Shelter reach" on, the click also isolates that shelter's isochrone.
+// In the reach view the click also isolates that shelter's isochrone.
 map.on('click', 'shelters', (e) => {
   const p = e.features[0].properties;
-  const reachOn = btnReach.getAttribute('aria-pressed') === 'true';
-  if (reachOn) setReachShelter(p.id);
+  if (view === 'reach') setReachShelter(p.id);
   new maplibregl.Popup()
     .setLngLat(e.features[0].geometry.coordinates)
-    .setHTML('<b>' + p.name + '</b><br>' + p.status + ' · ' + p.type + (reachOn ? '<br><small>showing its 10 / 20 / 30-min reach</small>' : ''))
+    .setHTML('<b>' + p.name + '</b><br>' + p.status + ' · ' + p.type + (view === 'reach' ? '<br><small>showing its 10 / 20 / 30-min reach</small>' : ''))
     .addTo(map);
 });
 // Click anywhere else -> back to all shelters' bands.
