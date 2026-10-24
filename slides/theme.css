@@ -1,0 +1,80 @@
+/* @theme rts */
+@import 'default';
+
+section {
+  --accent: #d81b60;
+  --ink: #1f2933;
+  --muted: #5b6770;
+  --haz1: #fdbb84; --haz2: #e34a33; --haz3: #b30000;
+  width: 1280px; height: 720px;
+  font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 30px;
+  color: var(--ink);
+  background: #fff;
+  padding: 56px 72px 76px 72px;
+  line-height: 1.35;
+}
+section h1 { color: var(--ink); font-size: 1.7em; border-bottom: 5px solid var(--accent); padding-bottom: .15em; margin-bottom: .5em; }
+section h2 { color: var(--accent); font-size: 1.25em; }
+section h3 { color: var(--ink); font-size: 1.05em; }
+section a { color: var(--accent); }
+section strong { color: var(--ink); }
+section li { margin: .15em 0; }
+section code { font-family: 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.8em; background: #f3f4f6; color: #111; padding: 0 .2em; border-radius: 4px; }
+section pre { font-size: 22px; line-height: 1.4; background: #f3f4f6; border-radius: 8px; padding: .5em .8em; }
+section pre code { font-size: 1em; background: transparent; padding: 0; }
+section blockquote { border-left: 6px solid var(--accent); margin: .6em 0; padding: .1em .8em; font-size: 1.1em; color: var(--ink); background: #fdf2f6; }
+section table { font-size: 0.8em; border-collapse: collapse; }
+section th { background: var(--accent); color: #fff; }
+section th, section td { padding: .25em .6em; border: 1px solid #ddd; }
+
+section footer, section::after { font-size: 18px; color: var(--muted); }
+section footer { left: 72px; bottom: 22px; }
+section::after { right: 72px; bottom: 22px; font-weight: 600; }
+
+section.lead { text-align: center; justify-content: center; display: flex; flex-direction: column; }
+section.lead h1 { border: none; font-size: 2.2em; }
+section.door { background: var(--accent); color: #fff; justify-content: center; display: flex; flex-direction: column; }
+section.door h1, section.door h2, section.door strong, section.door a { color: #fff; border-color: #fff; }
+section.door footer, section.door::after { color: #fde; }
+section.door code { background: rgba(255,255,255,.2); color: #fff; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
+.credit { position: absolute; left: 72px; bottom: 50px; font-size: 15px; color: var(--muted); max-width: 1000px; line-height: 1.2; }
+.small { font-size: .75em; }
+.big { font-size: 1.4em; }
+.imgph { border: 3px dashed #bbb; color: #888; display: flex; align-items: center; justify-content: center; min-height: 300px; font-size: 22px; text-align: center; background: #fafafa; }
+
+/* Lab card */
+.lab { border-left: 14px solid var(--accent); background: #fdf2f6; padding: .5em .9em; border-radius: 0 10px 10px 0; font-size: 0.9em; }
+.lab h3 { margin: 0 0 .3em; color: var(--accent); }
+.lab pre { background: #fff; border: 1px solid #e5c1cf; font-family: Menlo, Consolas, monospace; }
+.lab .meta { margin: .15em 0; }
+
+/* Tier badges */
+.tier { display: inline-block; font-weight: 700; font-size: .7em; padding: 0 .5em; border-radius: 6px; color: #fff; vertical-align: middle; }
+.tier.r { background: var(--accent); }
+.tier.m { background: #455a64; }
+.tier.f { background: #8d6e63; }
+
+/* Warn call-out */
+.warn { border: 3px solid #455a64; background: #eceff1; padding: .4em .8em; border-radius: 8px; font-size: .85em; }
+.warn.hazard { border-color: var(--haz3); background: #fff5eb; }
+/* hazard OrRd swatches: only for hazard content */
+.haz1 { background: var(--haz1); } .haz2 { background: var(--haz2); color:#fff; } .haz3 { background: var(--haz3); color:#fff; }
+.sw { display:inline-block; padding: 0 .6em; border-radius: 4px; margin-right: .3em; }
+section table { margin: 0 0 .5em; }
+.lab { font-size: 0.8em; }
+.lab p { margin: .3em 0; }
+.lab pre { margin: .3em 0; }
+.lab pre code { white-space: pre-wrap; }
+section table td, section table th { padding: .12em .6em; }
+section h1 { margin-top: 0; }
+
+/* Lab-card slides (<!-- _class: lab -->): dense, so step down one size */
+section.lab { font-size: 24px; }
+section.lab h1 { font-size: 1.45em; margin-bottom: .3em; }
+section.lab pre { font-size: 18px; padding: .35em .7em; margin: .25em 0; }
+section.lab p, section.lab li { margin: .25em 0; }
+
+section.small { font-size: 26px; }
