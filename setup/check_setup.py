@@ -157,7 +157,7 @@ def check_container():
     if shutil.which("docker") or shutil.which("finch") or shutil.which("podman") or shutil.which("nerdctl"):
         add("container runtime", "warn", "CLI found but no `compose` subcommand — install the compose plugin or use Finch", required=False)
     else:
-        add("container runtime", "skip", "none found (fine for tier 3; recommended: Finch — see setup/README.md)", required=False)
+        add("container runtime", "skip", "inside the workshop container — osrm + caddy run beside it" if IN_WORKSHOP_CONTAINER else "none found (fine for tier 3; recommended: Finch — see setup/README.md)", required=False)
 
 
 def http_ok(url, timeout=3):
@@ -168,9 +168,16 @@ def http_ok(url, timeout=3):
         return None, ""
 
 
+IN_WORKSHOP_CONTAINER = os.environ.get("WORKSHOP_CONTAINER") == "1"   # set by docker-compose.yml for the `workshop` service
+WEB_URL = os.environ.get("WEB_URL", "http://localhost:8080")              # inside the compose network: http://caddy:8080
+
+
 def check_osrm():
     path = "/nearest/v1/driving/-121.08,38.90"
-    for label, base in (("same-origin :8080/osrm", "http://localhost:8080/osrm"), ("localhost:5000", "http://localhost:5000")):
+    candidates = [("same-origin :8080/osrm", "http://localhost:8080/osrm"), ("localhost:5000", "http://localhost:5000")]
+    if os.environ.get("OSRM_URL"):
+        candidates.insert(0, ("$OSRM_URL = " + os.environ["OSRM_URL"], os.environ["OSRM_URL"].rstrip("/")))
+    for label, base in candidates:
         st, body = http_ok(base + path)
         if st == 200 and '"Ok"' in body:
             add("OSRM routing", "ok", "reachable via " + label, required=False)
@@ -180,9 +187,9 @@ def check_osrm():
 
 
 def check_web():
-    st, _ = http_ok("http://localhost:8080/data/shelters.geojson")
+    st, _ = http_ok(WEB_URL + "/data/shelters.geojson")
     if st == 200:
-        add("web server :8080", "ok", "http://localhost:8080/ serves the repo", required=False)
+        add("web server :8080", "ok", "%s/ serves the repo%s" % (WEB_URL, " (open http://localhost:8080/ on your laptop)" if IN_WORKSHOP_CONTAINER else ""), required=False)
         return True
     add("web server :8080", "skip", "not running yet", required=False)
     return False
@@ -238,6 +245,8 @@ def main():
     in_codespaces = os.environ.get("CODESPACES") == "true"
     if in_codespaces:
         tier, why = "1 (Codespaces)", "CODESPACES=true"
+    elif IN_WORKSHOP_CONTAINER:
+        tier, why = "2 (local containers)", "inside the workshop container from docker-compose.yml"
     elif CONTAINER["cli"] and (osrm or os.path.isdir(path("data", "osrm"))):
         tier, why = "2 (local containers)", "%s found" % CONTAINER["cli"]
     elif not required_fail:
@@ -254,6 +263,8 @@ def main():
     elif missing_bundle and not in_codespaces:
         print("Next: " + ("bash scripts/get-bundle.sh" if OS != "windows" else "bash scripts/get-bundle.sh   (PowerShell: powershell -ExecutionPolicy Bypass -File scripts\\get-bundle.ps1)"))
         print("      (run scripts/get-bundle.sh — adds prebuilt tiles and the routing graph)")
+    elif tier.startswith("2") and IN_WORKSHOP_CONTAINER:
+        print("Next: duckdb -c \".read setup/hello-geo.sql\"      map: http://localhost:8080/02-web/ on your laptop")
     elif tier.startswith("2") and not web:
         print("Next: %s up -d      then open http://localhost:8080/" % CONTAINER["compose"])
     elif tier.startswith("3") and not web:

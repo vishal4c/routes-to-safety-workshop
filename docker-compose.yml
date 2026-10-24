@@ -8,7 +8,27 @@
 #
 # OSRM is NOT published to the host: it is reached through Caddy at http://localhost:8080/osrm/...
 # Needs data/osrm/study-area.osrm.*  (run scripts/get-bundle.sh, or scripts/build-osrm.sh).
+#
+# Three services:
+#   workshop  the tool image (DuckDB + spatial, Temurin 21, Planetiler, go-pmtiles, Node 22, osmium, uv) with the
+#             repo bind-mounted — `docker compose exec workshop bash` and every lab command runs unchanged.
+#             Pulled from ghcr.io (multi-arch); the Codespaces overlay in .devcontainer/ builds the same Dockerfile.
+#   osrm      the routing engine, reads data/osrm/study-area.osrm.*
+#   caddy     static files for the repo on :8080 (Range requests → PMTiles works) + /osrm/* proxy
 services:
+  workshop:
+    image: ${WORKSHOP_IMAGE:-ghcr.io/vishal4c/routes-to-safety-workshop:latest}
+    volumes:
+      - .:/workspaces/routes-to-safety-workshop:cached
+    working_dir: /workspaces/routes-to-safety-workshop
+    command: sleep infinity
+    environment:
+      BUNDLE_TAG: ${BUNDLE_TAG:-data-v1}
+      OSRM_URL: http://caddy:8080/osrm
+      WEB_URL: http://caddy:8080
+      WORKSHOP_CONTAINER: "1"
+    init: true
+
   osrm:
     image: ${OSRM_IMAGE:-ghcr.io/project-osrm/osrm-backend:v26.10.0-debian}
     command: osrm-routed --algorithm mld --max-table-size 500 /data/study-area.osrm

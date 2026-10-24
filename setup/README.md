@@ -37,7 +37,7 @@ Pinned versions (from `versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22
 
 Podman / nerdctl also work. The scripts and `check_setup.py` auto‑detect `docker → finch → podman → nerdctl`; override with `CONTAINER_CLI=finch`.
 
-### 2b. Pull images and data (do this at home — it is ~400 MB)
+### 2b. Pull images and data (do this at home — it is ~1 GB)
 
 ```bash
 git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git
@@ -45,6 +45,9 @@ cd routes-to-safety-workshop
 bash scripts/get-bundle.sh            # OSRM graph, prebuilt evac.pmtiles, planetiler.jar (checksum‑verified)
 docker compose pull                   # Finch:  finch compose pull      Podman: podman compose pull
 ```
+
+`docker compose pull` fetches three images: the **tool image** `ghcr.io/vishal4c/routes-to-safety-workshop:latest` (DuckDB + spatial, Temurin 21,
+Planetiler, go-pmtiles, Node 22, osmium, uv — the same image Codespaces uses, amd64 + arm64), OSRM and Caddy. With it you install **nothing else**.
 
 Finch first time only: `finch vm init` (a few minutes), later `finch vm start`.
 
@@ -56,7 +59,20 @@ docker compose up -d                  # Finch: finch compose up -d
 docker compose down                   # when finished
 ```
 
-You still need the Tier‑3 command‑line tools (DuckDB, Java, Node, pmtiles) on your machine to run the labs natively, **or** do the labs inside the Codespaces image. Install them as in Tier 3.
+### 2d. Work inside the tool container (recommended — nothing to install)
+
+```bash
+docker compose exec workshop bash     # Finch: finch compose exec workshop bash
+python3 setup/check_setup.py          # expect: tier 2, OSRM reachable via http://caddy:8080/osrm, web server OK
+duckdb -c ".read setup/hello-geo.sql"
+```
+
+The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the container's working directory), so every lab command in the
+module READMEs runs unchanged and whatever you write to `out/` is served by Caddy immediately at <http://localhost:8080/> on your laptop.
+Inside the container use `$OSRM_URL` (= `http://caddy:8080/osrm`) for `curl`; in the browser the page uses `/osrm` on port 8080 automatically.
+The tool container has no Docker inside, so `scripts/build-osrm.sh` (only needed for your own town) runs on the laptop.
+
+Prefer native tools? Install them as in Tier 3 and run the labs on the host; `osrm` + `caddy` from `docker compose up -d` are all you need from Docker.
 
 ## Tier 3 — Native, no containers (no routing)
 
