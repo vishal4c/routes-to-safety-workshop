@@ -1,0 +1,201 @@
+[
+  {
+    "id": "water",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "water",
+    "filter": [
+      "==",
+      [
+        "geometry-type"
+      ],
+      "Polygon"
+    ],
+    "paint": {
+      "fill-color": "#a6cee3"
+    }
+  },
+  {
+    "id": "land_cover",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "land_cover",
+    "paint": {
+      "fill-color": "#e5f5e0",
+      "fill-opacity": 0.6
+    }
+  },
+  {
+    "id": "hazard",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "hazard",
+    "paint": {
+      "fill-color": [
+        "match",
+        [
+          "get",
+          "FHSZ_Description"
+        ],
+        "Moderate",
+        "#fdbb84",
+        "High",
+        "#e34a33",
+        "Very High",
+        "#b30000",
+        "#cccccc"
+      ],
+      "fill-opacity": 0.45
+    }
+  },
+  {
+    "id": "fire_perimeters",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "fire_perimeters",
+    "paint": {
+      "line-color": "#4d4d4d",
+      "line-width": 2,
+      "line-dasharray": [
+        2,
+        2
+      ]
+    }
+  },
+  {
+    "id": "roads-minor",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "!",
+      [
+        "in",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "literal",
+          [
+            "motorway",
+            "trunk",
+            "primary",
+            "secondary",
+            "motorway_link",
+            "trunk_link",
+            "primary_link",
+            "secondary_link"
+          ]
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": "#aaaaaa",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.3,
+        12,
+        0.6,
+        14,
+        1.2
+      ]
+    }
+  },
+  {
+    "id": "roads-major",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "in",
+      [
+        "get",
+        "class"
+      ],
+      [
+        "literal",
+        [
+          "motorway",
+          "trunk",
+          "primary",
+          "secondary",
+          "motorway_link",
+          "trunk_link",
+          "primary_link",
+          "secondary_link"
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "motorway",
+          "trunk",
+          "motorway_link",
+          "trunk_link"
+        ],
+        "#555555",
+        "#777777"
+      ],
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.8,
+        12,
+        1.4,
+        14,
+        2.6
+      ]
+    }
+  },
+  {
+    "id": "shelters",
+    "type": "circle",
+    "source": "evac",
+    "source-layer": "shelters",
+    "paint": {
+      "circle-radius": 7,
+      "circle-color": "#ffffff",
+      "circle-opacity": [
+        "case",
+        [
+          "==",
+          [
+            "get",
+            "status"
+          ],
+          "verified"
+        ],
+        1,
+        0
+      ],
+      "circle-stroke-color": "#000000",
+      "circle-stroke-width": 1.5
+    }
+  }
+]

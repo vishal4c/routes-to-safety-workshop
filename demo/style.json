@@ -1,0 +1,343 @@
+{
+ "version": 8,
+ "name": "routes-to-safety-demo",
+ "sources": {
+  "evac": {
+   "type": "vector",
+   "url": "pmtiles://__PMTILES__",
+   "attribution": "\u00a9 OpenStreetMap contributors \u00b7 \u00a9 Overture Maps Foundation \u00b7 Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) \u00b7 Land cover: ESA WorldCover (CC-BY)"
+  },
+  "coverage_hex": {
+   "type": "geojson",
+   "data": {
+    "type": "FeatureCollection",
+    "features": []
+   }
+  },
+  "coverage_bands": {
+   "type": "geojson",
+   "data": {
+    "type": "FeatureCollection",
+    "features": []
+   }
+  },
+  "route": {
+   "type": "geojson",
+   "data": {
+    "type": "FeatureCollection",
+    "features": []
+   }
+  },
+  "shelters": {
+   "type": "geojson",
+   "data": {
+    "type": "FeatureCollection",
+    "features": []
+   }
+  }
+ },
+ "layers": [
+  {
+   "id": "water",
+   "type": "fill",
+   "source": "evac",
+   "paint": {
+    "fill-color": "#a6cee3"
+   },
+   "source-layer": "water"
+  },
+  {
+   "id": "land_cover",
+   "type": "fill",
+   "source": "evac",
+   "paint": {
+    "fill-color": "#e5f5e0",
+    "fill-opacity": 0.4
+   },
+   "source-layer": "land_cover"
+  },
+  {
+   "id": "hazard",
+   "type": "fill",
+   "source": "evac",
+   "paint": {
+    "fill-color": [
+     "match",
+     [
+      "get",
+      "FHSZ_Description"
+     ],
+     "Moderate",
+     "#fdbb84",
+     "High",
+     "#e34a33",
+     "Very High",
+     "#b30000",
+     "#fdbb84"
+    ],
+    "fill-opacity": 0.3
+   },
+   "source-layer": "hazard"
+  },
+  {
+   "id": "fire_perimeters",
+   "type": "line",
+   "source": "evac",
+   "paint": {
+    "line-color": "#4d4d4d",
+    "line-width": 2,
+    "line-dasharray": [
+     2,
+     2
+    ]
+   },
+   "source-layer": "fire_perimeters"
+  },
+  {
+   "id": "coverage-hex",
+   "type": "fill",
+   "source": "coverage_hex",
+   "paint": {
+    "fill-color": "#cccccc",
+    "fill-opacity": 0.55,
+    "fill-outline-color": "#00000033"
+   },
+   "layout": {
+    "visibility": "none"
+   }
+  },
+  {
+   "id": "coverage-bands",
+   "type": "fill",
+   "source": "coverage_bands",
+   "paint": {
+    "fill-color": [
+     "match",
+     [
+      "get",
+      "band"
+     ],
+     10,
+     "#a8ddb5",
+     20,
+     "#7bccc4",
+     30,
+     "#43a2ca",
+     "#43a2ca"
+    ],
+    "fill-opacity": 0.35,
+    "fill-outline-color": "#0868ac"
+   },
+   "layout": {
+    "fill-sort-key": [
+     "-",
+     [
+      "get",
+      "band"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "roads-minor",
+   "type": "line",
+   "source": "evac",
+   "paint": {
+    "line-color": "#aaa",
+    "line-width": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     8,
+     0.3,
+     12,
+     0.6,
+     15,
+     1.2
+    ]
+   },
+   "source-layer": "roads",
+   "filter": [
+    "!",
+    [
+     "in",
+     [
+      "get",
+      "class"
+     ],
+     [
+      "literal",
+      [
+       "motorway",
+       "trunk",
+       "motorway_link",
+       "trunk_link",
+       "primary",
+       "secondary",
+       "primary_link",
+       "secondary_link"
+      ]
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "roads-major",
+   "type": "line",
+   "source": "evac",
+   "paint": {
+    "line-color": "#777",
+    "line-width": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     8,
+     0.6,
+     12,
+     1.2,
+     15,
+     2
+    ]
+   },
+   "source-layer": "roads",
+   "filter": [
+    "in",
+    [
+     "get",
+     "class"
+    ],
+    [
+     "literal",
+     [
+      "primary",
+      "secondary",
+      "primary_link",
+      "secondary_link"
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "roads-motorway",
+   "type": "line",
+   "source": "evac",
+   "paint": {
+    "line-color": "#555",
+    "line-width": [
+     "interpolate",
+     [
+      "linear"
+     ],
+     [
+      "zoom"
+     ],
+     8,
+     0.8,
+     12,
+     1.6,
+     15,
+     3
+    ]
+   },
+   "source-layer": "roads",
+   "filter": [
+    "in",
+    [
+     "get",
+     "class"
+    ],
+    [
+     "literal",
+     [
+      "motorway",
+      "trunk",
+      "motorway_link",
+      "trunk_link"
+     ]
+    ]
+   ]
+  },
+  {
+   "id": "buildings",
+   "type": "fill",
+   "source": "evac",
+   "paint": {
+    "fill-color": "#d9d9d9"
+   },
+   "source-layer": "buildings_auburn",
+   "minzoom": 13
+  },
+  {
+   "id": "route-casing",
+   "type": "line",
+   "source": "route",
+   "paint": {
+    "line-color": "#fff",
+    "line-width": 7
+   },
+   "layout": {
+    "line-cap": "round",
+    "line-join": "round"
+   }
+  },
+  {
+   "id": "route",
+   "type": "line",
+   "source": "route",
+   "paint": {
+    "line-color": "#d81b60",
+    "line-width": 4
+   },
+   "layout": {
+    "line-cap": "round",
+    "line-join": "round"
+   }
+  },
+  {
+   "id": "shelters-verified",
+   "type": "circle",
+   "source": "shelters",
+   "paint": {
+    "circle-radius": 7,
+    "circle-color": "#ffffff",
+    "circle-stroke-color": "#000",
+    "circle-stroke-width": 1.5
+   },
+   "filter": [
+    "==",
+    [
+     "get",
+     "status"
+    ],
+    "verified"
+   ]
+  },
+  {
+   "id": "shelters-candidate",
+   "type": "circle",
+   "source": "shelters",
+   "paint": {
+    "circle-radius": 7,
+    "circle-color": "rgba(255,255,255,0)",
+    "circle-stroke-color": "#000",
+    "circle-stroke-width": 1.5
+   },
+   "filter": [
+    "!=",
+    [
+     "get",
+     "status"
+    ],
+    "verified"
+   ]
+  }
+ ]
+}

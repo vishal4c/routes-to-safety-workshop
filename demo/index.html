@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Routes to Safety — Placer I-80 corridor demo</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="map" role="application" aria-label="Map of the Placer County I-80 corridor"></div>
+<div id="notices" aria-live="polite"></div>
+<aside id="panel" aria-label="Controls and results">
+  <h1>Routes to Safety</h1>
+  <p class="sub">Click the map (or drag the blue pin) to find the nearest shelter by road.</p>
+  <section><h2>Layers</h2>
+    <div class="toggles">
+      <button type="button" data-layer="bands" aria-pressed="true">Drive-time bands (10/20/30 min)</button>
+      <button type="button" data-layer="hex" aria-pressed="false">Nearest shelter areas</button>
+      <button type="button" data-layer="hazard" aria-pressed="true">Fire hazard zones</button>
+      <button type="button" data-layer="fires" aria-pressed="true">Past fire perimeters</button>
+    </div>
+  </section>
+  <section><h2>Route</h2>
+    <label class="closed"><input type="checkbox" id="closed"> I-80 closed (exclude motorways)</label>
+    <div id="result" aria-live="polite">Nothing selected yet.</div>
+    <ol id="list"></ol>
+  </section>
+  <section><h2>Legend</h2><div id="legend"></div></section>
+  <p id="routing-status" class="status">Routing: checking…</p>
+  <span id="fixture-badge" class="badge" hidden>fixture data</span>
+</aside>
+<footer id="disclaimer">Teaching example, not an official evacuation resource. Drive-time estimates assume no traffic and no closures. In an emergency follow county OES / Genasys-Zonehaven alerts and CAL FIRE incident pages.</footer>
+<script src="https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

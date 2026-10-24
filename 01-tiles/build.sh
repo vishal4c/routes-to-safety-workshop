@@ -1,27 +1,16 @@
 #!/usr/bin/env bash
-# 01-tiles/build.sh — Module 2 (1:20–2:05): the main build.
-# Run Planetiler over the extracted region to produce basemap.pmtiles.
-#
-# Placeholder: pins the Planetiler release and profile before the session.
-# A pre-built basemap.pmtiles ships in ../data-bundle/ as the fallback so the
-# Java build can never block a participant.
-
-set -euo pipefail
-
-PLANETILER_VERSION="0.8.x"          # TODO: pin exact release
-PLANETILER_JAR="planetiler.jar"
-OUT="basemap.pmtiles"
-
-# 1) Download the Planetiler JAR if missing (pin the exact release URL before the session).
-if [[ ! -f "$PLANETILER_JAR" ]]; then
-  echo "TODO: download Planetiler ${PLANETILER_VERSION} JAR to ${PLANETILER_JAR}"
-  # curl -L -o "$PLANETILER_JAR" https://github.com/onthegomap/planetiler/releases/download/v<VERSION>/planetiler.jar
-fi
-
-# 2) Run Planetiler with the workshop profile over the extracted GeoParquet from Module 1.
-echo "TODO: run Planetiler over ../00-data output → ${OUT}"
-# java -Xmx4g -jar "$PLANETILER_JAR" \
-#   --profile=planetiler-config/evac-profile.yml \
-#   --output="$OUT"
-
-echo "Placeholder build.sh — see 01-tiles/README.md. Fallback: ../data-bundle/basemap.pmtiles"
+# Lab 2a — build out/evac.pmtiles from the GeoJSON you exported in Lab 1c.
+# Usage (from anywhere):  01-tiles/build.sh            → uses out/*.geojson
+#                          01-tiles/build.sh --prebuilt → uses data/prebuilt/out/*.geojson (fallback)
+# The actual command is the single line on the lab card; this script only adds the fallback and a timer.
+. "$(dirname "$0")/../scripts/lib.sh"
+cd "$REPO_ROOT"
+need java
+JAR="01-tiles/planetiler.jar"
+[ -f "$JAR" ] || { log "downloading Planetiler v$PLANETILER_VERSION"; curl -L --fail -o "$JAR" "https://github.com/onthegomap/planetiler/releases/download/v$PLANETILER_VERSION/planetiler.jar"; }
+if [ "${1:-}" = "--prebuilt" ]; then mkdir -p out; cp data/prebuilt/out/*.geojson out/; fi
+[ -f out/roads.geojson ] || die "out/roads.geojson missing — run Lab 1c first, or pass --prebuilt"
+START=$(date +%s)
+java -Xmx2g -jar "$JAR" generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force \
+  --bounds="$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N" --minzoom=4 --maxzoom=14 "${@:2}"
+log "built out/evac.pmtiles in $(( $(date +%s) - START ))s ($(du -h out/evac.pmtiles | cut -f1))"

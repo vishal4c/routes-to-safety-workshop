@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Routes to Safety — Placer I-80 corridor (SOLUTION)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
+<!-- pmtiles 4.5.0 (global name: pmtiles) teaches MapLibre to read a .pmtiles file with HTTP Range requests -->
+<script src="https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; font: 14px/1.4 system-ui, sans-serif; }
+  #map { position: absolute; inset: 0 0 44px 0; }
+  #footer { position: absolute; bottom: 0; left: 0; right: 0; height: 44px; box-sizing: border-box;
+            padding: 4px 10px; background: #fff8e1; border-top: 1px solid #d4b24c; font-size: 12px; overflow: auto; }
+  #notice { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; max-width: 80%;
+            background: #fff3cd; border: 1px solid #d4b24c; border-radius: 4px; padding: 4px 10px; display: none; }
+  #legend { position: absolute; left: 8px; bottom: 54px; z-index: 5; background: #fffffff0; border-radius: 4px;
+            padding: 6px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; max-width: 260px; }
+  #legend b { display: block; margin-top: 4px; }
+  #legend i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle; border: 1px solid #0003; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #000; }
+  #legend small { color: #555; }
+  #routing-panel { position: absolute; top: 8px; right: 50px; z-index: 5; background: #fffffff0; border-radius: 4px; padding: 6px 10px; font-size: 12px; display: none; }
+</style>
+</head>
+<body>
+<!-- ⏱ BAIL-OUT FILE: index.html with steps/step4-final.json pasted, attribution on, and 03-routing/route.js imported.
+     Open this if you are behind; otherwise work in index.html. -->
+<div id="map"></div>
+<div id="notice"></div>
+
+<div id="legend">
+  <b style="margin-top:0">Fire hazard (FHSZ)</b>
+  <div><i style="background:#fdbb84"></i>Moderate</div>
+  <div><i style="background:#e34a33"></i>High</div>
+  <div><i style="background:#b30000"></i>Very High</div>
+  <small>Source: CAL FIRE FRAP (CC-BY)</small>
+  <b>Fire perimeters</b>
+  <div><i style="background:none;border:0;border-top:2px dashed #4d4d4d;height:0"></i>River 2021 · Mosquito 2022</div>
+  <b>Shelters</b>
+  <div><i class="dot" style="background:#fff"></i>verified</div>
+  <div><i class="dot" style="background:none"></i>candidate (not confirmed)</div>
+</div>
+
+<div id="footer">Teaching example, not an official evacuation resource. Drive-time estimates assume no traffic and no closures. In an emergency follow county OES / Genasys-Zonehaven alerts and CAL FIRE incident pages.</div>
+
+<script type="module">
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs';
+
+// ---------------------------------------------------------------------------
+// 0. Plumbing — you do not need to edit this part.
+// ---------------------------------------------------------------------------
+const protocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
+
+function showNotice(text) {
+  const el = document.getElementById('notice');
+  el.textContent = text;
+  el.style.display = 'block';
+}
+
+// Use out/evac.pmtiles (the one YOU built); otherwise the prebuilt copy.
+// We ask for 2 bytes with a Range header: a correct server answers 206.
+async function pickPmtilesUrl() {
+  const mine = new URL('../out/evac.pmtiles', location.href).href;
+  const prebuilt = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
+  try {
+    const r = await fetch(mine, { headers: { Range: 'bytes=0-1' } });
+    if (r.status === 206) return mine;
+    console.warn('out/evac.pmtiles: HTTP ' + r.status + (r.status === 200 ? ' (server ignored the Range header — use Caddy or `npx serve`, not python http.server)' : ''));
+  } catch (e) {
+    console.warn('out/evac.pmtiles not reachable', e);
+  }
+  console.info('Using data/prebuilt/evac.pmtiles instead of out/evac.pmtiles');
+  showNotice('Using the prebuilt tiles (data/prebuilt/evac.pmtiles) — out/evac.pmtiles not found.');
+  return prebuilt;
+}
+
+// Layers listed in drawing order (bottom -> top). Your pasted layers are sorted by this list,
+// so you can paste steps in any order. A layer whose id is listed twice wins by the LAST paste.
+const ORDER = ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major',
+               'buildings_auburn', 'route-casing', 'route', 'shelters'];
+
+function assemble(...pastes) {
+  const byId = {};
+  for (const layer of pastes.flat()) byId[layer.id] = layer;
+  const sorted = Object.values(byId).sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
+  return [{ id: 'background', type: 'background', paint: { 'background-color': '#f7f5f0' } }, ...sorted];
+}
+
+// ---------------------------------------------------------------------------
+// LAB 2b / 2c — paste your layers between the brackets  [ ]
+// Each step file is a JSON array:  [ {layer}, {layer}, ... ]
+// Replace the empty [] with the whole contents of the file.
+// ---------------------------------------------------------------------------
+
+// STEP 1: paste here  (Lab 2b: steps/step1-roads.json — roads)
+const STEP1 = [];
+
+// STEP 2: paste here  (Lab 2c [R]: steps/step2-hazard-water.json — hazard, water, land cover, shelters)
+const STEP2 = [];
+
+// STEP 3: paste here  (⏱ bail-out, or Lab 2c [M]: steps/step3-styled.json — steps 1+2 + dashed perimeters)
+const STEP3 = [];
+
+// STEP 4: paste here  (Lab 2c [F]: steps/step4-final.json — everything + 3D buildings, zoom >= 13)
+const STEP4 = [
+  {
+    "id": "water",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "water",
+    "filter": [
+      "==",
+      [
+        "geometry-type"
+      ],
+      "Polygon"
+    ],
+    "paint": {
+      "fill-color": "#a6cee3"
+    }
+  },
+  {
+    "id": "land_cover",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "land_cover",
+    "paint": {
+      "fill-color": "#e5f5e0",
+      "fill-opacity": 0.6
+    }
+  },
+  {
+    "id": "hazard",
+    "type": "fill",
+    "source": "evac",
+    "source-layer": "hazard",
+    "paint": {
+      "fill-color": [
+        "match",
+        [
+          "get",
+          "FHSZ_Description"
+        ],
+        "Moderate",
+        "#fdbb84",
+        "High",
+        "#e34a33",
+        "Very High",
+        "#b30000",
+        "#cccccc"
+      ],
+      "fill-opacity": 0.45
+    }
+  },
+  {
+    "id": "fire_perimeters",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "fire_perimeters",
+    "paint": {
+      "line-color": "#4d4d4d",
+      "line-width": 2,
+      "line-dasharray": [
+        2,
+        2
+      ]
+    }
+  },
+  {
+    "id": "roads-minor",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "!",
+      [
+        "in",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "literal",
+          [
+            "motorway",
+            "trunk",
+            "primary",
+            "secondary",
+            "motorway_link",
+            "trunk_link",
+            "primary_link",
+            "secondary_link"
+          ]
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": "#aaaaaa",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.3,
+        12,
+        0.6,
+        14,
+        1.2
+      ]
+    }
+  },
+  {
+    "id": "roads-major",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "in",
+      [
+        "get",
+        "class"
+      ],
+      [
+        "literal",
+        [
+          "motorway",
+          "trunk",
+          "primary",
+          "secondary",
+          "motorway_link",
+          "trunk_link",
+          "primary_link",
+          "secondary_link"
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "motorway",
+          "trunk",
+          "motorway_link",
+          "trunk_link"
+        ],
+        "#555555",
+        "#777777"
+      ],
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.8,
+        12,
+        1.4,
+        14,
+        2.6
+      ]
+    }
+  },
+  {
+    "id": "buildings_auburn",
+    "type": "fill-extrusion",
+    "source": "evac",
+    "source-layer": "buildings_auburn",
+    "minzoom": 13,
+    "paint": {
+      "fill-extrusion-color": "#d9d9d9",
+      "fill-extrusion-height": [
+        "coalesce",
+        [
+          "get",
+          "height"
+        ],
+        6
+      ],
+      "fill-extrusion-base": 0,
+      "fill-extrusion-opacity": 0.85
+    }
+  },
+  {
+    "id": "shelters",
+    "type": "circle",
+    "source": "evac",
+    "source-layer": "shelters",
+    "paint": {
+      "circle-radius": 7,
+      "circle-color": "#ffffff",
+      "circle-opacity": [
+        "case",
+        [
+          "==",
+          [
+            "get",
+            "status"
+          ],
+          "verified"
+        ],
+        1,
+        0
+      ],
+      "circle-stroke-color": "#000000",
+      "circle-stroke-width": 1.5
+    }
+  }
+];
+
+// ---------------------------------------------------------------------------
+// Build the map (blank-but-alive until you paste something above)
+// ---------------------------------------------------------------------------
+const pmtilesUrl = await pickPmtilesUrl();
+
+const map = new maplibregl.Map({
+  container: 'map',
+  center: [-121.0, 38.95],
+  zoom: 10,
+  maxPitch: 70,
+  attributionControl: false,   // we add our own below
+  style: {
+    version: 8,
+    sources: {
+      evac: { type: 'vector', url: 'pmtiles://' + pmtilesUrl, minzoom: 4, maxzoom: 14 }
+    },
+    layers: assemble(STEP1, STEP2, STEP3, STEP4)
+  }
+});
+
+window.map = map;  // handy for the browser console: map.getStyle().layers
+
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
+
+// Lab 2b: uncomment the next three lines to show the attribution (required by the data licences)
+map.addControl(new maplibregl.AttributionControl({ compact: false,
+  customAttribution: '© OpenStreetMap contributors · © Overture Maps Foundation · Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) · Land cover: ESA WorldCover (CC-BY)'
+}), 'bottom-right');
+
+// Tell the user (instead of a silent blank map) when tiles fail to load.
+map.on('error', (e) => {
+  console.warn('Map error:', e.error && e.error.message);
+  showNotice('Some map data failed to load — see the browser console (F12).');
+});
+
+// Click a shelter -> popup with its name (works once the "shelters" layer exists: Lab 2c)
+map.on('click', 'shelters', (e) => {
+  const p = e.features[0].properties;
+  new maplibregl.Popup()
+    .setLngLat(e.features[0].geometry.coordinates)
+    .setHTML('<b>' + p.name + '</b><br>' + p.status + ' · ' + p.type)
+    .addTo(map);
+});
+map.on('mouseenter', 'shelters', () => { map.getCanvas().style.cursor = 'pointer'; });
+map.on('mouseleave', 'shelters', () => { map.getCanvas().style.cursor = ''; });
+
+// ---------------------------------------------------------------------------
+// LAB 3 (routing) — uncomment ONE line when you get there
+//   3a:  ../03-routing/steps/step1-route.js
+//   3b:  ../03-routing/steps/step2-scaffold.js   (you write 6 lines inside it)
+//   ⏱ / 3c: ../03-routing/route.js              (finished version, with the I-80 toggle)
+// ---------------------------------------------------------------------------
+map.on('load', () => {
+  // import('../03-routing/steps/step1-route.js').then((m) => m.start(map, maplibregl));
+  // import('../03-routing/steps/step2-scaffold.js').then((m) => m.start(map, maplibregl));
+  import('../03-routing/route.js').then((m) => m.start(map, maplibregl));
+});
+</script>
+</body>
+</html>

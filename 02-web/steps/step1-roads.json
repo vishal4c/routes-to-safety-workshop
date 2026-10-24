@@ -1,0 +1,113 @@
+[
+  {
+    "id": "roads-minor",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "!",
+      [
+        "in",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "literal",
+          [
+            "motorway",
+            "trunk",
+            "primary",
+            "secondary",
+            "motorway_link",
+            "trunk_link",
+            "primary_link",
+            "secondary_link"
+          ]
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": "#aaaaaa",
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.3,
+        12,
+        0.6,
+        14,
+        1.2
+      ]
+    }
+  },
+  {
+    "id": "roads-major",
+    "type": "line",
+    "source": "evac",
+    "source-layer": "roads",
+    "filter": [
+      "in",
+      [
+        "get",
+        "class"
+      ],
+      [
+        "literal",
+        [
+          "motorway",
+          "trunk",
+          "primary",
+          "secondary",
+          "motorway_link",
+          "trunk_link",
+          "primary_link",
+          "secondary_link"
+        ]
+      ]
+    ],
+    "layout": {
+      "line-cap": "round"
+    },
+    "paint": {
+      "line-color": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        [
+          "motorway",
+          "trunk",
+          "motorway_link",
+          "trunk_link"
+        ],
+        "#555555",
+        "#777777"
+      ],
+      "line-width": [
+        "interpolate",
+        [
+          "linear"
+        ],
+        [
+          "zoom"
+        ],
+        8,
+        0.8,
+        12,
+        1.4,
+        14,
+        2.6
+      ]
+    }
+  }
+]

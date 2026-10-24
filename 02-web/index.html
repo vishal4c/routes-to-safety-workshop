@@ -1,47 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Routes to Safety — evacuation map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Placeholder page for Module 2 (render) + Module 3 (route overlay).
-       MapLibre GL JS + PMTiles, served from any static file server — no tile server.
-       Pin exact library versions before the session (see ../.tool-versions). -->
-  <link href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/pmtiles@3/dist/pmtiles.js"></script>
-  <style>
-    html, body, #map { margin: 0; height: 100%; }
-    #panel { position: absolute; top: 10px; left: 10px; z-index: 1;
-             background: #fff; padding: 8px 10px; font: 13px system-ui; border-radius: 6px;
-             box-shadow: 0 1px 4px rgba(0,0,0,.3); max-width: 260px; }
-  </style>
+<meta charset="utf-8">
+<title>Routes to Safety — Placer I-80 corridor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.css">
+<!-- pmtiles 4.5.0 (global name: pmtiles) teaches MapLibre to read a .pmtiles file with HTTP Range requests -->
+<script src="https://unpkg.com/pmtiles@4.5.0/dist/pmtiles.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; font: 14px/1.4 system-ui, sans-serif; }
+  #map { position: absolute; inset: 0 0 44px 0; }
+  #footer { position: absolute; bottom: 0; left: 0; right: 0; height: 44px; box-sizing: border-box;
+            padding: 4px 10px; background: #fff8e1; border-top: 1px solid #d4b24c; font-size: 12px; overflow: auto; }
+  #notice { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; max-width: 80%;
+            background: #fff3cd; border: 1px solid #d4b24c; border-radius: 4px; padding: 4px 10px; display: none; }
+  #legend { position: absolute; left: 8px; bottom: 54px; z-index: 5; background: #fffffff0; border-radius: 4px;
+            padding: 6px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; max-width: 260px; }
+  #legend b { display: block; margin-top: 4px; }
+  #legend i { display: inline-block; width: 14px; height: 10px; margin-right: 6px; vertical-align: middle; border: 1px solid #0003; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #000; }
+  #legend small { color: #555; }
+  #routing-panel { position: absolute; top: 8px; right: 50px; z-index: 5; background: #fffffff0; border-radius: 4px; padding: 6px 10px; font-size: 12px; display: none; }
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="panel">
-    <strong>Routes to Safety</strong><br />
-    Placeholder map. Loads <code>basemap.pmtiles</code>, then Module 3 adds
-    draggable start/end markers and the OSRM evacuation route.
-  </div>
+<div id="map"></div>
+<div id="notice"></div>
 
-  <script>
-    // Register the pmtiles:// protocol so MapLibre reads a single PMTiles file over HTTP range requests.
-    const protocol = new pmtiles.Protocol();
-    maplibregl.addProtocol('pmtiles', protocol.tile);
+<div id="legend">
+  <b style="margin-top:0">Fire hazard (FHSZ)</b>
+  <div><i style="background:#fdbb84"></i>Moderate</div>
+  <div><i style="background:#e34a33"></i>High</div>
+  <div><i style="background:#b30000"></i>Very High</div>
+  <small>Source: CAL FIRE FRAP (CC-BY)</small>
+  <b>Fire perimeters</b>
+  <div><i style="background:none;border:0;border-top:2px dashed #4d4d4d;height:0"></i>River 2021 · Mosquito 2022</div>
+  <b>Shelters</b>
+  <div><i class="dot" style="background:#fff"></i>verified</div>
+  <div><i class="dot" style="background:none"></i>candidate (not confirmed)</div>
+</div>
 
-    const map = new maplibregl.Map({
-      container: 'map',
-      center: [-121.4944, 38.5816],   // Sacramento (placeholder)
-      zoom: 11,
-      style: './style.json'           // basemap style; see style.json (placeholder)
-    });
+<div id="footer">Teaching example, not an official evacuation resource. Drive-time estimates assume no traffic and no closures. In an emergency follow county OES / Genasys-Zonehaven alerts and CAL FIRE incident pages.</div>
 
-    map.on('load', () => {
-      // TODO (Module 2): add/restyle the hazard + water layers.
-      // TODO (Module 3): add the OSRM route as a GeoJSON line + draggable start/end markers,
-      //                  with a popup showing travel time. See ../03-routing/route-demo.js.
-    });
-  </script>
+<script type="module">
+import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs';
+
+// ---------------------------------------------------------------------------
+// 0. Plumbing — you do not need to edit this part.
+// ---------------------------------------------------------------------------
+const protocol = new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles', protocol.tile);
+
+function showNotice(text) {
+  const el = document.getElementById('notice');
+  el.textContent = text;
+  el.style.display = 'block';
+}
+
+// Use out/evac.pmtiles (the one YOU built); otherwise the prebuilt copy.
+// We ask for 2 bytes with a Range header: a correct server answers 206.
+async function pickPmtilesUrl() {
+  const mine = new URL('../out/evac.pmtiles', location.href).href;
+  const prebuilt = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
+  try {
+    const r = await fetch(mine, { headers: { Range: 'bytes=0-1' } });
+    if (r.status === 206) return mine;
+    console.warn('out/evac.pmtiles: HTTP ' + r.status + (r.status === 200 ? ' (server ignored the Range header — use Caddy or `npx serve`, not python http.server)' : ''));
+  } catch (e) {
+    console.warn('out/evac.pmtiles not reachable', e);
+  }
+  console.info('Using data/prebuilt/evac.pmtiles instead of out/evac.pmtiles');
+  showNotice('Using the prebuilt tiles (data/prebuilt/evac.pmtiles) — out/evac.pmtiles not found.');
+  return prebuilt;
+}
+
+// Layers listed in drawing order (bottom -> top). Your pasted layers are sorted by this list,
+// so you can paste steps in any order. A layer whose id is listed twice wins by the LAST paste.
+const ORDER = ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major',
+               'buildings_auburn', 'route-casing', 'route', 'shelters'];
+
+function assemble(...pastes) {
+  const byId = {};
+  for (const layer of pastes.flat()) byId[layer.id] = layer;
+  const sorted = Object.values(byId).sort((a, b) => ORDER.indexOf(a.id) - ORDER.indexOf(b.id));
+  return [{ id: 'background', type: 'background', paint: { 'background-color': '#f7f5f0' } }, ...sorted];
+}
+
+// ---------------------------------------------------------------------------
+// LAB 2b / 2c — paste your layers between the brackets  [ ]
+// Each step file is a JSON array:  [ {layer}, {layer}, ... ]
+// Replace the empty [] with the whole contents of the file.
+// ---------------------------------------------------------------------------
+
+// STEP 1: paste here  (Lab 2b: steps/step1-roads.json — roads)
+const STEP1 = [];
+
+// STEP 2: paste here  (Lab 2c [R]: steps/step2-hazard-water.json — hazard, water, land cover, shelters)
+const STEP2 = [];
+
+// STEP 3: paste here  (⏱ bail-out, or Lab 2c [M]: steps/step3-styled.json — steps 1+2 + dashed perimeters)
+const STEP3 = [];
+
+// STEP 4: paste here  (Lab 2c [F]: steps/step4-final.json — everything + 3D buildings, zoom >= 13)
+const STEP4 = [];
+
+// ---------------------------------------------------------------------------
+// Build the map (blank-but-alive until you paste something above)
+// ---------------------------------------------------------------------------
+const pmtilesUrl = await pickPmtilesUrl();
+
+const map = new maplibregl.Map({
+  container: 'map',
+  center: [-121.0, 38.95],
+  zoom: 10,
+  maxPitch: 70,
+  attributionControl: false,   // we add our own below
+  style: {
+    version: 8,
+    sources: {
+      evac: { type: 'vector', url: 'pmtiles://' + pmtilesUrl, minzoom: 4, maxzoom: 14 }
+    },
+    layers: assemble(STEP1, STEP2, STEP3, STEP4)
+  }
+});
+
+window.map = map;  // handy for the browser console: map.getStyle().layers
+
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
+map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
+
+// Lab 2b: uncomment the next three lines to show the attribution (required by the data licences)
+// map.addControl(new maplibregl.AttributionControl({ compact: false,
+//   customAttribution: '© OpenStreetMap contributors · © Overture Maps Foundation · Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) · Land cover: ESA WorldCover (CC-BY)'
+// }), 'bottom-right');
+
+// Tell the user (instead of a silent blank map) when tiles fail to load.
+map.on('error', (e) => {
+  console.warn('Map error:', e.error && e.error.message);
+  showNotice('Some map data failed to load — see the browser console (F12).');
+});
+
+// Click a shelter -> popup with its name (works once the "shelters" layer exists: Lab 2c)
+map.on('click', 'shelters', (e) => {
+  const p = e.features[0].properties;
+  new maplibregl.Popup()
+    .setLngLat(e.features[0].geometry.coordinates)
+    .setHTML('<b>' + p.name + '</b><br>' + p.status + ' · ' + p.type)
+    .addTo(map);
+});
+map.on('mouseenter', 'shelters', () => { map.getCanvas().style.cursor = 'pointer'; });
+map.on('mouseleave', 'shelters', () => { map.getCanvas().style.cursor = ''; });
+
+// ---------------------------------------------------------------------------
+// LAB 3 (routing) — uncomment ONE line when you get there
+//   3a:  ../03-routing/steps/step1-route.js
+//   3b:  ../03-routing/steps/step2-scaffold.js   (you write 6 lines inside it)
+//   ⏱ / 3c: ../03-routing/route.js              (finished version, with the I-80 toggle)
+// ---------------------------------------------------------------------------
+map.on('load', () => {
+  // import('../03-routing/steps/step1-route.js').then((m) => m.start(map, maplibregl));
+  // import('../03-routing/steps/step2-scaffold.js').then((m) => m.start(map, maplibregl));
+  // import('../03-routing/route.js').then((m) => m.start(map, maplibregl));
+});
+</script>
 </body>
 </html>

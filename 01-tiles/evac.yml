@@ -1,0 +1,103 @@
+# Planetiler custommap schema for the Routes to Safety basemap.
+# Build (from repo root):  java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
+# Every source is a local file → zero network calls; a missing file fails fast with a clear error.
+schema_name: Routes to Safety
+schema_description: Wildfire evacuation basemap — Placer County I-80 corridor (FOSS4G NA 2026 workshop)
+attribution: >-
+  <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+  <a href="https://docs.overturemaps.org/attribution" target="_blank">&copy; Overture Maps Foundation</a>
+  Fire Hazard Severity Zones: <a href="https://osfm.fire.ca.gov/what-we-do/community-wildfire-preparedness-and-mitigation/fire-hazard-severity-zones" target="_blank">CAL FIRE FRAP (CC-BY)</a>
+  Land cover: <a href="https://esa-worldcover.org" target="_blank">ESA WorldCover (CC-BY)</a>
+
+sources:
+  roads:            { type: geojson, local_path: out/roads.geojson }
+  water:            { type: geojson, local_path: out/water.geojson }
+  shelters:         { type: geojson, local_path: out/shelters.geojson }
+  hazard:           { type: geojson, local_path: out/hazard.geojson }
+  fire_perimeters:  { type: geojson, local_path: out/fire_perimeters.geojson }
+  buildings_auburn: { type: geojson, local_path: out/buildings_auburn.geojson }
+  land_cover:       { type: geojson, local_path: out/land_cover.geojson }
+
+layers:
+  - id: roads
+    features:
+      # Big roads from zoom 6, local streets from zoom 11 — same source, two rules.
+      - source: roads
+        geometry: line
+        min_zoom: 6
+        include_when:
+          class: [motorway, trunk, primary, secondary, motorway_link, trunk_link]
+        attributes:
+          - { key: class,     tag_value: class }
+          - { key: name,      tag_value: name }
+          - { key: route_ref, tag_value: route_ref }
+      - source: roads
+        geometry: line
+        min_zoom: 10
+        min_size: 1
+        exclude_when:
+          class: [motorway, trunk, primary, secondary, motorway_link, trunk_link]
+        attributes:
+          - { key: class, tag_value: class }
+          - { key: name,  tag_value: name }
+
+  - id: water
+    features:
+      - source: water
+        geometry: polygon
+        min_zoom: 4
+        min_size: 2
+        attributes:
+          - { key: subtype, tag_value: subtype }
+          - { key: name,    tag_value: name }
+
+  - id: hazard
+    features:
+      - source: hazard
+        geometry: polygon
+        min_zoom: 4
+        min_size: 1
+        attributes:
+          - { key: SRA,              tag_value: SRA }
+          - { key: FHSZ,             tag_value: FHSZ,             type: integer }
+          - { key: FHSZ_Description, tag_value: FHSZ_Description }
+
+  - id: fire_perimeters
+    features:
+      - source: fire_perimeters
+        geometry: polygon
+        min_zoom: 4
+        attributes:
+          - { key: fire_name, tag_value: fire_name }
+          - { key: year,      tag_value: year, type: integer }
+          - { key: acres,     tag_value: acres, type: integer }
+
+  - id: land_cover
+    features:
+      - source: land_cover
+        geometry: polygon
+        min_zoom: 4
+        max_zoom: 12
+        min_size: 4
+        attributes:
+          - { key: subtype, tag_value: subtype }
+
+  - id: buildings_auburn
+    features:
+      - source: buildings_auburn
+        geometry: polygon
+        min_zoom: 13
+        min_size: 2
+        attributes:
+          - { key: height, tag_value: height, type: double }
+
+  - id: shelters
+    features:
+      - source: shelters
+        geometry: point
+        min_zoom: 6
+        attributes:
+          - { key: id,     tag_value: id }
+          - { key: name,   tag_value: name }
+          - { key: status, tag_value: status }
+          - { key: type,   tag_value: type }

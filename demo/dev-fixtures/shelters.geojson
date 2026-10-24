@@ -1,0 +1,185 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "sierra-college-rocklin",
+    "name": "Sierra College, Rocklin",
+    "status": "verified",
+    "type": "college",
+    "town": "Rocklin",
+    "source": "Placer County release, Mosquito Fire 2022"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.2318,
+     38.7917
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "auburn-community-center",
+    "name": "Auburn Community Center (candidate)",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Auburn",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.0772,
+     38.8966
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "colfax-hall",
+    "name": "Colfax Community Hall (candidate)",
+    "status": "candidate",
+    "type": "hall",
+    "town": "Colfax",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.9533,
+     39.1007
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "foresthill-school",
+    "name": "Foresthill School (candidate)",
+    "status": "candidate",
+    "type": "school",
+    "town": "Foresthill",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.89,
+     39.02
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "meadow-vista-hall",
+    "name": "Meadow Vista Hall (candidate)",
+    "status": "candidate",
+    "type": "hall",
+    "town": "Meadow Vista",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.034,
+     38.942
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "applegate-hall",
+    "name": "Applegate Hall (candidate)",
+    "status": "candidate",
+    "type": "hall",
+    "town": "Applegate",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.997,
+     39.0
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "higgins-lake-of-the-pines",
+    "name": "Lake of the Pines / Higgins Center (candidate)",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Higgins",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.065,
+     39.02
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "rocklin-community-center",
+    "name": "Rocklin Community Center (candidate)",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Rocklin",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.237,
+     38.813
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "lincoln-school",
+    "name": "Lincoln High School (candidate)",
+    "status": "candidate",
+    "type": "school",
+    "town": "Lincoln",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.293,
+     38.892
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "id": "gold-country-fairgrounds",
+    "name": "Gold Country Fairgrounds, Auburn (candidate)",
+    "status": "candidate",
+    "type": "fairground",
+    "town": "Auburn",
+    "source": "fixture"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.062,
+     38.925
+    ]
+   }
+  }
+ ]
+}
