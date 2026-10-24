@@ -11,7 +11,7 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
   - [ ] Repeat on a **2-vCPU Codespace** (the numbers above are an M-series Mac).
 - [x] **(b) Real OSRM build → per-file sizes.** `scripts/build-osrm.sh` → 15 s, **99 MB** (26 files); `study-area.osm.pbf` 17.0 MB; `colfax.osm.pbf` 0.39 MB.
 - [x] **(c) Lab 0 checkpoint string** — real output of `duckdb -c ".read setup/hello-geo.sql"` (2026-10-23): `OK — DuckDB 2.0.0 · 10 shelters (1 verified, 9 candidate) · nearest to Colfax (crow-flies): Sierra Vista Community Center, 0.2 km` (closes OUTLINE §8 attendee #9).
-- [ ] **(d) arm64 manifest:** `docker manifest inspect ghcr.io/project-osrm/osrm-backend:v26.10.0-debian | grep -E 'arm64|amd64'` — result: ________ (tag verified to exist; the v26.9.0 tag does not).
+- [x] **(d) arm64 manifest:** OSRM `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian` is multi-arch (used locally on Apple Silicon via Colima). Workshop tool image `ghcr.io/vishal4c/routes-to-safety-workshop:latest` built 2026-10-23 by the devcontainer-image workflow: **amd64 + arm64**, package public.
 - [ ] **(e) Caddy smoke test:** `docker compose up -d` then `curl localhost:8080/osrm/nearest/v1/driving/-121.08,38.90` → `"code":"Ok"`. (Direct OSRM already answered on :5000 during the build.)
 - [x] **(f) Shallow clone size:** `git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git` → **38 MB transferred (.git), 109 MB on disk, 3 s** (measured 2026-10-23, home wifi). `check_setup.py` passes in the fresh clone; pmtiles/osrm correctly reported as optional → `scripts/get-bundle.sh`.
 - [ ] **(g) Clean-machine rehearsal:** Windows 11 (Git Bash **and** PowerShell) and macOS: tier 3 from scratch, `python3 setup/check_setup.py`, Labs 1a–1c.
