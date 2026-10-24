@@ -17,6 +17,7 @@ sources:
   fire_perimeters:  { type: geojson, local_path: out/fire_perimeters.geojson }
   buildings_auburn: { type: geojson, local_path: out/buildings_auburn.geojson }
   land_cover:       { type: geojson, local_path: out/land_cover.geojson }
+  places:           { type: geojson, local_path: out/places.geojson }
 
 layers:
   - id: roads
@@ -101,3 +102,33 @@ layers:
           - { key: name,   tag_value: name }
           - { key: status, tag_value: status }
           - { key: type,   tag_value: type }
+
+  - id: places
+    features:
+      # Cities and towns from zoom 6, villages from 9, hamlets from 11 — three rules, one source.
+      - source: places
+        geometry: point
+        min_zoom: 6
+        include_when:
+          class: [city, town]
+        attributes:
+          - { key: name,       tag_value: name }
+          - { key: class,      tag_value: class }
+          - { key: population, tag_value: population, type: integer }
+      - source: places
+        geometry: point
+        min_zoom: 9
+        include_when:
+          class: [village]
+        attributes:
+          - { key: name,       tag_value: name }
+          - { key: class,      tag_value: class }
+          - { key: population, tag_value: population, type: integer }
+      - source: places
+        geometry: point
+        min_zoom: 11
+        include_when:
+          class: [hamlet]
+        attributes:
+          - { key: name,  tag_value: name }
+          - { key: class, tag_value: class }

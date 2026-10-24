@@ -122,11 +122,11 @@ curl -sI -H "Range: bytes=0-15" URL | head -1   # want: 206
 java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
 pmtiles show out/evac.pmtiles
 ```
-*Expected:* 7 layers, zoom 4–14, ≈ 6.5 MB 👀 ⏱ no PMTiles by minute 5 → `cp data/prebuilt/evac.pmtiles out/`
+*Expected:* 8 layers, zoom 4–14, ≈ 7.1 MB 👀 ⏱ no PMTiles by minute 5 → `cp data/prebuilt/evac.pmtiles out/`
 
 **2b Serve & render (8 min)** — in `02-web/index.html` find `// STEP 1: paste here` → paste `steps/step1-roads.json` → reload; add `AttributionControl` → *Expected:* grey roads + attribution bottom-right 👀
 
-**2c Restyle (12 min)** — **[R]** hazard `match` (OrRd) · **[R]** water fill · **[R]** shelters: filled = verified, hollow = candidate + legend · **[M]** perimeters dashed grey · **[F]** click popup `name` · **[F]** `fill-extrusion` on `buildings_auburn` 👀
+**2c Restyle (12 min)** — **[R]** hazard `match` (OrRd) · **[R]** water fill · **[R]** shelters: filled = verified, hollow = candidate + legend · **[R]** city labels (`places`) · **[M]** perimeters dashed grey · **[F]** click popup `name` · **[F]** `fill-extrusion` on `buildings_auburn` 👀
 ⏱ stuck past minute 8 → paste `steps/step3-styled.json`
 
 🎯 Very High solid red · water blue · 10 shelters (1 filled) · Mosquito perimeter dashed · attribution visible

@@ -72,5 +72,100 @@
       "circle-stroke-color": "#000000",
       "circle-stroke-width": 1.5
     }
+  },
+  {
+    "id": "places",
+    "type": "symbol",
+    "source": "evac",
+    "source-layer": "places",
+    "minzoom": 6,
+    "layout": {
+      "text-field": [
+        "get",
+        "name"
+      ],
+      "text-font": [
+        "case",
+        [
+          "in",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "literal",
+            [
+              "city",
+              "town"
+            ]
+          ]
+        ],
+        [
+          "literal",
+          [
+            "Noto Sans Medium"
+          ]
+        ],
+        [
+          "literal",
+          [
+            "Noto Sans Regular"
+          ]
+        ]
+      ],
+      "text-size": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        "city",
+        16,
+        "town",
+        14,
+        "village",
+        12,
+        11
+      ],
+      "text-transform": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        "city",
+        "uppercase",
+        "none"
+      ],
+      "text-letter-spacing": [
+        "match",
+        [
+          "get",
+          "class"
+        ],
+        "city",
+        0.1,
+        0
+      ],
+      "text-anchor": "center",
+      "text-padding": 6,
+      "symbol-sort-key": [
+        "-",
+        0,
+        [
+          "coalesce",
+          [
+            "get",
+            "population"
+          ],
+          0
+        ]
+      ]
+    },
+    "paint": {
+      "text-color": "#263238",
+      "text-halo-color": "#ffffffee",
+      "text-halo-width": 1.6
+    }
   }
 ]

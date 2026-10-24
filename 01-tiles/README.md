@@ -15,11 +15,11 @@ pmtiles show out/evac.pmtiles
 Or the same thing with a timer and a fallback: `01-tiles/build.sh` (PowerShell: `01-tiles/build.ps1`).
 
 **Expected** (`pmtiles show`): `tile type: mvt`, `min zoom: 4`, `max zoom: 14`, bounds `-121.40 38.72 … -120.52 39.20`,
-7 vector layers, ≈ 6.5 MB, build time ≈ 4 s on a 2023 laptop (the first run also spends a few seconds starting the JVM).
+8 vector layers, ≈ 7.1 MB, build time ≈ 4 s on a 2023 laptop (the first run also spends a few seconds starting the JVM).
 
 ```
 pmtiles show out/evac.pmtiles --metadata | grep -o '"id":"[a-z_]*"'
-"id":"buildings_auburn" "id":"fire_perimeters" "id":"hazard" "id":"land_cover" "id":"roads" "id":"shelters" "id":"water"
+"id":"buildings_auburn" "id":"fire_perimeters" "id":"hazard" "id":"land_cover" "id":"places" "id":"roads" "id":"shelters" "id":"water"
 ```
 
 ⏱ **No PMTiles by minute 5?** `cp data/prebuilt/evac.pmtiles out/` and move on — same file, built with the same command.
@@ -32,7 +32,7 @@ pmtiles show out/evac.pmtiles --metadata | grep -o '"id":"[a-z_]*"'
 
 | File | What |
 |---|---|
-| [`evac.yml`](evac.yml) | Planetiler **custommap schema**: 7 local GeoJSON sources → 7 layers, with `min_zoom`, `min_size` and the attributes each layer keeps. Read it: this is the whole "tile schema" lesson. |
+| [`evac.yml`](evac.yml) | Planetiler **custommap schema**: 8 local GeoJSON sources → 8 layers (incl. `places`: city/town labels from z6, villages z9, hamlets z11), with `min_zoom`, `min_size` and the attributes each layer keeps. Read it: this is the whole "tile schema" lesson. |
 | [`build.sh`](build.sh) / [`build.ps1`](build.ps1) | The one-line build above plus `--bounds` from `versions.env`, a timer and the `--prebuilt` fallback. |
 | `planetiler.jar` | Planetiler v0.10.2 (89 MB, **not in git** — comes from `scripts/get-bundle.sh` or the curl above). |
 

@@ -50,3 +50,10 @@ COPY (
   SELECT id, subtype, min_zoom, max_zoom, geometry
   FROM read_parquet(getvariable('data') || '/overture/land_cover.parquet')
 ) TO (getvariable('out') || '/land_cover.geojson') (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'COORDINATE_PRECISION=5');
+
+-- 8. places: cities, towns, villages and hamlets (Overture divisions/locality points) → map labels
+COPY (
+  SELECT id, name, class, coalesce(population, 0) AS population, geometry
+  FROM read_parquet(getvariable('data') || '/overture/localities.parquet')
+  WHERE subtype = 'locality' AND name IS NOT NULL
+) TO (getvariable('out') || '/places.geojson') (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'COORDINATE_PRECISION=6');
