@@ -15,7 +15,7 @@ pmtiles show out/evac.pmtiles
 Or the same thing with a timer and a fallback: `01-tiles/build.sh` (PowerShell: `01-tiles/build.ps1`).
 
 **Expected** (`pmtiles show`): `tile type: mvt`, `min zoom: 4`, `max zoom: 14`, bounds `-121.40 38.72 … -120.52 39.20`,
-8 vector layers, ≈ 7.1 MB, build time ≈ 4 s on a 2023 laptop (the first run also spends a few seconds starting the JVM).
+8 vector layers, ≈ 6.5 MB, build time ≈ 4 s on a 2023 laptop (the first run also spends a few seconds starting the JVM).
 
 ```
 pmtiles show out/evac.pmtiles --metadata | grep -o '"id":"[a-z_]*"'
