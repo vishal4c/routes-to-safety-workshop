@@ -1,17 +1,19 @@
--- hello-geo.sql — the 0:00–0:15 environment check.
--- If this prints one row saying your setup is OK, you're ready for the workshop.
---
--- Run it with:   duckdb < setup/hello-geo.sql
---
--- Placeholder: the real check also loads a tiny sample from data-bundle/ before the session.
-
-INSTALL spatial;
+-- Lab 0 — "hello, geo". Run from the repo root:  duckdb -c ".read setup/hello-geo.sql"
+-- Every machine, every tier, must print the same line.
 LOAD spatial;
+SET geometry_always_xy = true;   -- lon/lat axis order (becomes the default in DuckDB 2.1)
 
-SELECT
-    'OK — DuckDB ' || version()                     AS status,
-    ST_AsText(ST_Point(-121.4944, 38.5816))         AS sacramento_point,   -- lon/lat of Sacramento, CA
-    ST_Distance(
-        ST_Point(-121.4944, 38.5816),               -- Sacramento
-        ST_Point(-122.2712, 37.8044)                -- Oakland
-    )                                               AS degrees_apart;
+.mode list
+.headers off
+SELECT concat(
+         'OK — DuckDB ', replace(version(), 'v', ''),
+         ' · ', count(*), ' shelters (',
+         count(*) FILTER (status = 'verified'), ' verified, ',
+         count(*) FILTER (status = 'candidate'), ' candidate)',
+         ' · nearest to Colfax (crow-flies): ',
+         arg_min(name, ST_Distance_Sphere(geom, ST_Point(-120.9533, 39.1007))),
+         ', ',
+         printf('%.1f', min(ST_Distance_Sphere(geom, ST_Point(-120.9533, 39.1007))) / 1000.0),
+         ' km'
+       )
+FROM (SELECT name, status, geom FROM ST_Read('data/shelters.geojson'));

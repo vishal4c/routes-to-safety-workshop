@@ -1,0 +1,18 @@
+{
+"type": "FeatureCollection",
+"name": "shelters",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"xy_coordinate_resolution": 1e-06,
+"features": [
+{ "type": "Feature", "properties": { "id": "sierra-college", "name": "Sierra College, Rocklin", "status": "verified", "type": "college", "town": "Rocklin" }, "geometry": { "type": "Point", "coordinates": [ -121.2112, 38.791 ] } },
+{ "type": "Feature", "properties": { "id": "gold-country-fairgrounds", "name": "Gold Country Fairgrounds & Event Center", "status": "candidate", "type": "fairground", "town": "Auburn" }, "geometry": { "type": "Point", "coordinates": [ -121.07382, 38.8937 ] } },
+{ "type": "Feature", "properties": { "id": "sierra-vista-cc", "name": "Sierra Vista Community Center", "status": "candidate", "type": "community_center", "town": "Colfax" }, "geometry": { "type": "Point", "coordinates": [ -120.95353, 39.10294 ] } },
+{ "type": "Feature", "properties": { "id": "meadow-vista-cc", "name": "Meadow Vista Community Center", "status": "candidate", "type": "community_center", "town": "Meadow Vista" }, "geometry": { "type": "Point", "coordinates": [ -121.02687, 38.99412 ] } },
+{ "type": "Feature", "properties": { "id": "applegate-cc", "name": "Applegate Community Center", "status": "candidate", "type": "community_center", "town": "Applegate" }, "geometry": { "type": "Point", "coordinates": [ -120.99064, 39.00033 ] } },
+{ "type": "Feature", "properties": { "id": "higgins-lions-cc", "name": "Higgins Lions Community Center", "status": "candidate", "type": "community_center", "town": "Lake of the Pines / Higgins Corner" }, "geometry": { "type": "Point", "coordinates": [ -121.06142, 39.05057 ] } },
+{ "type": "Feature", "properties": { "id": "placer-high", "name": "Placer High School", "status": "candidate", "type": "school", "town": "Auburn" }, "geometry": { "type": "Point", "coordinates": [ -121.07088, 38.89523 ] } },
+{ "type": "Feature", "properties": { "id": "colfax-high", "name": "Colfax High School", "status": "candidate", "type": "school", "town": "Colfax" }, "geometry": { "type": "Point", "coordinates": [ -120.96486, 39.10721 ] } },
+{ "type": "Feature", "properties": { "id": "lincoln-cc", "name": "Lincoln Community Center", "status": "candidate", "type": "community_center", "town": "Lincoln" }, "geometry": { "type": "Point", "coordinates": [ -121.31449, 38.88733 ] } },
+{ "type": "Feature", "properties": { "id": "georgetown-school", "name": "Georgetown School", "status": "candidate", "type": "school", "town": "Georgetown (El Dorado County)" }, "geometry": { "type": "Point", "coordinates": [ -120.83273, 38.90881 ] } }
+]
+}

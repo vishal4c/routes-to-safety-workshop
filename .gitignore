@@ -1,24 +1,30 @@
-# Large build artifacts + data — shipped as GitHub Release assets, not committed.
-# Keeps `git clone` fast.
+# Attendee exports (keep the folder)
+out/*
+!out/.gitkeep
 
-# Pre-built / generated tiles
-*.pmtiles
-*.mbtiles
-
-# OSRM graph files
-data-bundle/osrm/
-*.osrm
-*.osrm.*
-
-# Data extracts / bundles
-*.osm.pbf
-*.parquet
-*.geojson
-*.zip
-
-# Planetiler
+# Shipped via data-bundle.zip (GitHub Release / USB), not git
+data/osm/
+data/osrm/
+data/prebuilt/evac.pmtiles
+data/tmp/
 01-tiles/planetiler.jar
+dist/
 
-# Node / tooling
+# Site / slide build output
+site/
+slides/out/
+
+# Tooling
 node_modules/
 .DS_Store
+.env
+.pixi/
+
+# Large raw artefacts that must never be committed
+*.osm.pbf
+*.osrm
+*.osrm.*
+*.mbtiles
+*.zip
+
+# NOTE: data/**/*.parquet and *.geojson ARE committed (small, Git, no LFS).

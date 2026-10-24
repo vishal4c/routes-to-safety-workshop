@@ -1,0 +1,197 @@
+{
+ "type": "FeatureCollection",
+ "name": "shelters",
+ "description": "Hand-curated shelter candidates for the Routes to Safety workshop. status=verified means a primary source documents the site as an incident shelter; status=candidate means a plausible site NOT confirmed as an official shelter. Teaching example, not an official evacuation resource.",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.2112,
+     38.791
+    ]
+   },
+   "properties": {
+    "id": "sierra-college",
+    "name": "Sierra College, Rocklin",
+    "status": "verified",
+    "type": "college",
+    "town": "Rocklin",
+    "source": "Placer County news release, Sep 10 2022: 'Mosquito Fire emergency shelter moves to Sierra College' \u2014 https://www.placer.ca.gov/8255/Mosquito-Fire-emergency-shelter-moves-to",
+    "incident": "Mosquito Fire 2022"
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.07382,
+     38.8937
+    ]
+   },
+   "properties": {
+    "id": "gold-country-fairgrounds",
+    "name": "Gold Country Fairgrounds & Event Center",
+    "status": "candidate",
+    "type": "fairground",
+    "town": "Auburn",
+    "source": "Frequently used Placer County shelter/large-animal site for other incidents; not confirmed for Mosquito 2022 or River 2021 in a primary source",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.95353,
+     39.10294
+    ]
+   },
+   "properties": {
+    "id": "sierra-vista-cc",
+    "name": "Sierra Vista Community Center",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Colfax",
+    "source": "Overture places (community_center, confidence 0.92); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.02687,
+     38.99412
+    ]
+   },
+   "properties": {
+    "id": "meadow-vista-cc",
+    "name": "Meadow Vista Community Center",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Meadow Vista",
+    "source": "Overture places (community_center, confidence 1.0); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.99064,
+     39.00033
+    ]
+   },
+   "properties": {
+    "id": "applegate-cc",
+    "name": "Applegate Community Center",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Applegate",
+    "source": "Overture places (community_center, confidence 0.92); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.06142,
+     39.05057
+    ]
+   },
+   "properties": {
+    "id": "higgins-lions-cc",
+    "name": "Higgins Lions Community Center",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Lake of the Pines / Higgins Corner",
+    "source": "Overture places (community_center, confidence 0.92); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.07088,
+     38.89523
+    ]
+   },
+   "properties": {
+    "id": "placer-high",
+    "name": "Placer High School",
+    "status": "candidate",
+    "type": "school",
+    "town": "Auburn",
+    "source": "Overture places (high_school, confidence 0.99); schools are common Red Cross shelter sites, none confirmed here",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.96486,
+     39.10721
+    ]
+   },
+   "properties": {
+    "id": "colfax-high",
+    "name": "Colfax High School",
+    "status": "candidate",
+    "type": "school",
+    "town": "Colfax",
+    "source": "Overture places (high_school, confidence 1.0); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -121.31449,
+     38.88733
+    ]
+   },
+   "properties": {
+    "id": "lincoln-cc",
+    "name": "Lincoln Community Center",
+    "status": "candidate",
+    "type": "community_center",
+    "town": "Lincoln",
+    "source": "Overture places (community_center, confidence 0.92); plausible site, no shelter record found",
+    "incident": null
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.83273,
+     38.90881
+    ]
+   },
+   "properties": {
+    "id": "georgetown-school",
+    "name": "Georgetown School",
+    "status": "candidate",
+    "type": "school",
+    "town": "Georgetown (El Dorado County)",
+    "source": "Overture places (elementary_school, confidence 0.94); inside the Mosquito 2022 evacuation area \u2014 included to show that a 'nearest' site can itself be in the hazard zone",
+    "incident": null
+   }
+  }
+ ]
+}
