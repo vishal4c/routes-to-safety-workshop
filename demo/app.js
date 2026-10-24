@@ -8,7 +8,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
   const PMTILES_URL = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
   const PALETTE = ['#8dd3c7','#ffffb3','#bebada','#fb8072','#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd']; // Set3-like, 10 shelters
   const $ = (id) => document.getElementById(id);
-  const state = { shelters: [], osrm: null, start: null, closed: false, override: null, seq: 0, fixtures: false };
+  const state = { shelters: [], osrm: null, start: null, closed: false, override: null, reach: null, seq: 0, fixtures: false };
   let map, startMarker, destMarker, hoverPopup, resultPopup;
 
   // ---- small helpers -------------------------------------------------------
@@ -143,6 +143,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
 
   function setStart(lng, lat, fromUrl) {
     state.start = [lng, lat]; state.override = null;
+    if (state.reach) showShelterReach(null);
     if (!startMarker) {
       startMarker = new maplibregl.Marker({ draggable: true, color: '#3fb1ce' }).setLngLat([lng, lat]).addTo(map);
       startMarker.on('dragend', () => { const l = startMarker.getLngLat(); setStart(l.lng, l.lat); });
@@ -195,6 +196,20 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     state.shelters.forEach((s, i) => L.append(legendRow(sw(PALETTE[i % PALETTE.length]), s.properties.name)));
   }
 
+  // Shelter "isochrone": the precomputed 10/20/30-min bands filtered to one shelter (null = all shelters).
+  function showShelterReach(id) {
+    state.reach = id;
+    map.setFilter('coverage-bands', id ? ['==', ['get', 'shelter_id'], id] : null);
+    // One shelter's reach reads better when it is opaque and the hazard fill steps back.
+    map.setPaintProperty('coverage-bands', 'fill-opacity', id ? 0.75 : 0.35);
+    map.setPaintProperty('hazard', 'fill-opacity', id ? 0.12 : 0.3);
+    if (id) { // make sure the bands are visible and the alternative layer is off
+      const b = document.querySelector('[data-layer=bands]'); if (b.getAttribute('aria-pressed') !== 'true') b.click();
+    }
+    const s = state.shelters.find((x) => x.properties.id === id);
+    $('reach-status').textContent = id ? `Drive-time bands: ${s ? s.properties.name : id} only` : '';
+  }
+
   function wireHover() {
     hoverPopup = new maplibregl.Popup({ closeButton: false, closeOnClick: false, offset: 12 });
     const layers = ['shelters-verified', 'shelters-candidate', 'coverage-hex'];
@@ -210,7 +225,9 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
       const f = map.queryRenderedFeatures(e.point, { layers: ['shelters-verified', 'shelters-candidate'] })[0];
       if (f) { // shelter click -> info popup (not a pin drop)
         const p = f.properties;
-        const node = el('div', {}, [el('strong', { textContent: p.name }), el('br'), `Type: ${p.type}`, el('br'), `Town: ${p.town}`, el('br'), `Status: ${p.status}`, el('br'), `Source: ${p.source}`]);
+        showShelterReach(p.id);
+        const node = el('div', {}, [el('strong', { textContent: p.name }), el('br'), `Type: ${p.type}`, el('br'), `Town: ${p.town}`, el('br'), `Status: ${p.status}`, el('br'), `Source: ${p.source}`,
+          el('br'), el('em', { textContent: 'Showing the area within 10 / 20 / 30 min of this shelter. Click the map to drop a pin and reset.' })]);
         new maplibregl.Popup({ offset: 12 }).setLngLat(f.geometry.coordinates).setDOMContent(node).addTo(map);
         return;
       }
@@ -223,6 +240,8 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     buildLegend();
     const style = await (await fetch('style.json')).json();
     style.sources.evac.url = 'pmtiles://' + PMTILES_URL;
+    // Label fonts are vendored in 02-web/fonts (Noto Sans, OFL) so labels also work offline / in the room.
+    style.glyphs = new URL('../02-web/fonts/', location.href).href + '{fontstack}/{range}.pbf';
     const [shelters, bands, hex] = await Promise.all([
       loadData('shelters.geojson', 'shelters.geojson'),
       loadData('coverage/coverage_bands.geojson', 'coverage_bands.geojson'),
@@ -254,6 +273,9 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     const q = new URLSearchParams(location.search);
     if (q.get('closed') === '1') { state.closed = true; $('closed').checked = true; }
     if (q.has('lng') && q.has('lat')) setStart(+q.get('lng'), +q.get('lat'), true);
+    if (q.get('shelter')) showShelterReach(q.get('shelter'));
+    // Console / automation hook (the module scope hides everything else): rts.setStart(lng, lat), rts.showShelterReach(id)
+    window.rts = { map, setStart, showShelterReach, state };
   }
   init().catch((e) => { console.error(e); notice('Demo failed to start: ' + e.message); });
 }

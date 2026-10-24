@@ -30,3 +30,9 @@ Per click: one `/table` call (start + all shelters, durations and distances) →
 
 ## URL state
 `?lng=-121.00&lat=39.06&closed=1` reproduces a dropped pin.
+
+## Interactions
+- **Click the map** → drop a pin: nearest shelters by drive time (OSRM `/table`), route to the best one, ranked list. Drag the pin or the destination marker.
+- **Click a shelter** → its reach: the precomputed 10 / 20 / 30-minute drive-time bands filtered to that shelter (a poor man's isochrone, from `data/coverage/coverage_bands.geojson`). Drop a pin to reset. URL: `?shelter=<id>`.
+- **I-80 closed** → re-solve with `exclude=motorway` and show before/after (local OSRM only).
+- City/town labels come from the `places` layer in `evac.pmtiles`; fonts are served from `../02-web/fonts/`.
