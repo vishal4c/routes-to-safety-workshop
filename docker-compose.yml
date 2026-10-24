@@ -1,0 +1,28 @@
+# Tier 2 — local containers.  Works with:  docker compose up | finch compose up | podman compose up
+#
+# Why image names have inline defaults instead of reading versions.env:
+#   Compose only interpolates ${VAR} from the shell or from a file called ".env".
+#   versions.env is the single source of truth, so rather than generating a second copy (.env) we
+#   repeat the value as a ${VAR:-default} and let scripts/check-versions.sh fail CI if the default
+#   ever differs from versions.env.  Override at run time:  OSRM_IMAGE=... docker compose up
+#
+# OSRM is NOT published to the host: it is reached through Caddy at http://localhost:8080/osrm/...
+# Needs data/osrm/study-area.osrm.*  (run scripts/get-bundle.sh, or scripts/build-osrm.sh).
+services:
+  osrm:
+    image: ${OSRM_IMAGE:-ghcr.io/project-osrm/osrm-backend:v26.10.0-debian}
+    command: osrm-routed --algorithm mld --max-table-size 500 /data/study-area.osrm
+    volumes:
+      - ./data/osrm:/data:ro
+    restart: unless-stopped
+
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2-alpine}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - .:/srv:ro
+    depends_on:
+      - osrm
+    restart: unless-stopped

@@ -1,0 +1,84 @@
+name: Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 1 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Build slides (HTML + PDF)
+        run: |
+          mkdir -p site/slides
+          if ls slides/*.md >/dev/null 2>&1; then
+            # one call per deck: --theme-set is an array option, so it must come AFTER the input file
+            for f in slides/0*.md; do
+              n=$(basename "${f%.md}")
+              npx --yes @marp-team/marp-cli@4.5.1 "$f" --html --theme-set slides/theme.css -o "site/slides/$n.html"
+              npx --yes @marp-team/marp-cli@4.5.1 "$f" --html --pdf --allow-local-files --theme-set slides/theme.css -o "site/slides/$n.pdf" || echo "::warning::PDF export failed for $n (needs Chrome)"
+            done
+            [ -d slides/img ] && cp -R slides/img site/slides/ || true
+          else
+            echo "::warning::no slides/*.md"
+          fi
+      - name: Copy web app, demo and small data (same paths as the in-room server)
+        run: |
+          for d in 02-web demo assets; do [ -d "$d" ] && cp -R "$d" "site/$d" || true; done
+          mkdir -p site/data
+          [ -f data/shelters.geojson ] && cp data/shelters.geojson site/data/ || true
+          [ -d data/coverage ] && cp -R data/coverage site/data/coverage || true
+      - name: Fetch prebuilt evac.pmtiles from the data release (fail soft)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/data/prebuilt
+          # evac.pmtiles is not in git: it is inside data-bundle.zip, or attached directly as evac.pmtiles
+          if gh release download data-v1 --repo "$GITHUB_REPOSITORY" --pattern evac.pmtiles --dir site/data/prebuilt 2>/dev/null; then
+            echo "got evac.pmtiles asset"
+          elif gh release download data-v1 --repo "$GITHUB_REPOSITORY" --pattern data-bundle.zip --dir "$RUNNER_TEMP" 2>/dev/null \
+               && unzip -o -j "$RUNNER_TEMP/data-bundle.zip" 'data/prebuilt/evac.pmtiles' -d site/data/prebuilt; then
+            echo "extracted evac.pmtiles from bundle"
+          else
+            echo "::warning::evac.pmtiles not available — Pages map will show its 'tiles missing' notice"
+          fi
+          ls -lh site/data/prebuilt || true
+      - name: Root index.html
+        run: |
+          cat > site/index.html <<'HTML'
+          <!doctype html><meta charset="utf-8"><title>Routes to Safety</title>
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <style>body{font:16px/1.5 system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem}</style>
+          <h1>Routes to Safety</h1>
+          <p>FOSS4G NA 2026 workshop · Sacramento · Nov 2</p>
+          <ul>
+            <li><a href="slides/">Slides</a></li>
+            <li><a href="demo/">Demo (map + shelters; routing uses the public OSRM server)</a></li>
+            <li><a href="02-web/">02-web: the map you build in the workshop</a></li>
+            <li><a href="https://github.com/vishal4c/routes-to-safety-workshop">Repository</a></li>
+          </ul>
+          <p><small>Teaching example, not an official evacuation resource.</small></p>
+          HTML
+          touch site/.nojekyll
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with: { path: site }
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

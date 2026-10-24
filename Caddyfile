@@ -1,0 +1,23 @@
+# Workshop web server — used by docker-compose.yml (tier 2) and the Codespaces devcontainer (tier 1).
+# Serves the repo root (bind-mounted at /srv) on :8080 and proxies /osrm/* to the OSRM container.
+:8080 {
+	# CORS: let any page (e.g. the Pages site, a notebook) fetch tiles and GeoJSON from here.
+	header Access-Control-Allow-Origin *
+
+	# handle_path STRIPS the /osrm prefix:  /osrm/route/v1/... -> osrm:5000/route/v1/...
+	# OSRM is only reachable through this proxy; its port 5000 is never published.
+	handle_path /osrm/* {
+		reverse_proxy osrm:5000 {
+			# OSRM already sends Access-Control-Allow-Origin: * ; drop it so the header isn't doubled
+			header_down -Access-Control-Allow-Origin
+		}
+	}
+
+	# Static files from the repo root.
+	# file_server answers HTTP Range requests (206 Partial Content) by default —
+	# PMTiles needs that. No extra config required. (python -m http.server does NOT, so never use it.)
+	handle {
+		root * /srv
+		file_server browse
+	}
+}

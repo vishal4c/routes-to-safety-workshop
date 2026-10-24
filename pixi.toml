@@ -1,0 +1,17 @@
+# Tier-3 alternative environment (no containers).  `pixi install && pixi shell`
+# NOT included on purpose:
+#   * pmtiles — the conda-forge "pmtiles" package is the *Python* library, not the go-pmtiles CLI.
+#     Install the go-pmtiles v1.31.2 binary instead (brew install pmtiles | GitHub release); see setup/README.md.
+#   * OSRM — no native Windows/macOS binaries; routing needs tier 1 or 2.
+[project]
+name = "routes-to-safety"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "win-64"]
+
+[dependencies]
+duckdb-cli = "==2.0.0"   # if conda-forge lags, use the DuckDB release zip instead
+openjdk = "21.*"
+nodejs = "22.*"
+osmium-tool = "*"        # not available on win-64: Stretch B needs tier 1/2 there
+uv = "*"
+python = ">=3.9"
