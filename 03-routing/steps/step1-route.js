@@ -1,4 +1,4 @@
-// Lab 3a — Hello route: draw ONE route from OSRM on the map.
+// Phase 3c, step 1 — Hello route: draw ONE route from OSRM on the map.
 // Use it by uncommenting the step1 line at the bottom of 02-web/index.html.
 //
 // $OSRM_URL for the browser = same-origin "/osrm" (Caddy proxies it to OSRM; works in Codespaces and Docker).

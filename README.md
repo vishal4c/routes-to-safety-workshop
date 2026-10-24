@@ -51,7 +51,7 @@ flowchart LR
   A["A · Codespaces<br/>nothing to install"]:::tool
   B["B · Docker image<br/>laptop, same container"]:::tool
   C["C · Native tools<br/>no routing"]:::step
-  L0(["Lab 0 checkpoint<br/>duckdb -c &quot;.read setup/hello-geo.sql&quot;"]):::chk
+  L0(["Phase 0 checkpoint<br/>duckdb -c &quot;.read setup/hello-geo.sql&quot;"]):::chk
   A --> L0
   B --> L0
   C --> L0
@@ -85,7 +85,7 @@ python3 setup/check_setup.py
 | What | Where |
 |---|---|
 | The repo folder | bind-mounted at `/workspaces/routes-to-safety-workshop` — files you write appear on the laptop and are served at once |
-| Map and lab pages | <http://localhost:8080/02-web/> (Caddy answers Range requests, which PMTiles needs) |
+| Map and hands-on pages | <http://localhost:8080/02-web/> (Caddy answers Range requests, which PMTiles needs) |
 | OSRM | browser: same-origin `/osrm/…` · container shell: `$OSRM_URL` = `http://caddy:8080/osrm` |
 | Stop / restart | `docker compose down` · `docker compose up -d` |
 | Offline room | `BUNDLE_ZIP=/path/data-bundle.zip bash scripts/get-bundle.sh` |
@@ -97,7 +97,7 @@ The tool container cannot *build* an OSRM graph (no Docker inside); the graph sh
 Git, DuckDB CLI 2.0.0, Temurin 21, Node 22, uv, go-pmtiles → `bash scripts/get-bundle.sh` → `npx serve -l 8080 .`
 (**never** `python -m http.server`: no Range support, blank map). No routing (OSRM has no Windows/macOS binary) — pair up for Phase 3c. Per-OS commands: [`setup/README.md`](setup/).
 
-### Lab 0 — checkpoint
+### Phase 0 — setup checkpoint
 
 ```bash
 duckdb -c ".read setup/hello-geo.sql"
@@ -238,7 +238,7 @@ curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0" 
 
 | Nearest on the map ≠ nearest by road | I-80 open → closed |
 |---|---|
-| <img src="docs/img/lab-route.jpg" alt="Foresthill pin, route to Placer High School, 36 min"/> | <img src="docs/img/route-i80-closed.jpg" alt="Dutch Flat to Sierra Vista Community Center, 31 min with exclude=motorway"/> |
+| <img src="docs/img/route-foresthill.jpg" alt="Foresthill pin, route to Placer High School, 36 min"/> | <img src="docs/img/route-i80-closed.jpg" alt="Dutch Flat to Sierra Vista Community Center, 31 min with exclude=motorway"/> |
 | From Foresthill: Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min. | From Dutch Flat: Sierra Vista CC stays nearest, 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd. |
 
 > A real closure is not a URL parameter. This is the calculation, not detection; shelter status, traffic, smoke and capacity are not in the data.

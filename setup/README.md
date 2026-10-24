@@ -41,7 +41,7 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 1. Use a **personal** GitHub account (employer‑managed accounts often block Codespaces).
 2. Repo page → **Code → Codespaces → Create codespace on main**. First start takes a few minutes; `postCreateCommand` fetches the data bundle and runs `check_setup.py`.
 3. Open the map from the **Ports tab → hover the row for port 8080 ("Workshop (Caddy)") → click the globe icon**. Never type `localhost:8080` into your own browser, and **never forward port 5000** (OSRM is only reached through Caddy at `/osrm/`).
-4. Terminal is Linux bash; all lab commands work as written.
+4. Terminal is Linux bash; all workshop commands work as written.
 
 ## Tier 2 — Local containers
 
@@ -159,7 +159,7 @@ You should see:
 
 Use Git Bash if you can. If you must use PowerShell:
 
-| Git Bash (labs) | PowerShell |
+| Git Bash | PowerShell |
 |---|---|
 | `bash scripts/get-bundle.sh` | `powershell -ExecutionPolicy Bypass -File scripts\get-bundle.ps1` |
 | `bash 01-tiles/build.sh` | `powershell -ExecutionPolicy Bypass -File 01-tiles\build.ps1` |

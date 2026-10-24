@@ -1,4 +1,4 @@
--- Lab 0 — "hello, geo". Run from the repo root:  duckdb -c ".read setup/hello-geo.sql"
+-- Phase 0 — "hello, geo" setup checkpoint. Run from the repo root:  duckdb -c ".read setup/hello-geo.sql"
 -- Every machine, every tier, must print the same line.
 LOAD spatial;
 SET geometry_always_xy = true;   -- lon/lat axis order (becomes the default in DuckDB 2.1)

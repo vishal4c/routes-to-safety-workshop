@@ -1,4 +1,4 @@
--- Lab 1a — Look around (6 min + 2).  Run from the REPO ROOT:
+-- Phase 1a — Look around.  Run from the REPO ROOT:
 --     duckdb -c ".read 00-data/01-explore.sql"
 -- Three queries. Each one is preceded by the output you should see (measured on Overture 2026-09-23.1).
 -- Plain SQL only: SELECT (which columns) / WHERE (which rows) / GROUP BY (count per group).
@@ -19,7 +19,7 @@
 --   [00m
 DESCRIBE SELECT * FROM 'data/overture/segments.parquet';
 
--- Query 2 — roads by class, drivable classes only (this WHERE is the same filter Lab 1c uses for roads.geojson;
+-- Query 2 — roads by class, drivable classes only (this WHERE is the same filter Phase 1c uses for roads.geojson;
 -- remove it to also see service / footway / track / path …).  Sum = 36,294.
 -- Expected:
 --   ┌──────────────┬───────┐

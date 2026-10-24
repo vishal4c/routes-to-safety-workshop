@@ -20,7 +20,7 @@ Mosquito 2022 footprint). Bounding box (W,S,E,N) = **-121.40, 38.72, -120.52, 39
 | `shelters.geojson` | hand-curated; `status = verified` only for Sierra College, Rocklin (Placer County release, Mosquito 2022); `source` column per row | 2026-10 | by hand | 5 KB | 10 (1 verified, 9 candidate) | WGS84 | CC BY-SA 4.0 (materials) |
 | `coverage/coverage_hex.geojson` | derived: H3 res-8 hexes × OSRM `/table` | 2026-10-23 | `scripts/make-coverage.py` | 1.4 MB | 3,341 | WGS84 | derived — ODbL (OSM roads) |
 | `coverage/coverage_bands.geojson` | derived: dissolved 10/20/30-min bands | 2026-10-23 | `scripts/make-coverage.py` | 0.14 MB | 30 (10 shelters × 3 bands) | WGS84 | derived — ODbL |
-| `prebuilt/out/*.geojson` | the output of Lab 1c, committed as the fallback | 2026-10-23 | `00-data/03-export.sql` (via `make-data.sh exports`) | 39 MB (7 files; cap is 40) | roads 36,294 | WGS84 | as inputs |
+| `prebuilt/out/*.geojson` | the output of Phase 1c, committed as the fallback | 2026-10-23 | `00-data/03-export.sql` (via `make-data.sh exports`) | 39 MB (7 files; cap is 40) | roads 36,294 | WGS84 | as inputs |
 | `osm/study-area.osm.pbf` | Geofabrik `norcal-latest` (`OSM_EXTRACT_URL`) | latest object timestamp **2026-10-22T17:09:36Z** | `osmium extract -b BBOX -s smart` | 17.0 MB | 2,433,879 nodes · 256,763 ways · 2,142 relations | WGS84 | ODbL 1.0 |
 | `osm/colfax.osm.pbf` | clip of the above to `COLFAX_*` | same | `osmium extract` | 0.39 MB | — | WGS84 | ODbL 1.0 |
 | `osrm/study-area.osrm.*` | built from `study-area.osm.pbf`, car profile, MLD | 2026-10-23; image `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian` | `scripts/build-osrm.sh` (15 s) | 99 MB (26 files) | — | — | ODbL 1.0 (derived from OSM) |
@@ -47,9 +47,9 @@ scripts/make-data.sh --plan                 # print what would run, with estimat
 scripts/make-data.sh overture               # DuckDB → data/overture/*.parquet   (reads s3://overturemaps-us-west-2 directly)
 scripts/make-data.sh hazard                 # CAL FIRE REST → data/hazard/      (f=geojson → WGS84)
 scripts/make-data.sh osm                    # Geofabrik norcal (~1 GB) → osmium extract → data/osm/*.osm.pbf
-scripts/make-data.sh exports                # data/prebuilt/out/*.geojson       (same SQL as Lab 1c)
+scripts/make-data.sh exports                # data/prebuilt/out/*.geojson       (same SQL as Phase 1c)
 scripts/build-osrm.sh                       # data/osm/study-area.osm.pbf → data/osrm/study-area.osrm.*  (needs docker/finch/podman)
-scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   # [F] Stretch B, tiny graph
+scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   # Phase 3c Stretch B, tiny graph
 scripts/make-coverage.py                    # needs OSRM at http://localhost:5000 → data/coverage/*.geojson
 01-tiles/build.sh                           # out/*.geojson → out/evac.pmtiles   (--prebuilt uses data/prebuilt/out)
 cp out/evac.pmtiles data/prebuilt/evac.pmtiles

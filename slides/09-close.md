@@ -10,13 +10,13 @@ size: 16:9
 
 ```text
 Overture + OSM ─► DuckDB ─► GeoJSON ─► Planetiler ─► PMTiles ─► MapLibre
-                  (Lab 1)   out/*.geojson  (Lab 2a)   evac.pmtiles  (Lab 2b–c)
+                  (Phase 1)   out/*.geojson  (Phase 2a)   evac.pmtiles  (Phase 3a–b)
                                                                       ▲
-                        OSRM graph ─► /table · /route · /nearest ─────┘  (Lab 3)
+                        OSRM graph ─► /table · /route · /nearest ─────┘  (Phase 3c)
 ```
 
 - **Extract** with spatial SQL · **Tile** with Planetiler · **Render** with MapLibre · **Route** with OSRM
-- Then: pin versions, swap the community (Lab 4 `--plan`)
+- Then: pin versions, swap the community (Phase 4 `--plan`)
 - Remember: it answers the two questions **on a good day**
 
 <!-- S38. 1.5 min. Say: "Here's the picture from the start, now filled in. Each arrow is something you ran. One extract became both a basemap and routes — and it only answers the questions on a good day." -->
@@ -55,7 +55,7 @@ Details: `data/LICENSE-data.md`
 </div>
 </div>
 
-<!-- S40. 1 min. Say: "Please scan this and tell us what worked and what didn't. The repo has everything, including the stretch labs and the solutions." -->
+<!-- S40. 1 min. Say: "Please scan this and tell us what worked and what didn't. The repo has everything, including the stretch exercises and the solutions." -->
 
 ---
 <!-- _class: lead -->

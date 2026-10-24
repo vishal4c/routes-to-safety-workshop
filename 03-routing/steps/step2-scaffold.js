@@ -1,4 +1,4 @@
-// Lab 3b SCAFFOLD — everything is ready except the 6 lines in findNearestShelter().
+// Phase 3c, step 2 SCAFFOLD — everything is ready except the 6 lines in findNearestShelter().
 // Load it from 02-web/index.html:  import('../03-routing/steps/step2-scaffold.js').then(m => m.start(map, maplibregl))
 
 const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same as versions.env
@@ -67,7 +67,7 @@ function addRouteLayers() {
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout, paint: { 'line-color': ROUTE_COLOR, 'line-width': 4 } }, top);
 }
 
-// Lab 3c (later): returns '&exclude=motorway' when the "I-80 closed" box is ticked.
+// Step 3 (later): returns '&exclude=motorway' when the "I-80 closed" box is ticked.
 function closureParam() {
   return '';
 }
@@ -108,7 +108,7 @@ async function findNearestShelter(house, exclude) {
   // ===== YOU WRITE THESE 6 LINES =====
   // Helpers you can call:  osrm(path) -> JSON      setRoute(geometry)      showPopup([lon, lat], htmlText)
   // `shelters` = array of GeoJSON features: name = s.properties.name, position = s.geometry.coordinates
-  // `exclude`  = '' for now; Lab 3c turns it into '&exclude=motorway' — add it to the end of both URLs.
+  // `exclude`  = '' for now; step 3 turns it into '&exclude=motorway' — add it to the end of both URLs.
   //
   // 1. OSRM call (/table): const table = await osrm(`/table/v1/driving/${coords}?sources=0&annotations=duration,distance${exclude}`)
   //    -> table.durations[0] = seconds from the house to [house, shelter1, shelter2, ...]
@@ -120,7 +120,7 @@ async function findNearestShelter(house, exclude) {
   //    route.duration is seconds, route.distance is metres.
   //
   // Stuck for 6 minutes?  Open 03-routing/steps/step3-solution.js
-  console.warn('Lab 3b: write the 6 lines in findNearestShelter() — see 03-routing/exercises.md');
+  console.warn('Phase 3c, step 2: write the 6 lines in findNearestShelter() — see 03-routing/exercises.md');
   // ===== END OF YOUR 6 LINES =====
 }
 
@@ -145,7 +145,7 @@ export async function start(mapArg, maplibreArg) {
   }
 
   addRouteLayers();
-  // addClosureToggle();   // Lab 3c: you will add this (solution in step3-solution.js)
+  // addClosureToggle();   // step 3: you will add this (solution in step3-solution.js)
   popup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '300px' });
 
   houseMarker = new maplibregl.Marker({ draggable: true }).setLngLat(START).addTo(map);

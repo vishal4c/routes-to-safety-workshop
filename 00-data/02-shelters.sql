@@ -1,4 +1,4 @@
--- Lab 1b — Candidate shelters (8 min + 2).  Run from the REPO ROOT:
+-- Phase 1b — Candidate shelters.  Run from the REPO ROOT:
 --     duckdb -c ".read 00-data/02-shelters.sql"
 -- Idea: ask Overture for "places that could be shelters", look at what comes back, then compare with the
 -- hand-checked data/shelters.geojson and ask the hazard layer which shelters sit in a Very High zone.

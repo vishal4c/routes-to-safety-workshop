@@ -112,21 +112,21 @@ function assemble(...pastes) {
 }
 
 // ---------------------------------------------------------------------------
-// LAB 2b / 2c — paste your layers between the brackets  [ ]
+// PHASE 3a — style the map: paste your layers between the brackets  [ ]
 // Each step file is a JSON array:  [ {layer}, {layer}, ... ]
 // Replace the empty [] with the whole contents of the file.
 // ---------------------------------------------------------------------------
 
-// STEP 1: paste here  (Lab 2b: steps/step1-roads.json — roads)
+// STEP 1: paste here  (steps/step1-roads.json — roads)
 const STEP1 = [];
 
-// STEP 2: paste here  (Lab 2c [R]: steps/step2-hazard-water.json — hazard, water, land cover, shelters)
+// STEP 2: paste here  (steps/step2-hazard-water.json — hazard, water, land cover, shelters)
 const STEP2 = [];
 
-// STEP 3: paste here  (⏱ bail-out, or Lab 2c [M]: steps/step3-styled.json — steps 1+2 + dashed perimeters)
+// STEP 3: paste here  (bail-out, or if time: steps/step3-styled.json — steps 1+2 + dashed perimeters)
 const STEP3 = [];
 
-// STEP 4: paste here  (Lab 2c [F]: steps/step4-final.json — everything + 3D buildings, zoom >= 13)
+// STEP 4: paste here  (finish early: steps/step4-final.json — everything + 3D buildings, zoom >= 13)
 const STEP4 = [];
 
 // ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ window.map = map;  // handy for the browser console: map.getStyle().layers
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
 map.addControl(new maplibregl.ScaleControl(), 'bottom-right');
 
-// Lab 2b: uncomment the next three lines to show the attribution (required by the data licences)
+// Phase 3a, step 1: uncomment the next three lines to show the attribution (required by the data licences)
 // map.addControl(new maplibregl.AttributionControl({ compact: false,
 //   customAttribution: '© OpenStreetMap contributors · © Overture Maps Foundation · Fire Hazard Severity Zones: CAL FIRE FRAP (CC-BY) · Land cover: ESA WorldCover (CC-BY)'
 // }), 'bottom-right');
@@ -204,7 +204,7 @@ window.setView = setView;   // console / automation: setView('reach')
 
 // Shelter reach data: precomputed drive-time isochrones — for every shelter, the area it can be reached from within
 // 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
-// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Lab 3 stretch A shows the recipe).
+// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Phase 3c Stretch A shows the recipe).
 const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#74a9cf', 30, '#fcae91', '#fcae91'];
 const reachStatus = document.getElementById('reach-status');
 let reachShelter = null;          // null = all shelters, otherwise one shelter id
@@ -245,7 +245,7 @@ function setReachShelter(id) {
 }
 window.setReachShelter = setReachShelter;   // console / automation: setReachShelter('sierra-vista-cc')
 
-// Click a shelter -> popup with its name (works once the "shelters" layer exists: Lab 2c).
+// Click a shelter -> popup with its name (works once the "shelters" layer exists: Phase 3a, step 2).
 // In the reach view the click also isolates that shelter's isochrone.
 map.on('click', 'shelters', (e) => {
   const p = e.features[0].properties;
@@ -264,10 +264,10 @@ map.on('mouseenter', 'shelters', () => { map.getCanvas().style.cursor = 'pointer
 map.on('mouseleave', 'shelters', () => { map.getCanvas().style.cursor = ''; });
 
 // ---------------------------------------------------------------------------
-// LAB 3 (routing) — uncomment ONE line when you get there
-//   3a:  ../03-routing/steps/step1-route.js
-//   3b:  ../03-routing/steps/step2-scaffold.js   (you write 6 lines inside it)
-//   ⏱ / 3c: ../03-routing/route.js              (finished version, with the I-80 toggle)
+// PHASE 3c (routing) — uncomment ONE line when you get there
+//   step 1:  ../03-routing/steps/step1-route.js
+//   step 2:  ../03-routing/steps/step2-scaffold.js   (you write 6 lines inside it)
+//   step 3 / bail-out: ../03-routing/route.js       (finished version, with the I-80 toggle)
 // ---------------------------------------------------------------------------
 map.on('load', () => {
   // import('../03-routing/steps/step1-route.js').then((m) => m.start(map, maplibregl));

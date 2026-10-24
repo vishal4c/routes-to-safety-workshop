@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build an OSRM routing graph (MLD) from an .osm.pbf, inside the pinned OSRM container.
 #   scripts/build-osrm.sh                                    → data/osrm/study-area.osrm.*   (what the workshop ships)
-#   scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   → [F] Stretch B: tiny graph in ~1 min
+#   scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   → Phase 3c Stretch B: tiny graph
 # Works with docker, finch, podman or nerdctl (auto-detected; override with CONTAINER_CLI=finch).
 . "$(dirname "$0")/lib.sh"
 

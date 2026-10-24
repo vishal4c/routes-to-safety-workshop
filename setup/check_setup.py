@@ -182,7 +182,7 @@ def check_osrm():
         if st == 200 and '"Ok"' in body:
             add("OSRM routing", "ok", "reachable via " + label, required=False)
             return True
-    add("OSRM routing", "skip", "not reachable — no routing on this tier (Labs 0–2 are fine; Lab 3 needs tier 1 or 2)", required=False)
+    add("OSRM routing", "skip", "not reachable — no routing on this tier (Phases 0–3b are fine; Phase 3c needs tier 1 or 2)", required=False)
     return False
 
 
@@ -274,7 +274,7 @@ def main():
     if in_codespaces:
         print("      Open the map from the Ports tab → globe icon on port 8080 (never forward port 5000).")
     if not osrm and not required_fail:
-        print("      No routing on this tier: pair with a neighbour for Lab 3, or use tier 1/2.")
+        print("      No routing on this tier: pair with a neighbour for Phase 3c, or use tier 1/2.")
     print("\nResult: %s" % (GREEN("ALL REQUIRED CHECKS PASSED") if not required_fail else RED("%d REQUIRED CHECK(S) FAILED" % len(required_fail))))
     return 1 if required_fail else 0
 

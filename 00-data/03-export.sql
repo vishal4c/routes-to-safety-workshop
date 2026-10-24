@@ -1,4 +1,4 @@
--- Lab 1c — export the study area to GeoJSON for Planetiler.
+-- Phase 1c — export the study area to GeoJSON for Planetiler.
 -- Run from the repo root:   duckdb -c ".read 00-data/03-export.sql"
 -- Every COPY names its columns: list-typed Overture columns must never reach the GeoJSON writer.
 LOAD spatial;
@@ -39,7 +39,7 @@ COPY (
   FROM ST_Read(getvariable('data') || '/hazard/fire_perimeters.geojson')
 ) TO (getvariable('out') || '/fire_perimeters.geojson') (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'COORDINATE_PRECISION=6');
 
--- 6. buildings (Auburn only — for the [F] fill-extrusion exercise)
+-- 6. buildings (Auburn only — for the finish-early fill-extrusion exercise)
 COPY (
   SELECT id, subtype, class, height, num_floors, geometry
   FROM read_parquet(getvariable('data') || '/overture/buildings_auburn.parquet')

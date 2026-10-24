@@ -5,18 +5,18 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
 
 ## T-10 days — data and dry runs (OUTLINE §0 prep tasks)
 
-- [x] **(a) Timed dry run** of Lab 1c export and `generate-custom`, with/without land_cover.
+- [x] **(a) Timed dry run** of Phase 1c export and `generate-custom`, with/without land_cover.
   `duckdb -c ".read 00-data/03-export.sql"` · `01-tiles/build.sh`
   Measured: export **1.3 s** (39 MB, 7 files); Planetiler **4 s** → `evac.pmtiles` 6.5 MB. **land_cover kept** (4.1 MB GeoJSON, far below the 10 MB / +30 s limit).
   - [ ] Repeat on a **2-vCPU Codespace** (the numbers above are an M-series Mac).
 - [x] **(b) Real OSRM build → per-file sizes.** `scripts/build-osrm.sh` → 15 s, **99 MB** (26 files); `study-area.osm.pbf` 17.0 MB; `colfax.osm.pbf` 0.39 MB.
-- [x] **(c) Lab 0 checkpoint string** — real output of `duckdb -c ".read setup/hello-geo.sql"` (2026-10-23): `OK — DuckDB 2.0.0 · 10 shelters (1 verified, 9 candidate) · nearest to Colfax (crow-flies): Sierra Vista Community Center, 0.2 km` (closes OUTLINE §8 attendee #9).
+- [x] **(c) Phase 0 checkpoint string** — real output of `duckdb -c ".read setup/hello-geo.sql"` (2026-10-23): `OK — DuckDB 2.0.0 · 10 shelters (1 verified, 9 candidate) · nearest to Colfax (crow-flies): Sierra Vista Community Center, 0.2 km` (closes OUTLINE §8 attendee #9).
 - [x] **(d) arm64 manifest:** OSRM `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian` is multi-arch (used locally on Apple Silicon via Colima). Workshop tool image `ghcr.io/vishal4c/routes-to-safety-workshop:latest` built 2026-10-23 by the devcontainer-image workflow: **amd64 + arm64**, package public.
 - [ ] **(e) Caddy smoke test:** `docker compose up -d` then `curl localhost:8080/osrm/nearest/v1/driving/-121.08,38.90` → `"code":"Ok"`. (Direct OSRM already answered on :5000 during the build.)
 - [x] **(f) Shallow clone size:** `git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git` → **38 MB transferred (.git), 109 MB on disk, 3 s** (measured 2026-10-23, home wifi). `check_setup.py` passes in the fresh clone; pmtiles/osrm correctly reported as optional → `scripts/get-bundle.sh`.
-- [ ] **(g) Clean-machine rehearsal:** Windows 11 (Git Bash **and** PowerShell) and macOS: tier 3 from scratch, `python3 setup/check_setup.py`, Labs 1a–1c.
+- [ ] **(g) Clean-machine rehearsal:** Windows 11 (Git Bash **and** PowerShell) and macOS: tier 3 from scratch, `python3 setup/check_setup.py`, Phase 1a–1c.
 - [ ] **Finch rehearsal** (recommended runtime on corporate laptops): `finch vm init && finch compose up`, then `scripts/build-osrm.sh`; confirm `detect_container_cli` picks it up.
-- [ ] **(h) 90-second demo video** (live-demo fallback for Block 1) recorded; file on the laptop *and* the USB sticks.
+- [ ] **(h) 90-second demo video** (live-demo fallback for Phase 0) recorded; file on the laptop *and* the USB sticks.
 - [x] **(i) Coverage precomputed:** `scripts/make-coverage.py` → 3,341 hexes, 30 bands. Re-run after any shelter change.
 - [ ] `shasum -a 256 -c data/CHECKSUMS.sha256` passes on a fresh checkout + bundle.
 - [ ] `scripts/check-versions.sh` clean (no drift from `versions.env`).
@@ -47,5 +47,5 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
 - [ ] **T-0:30 AV test in room Beavis:** projector resolution and font size from the back row; clicker; both instructors' mic; open the Pages URL on the room wifi; run `duckdb -c ".read setup/hello-geo.sql"` projected.
 - [ ] Ask the room for the **wifi capacity** and the guest password; write both on the door slide.
 - [ ] Door slide up before 09:00; Codespaces users seated next to Docker users (seat map for the pairing rule).
-- [ ] A/B roles assigned, B has the timer and red card. Hard-stop cut order printed: Lab 4 live part → Block 4 [F] → Lab 2c [M]/[F] → S35/S37.
+- [ ] A/B roles assigned, B has the timer and red card. Hard-stop cut order printed: Phase 4 live part → Phase 3c finish-early → Phase 3a optional parts → S35/S37.
 - [ ] Local OSRM running on the instructor laptop (for the demo and for narrated build). **Do not** forward port 5000 in Codespaces.

@@ -13,7 +13,7 @@ OSRM graph, coverage polygons) must be shared under ODbL 1.0 if you publish a de
 | Data | Licence | Where it appears | Obligation |
 |---|---|---|---|
 | Overture **transportation** (segments, connectors) | ODbL 1.0 (OpenStreetMap-derived) | `overture/segments.parquet`, `connectors.parquet`, roads layer | attribute OSM + Overture; share-alike for derived databases |
-| Overture **places** | CDLA-Permissive-2.0 | `overture/places.parquet` (Lab 1) | attribute Overture; no share-alike |
+| Overture **places** | CDLA-Permissive-2.0 | `overture/places.parquet` (Phase 1) | attribute Overture; no share-alike |
 | Overture **buildings** | ODbL 1.0 (OpenStreetMap and other contributors; per-source terms in the data's `sources`) | `overture/buildings_auburn.parquet` | attribute; share-alike for derived databases |
 | Overture **base** — water | ODbL 1.0 (OpenStreetMap-derived) | `overture/water.parquet` | attribute OSM + Overture; share-alike |
 | Overture **base** — land cover | CC-BY 4.0 (ESA WorldCover) | `overture/land_cover.parquet` | attribute ESA WorldCover |

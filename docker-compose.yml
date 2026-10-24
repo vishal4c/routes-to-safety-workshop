@@ -11,7 +11,7 @@
 #
 # Three services:
 #   workshop  the tool image (DuckDB + spatial, Temurin 21, Planetiler, go-pmtiles, Node 22, osmium, uv) with the
-#             repo bind-mounted — `docker compose exec workshop bash` and every lab command runs unchanged.
+#             repo bind-mounted — `docker compose exec workshop bash` and every workshop command runs unchanged.
 #             Pulled from ghcr.io (multi-arch); the Codespaces overlay in .devcontainer/ builds the same Dockerfile.
 #   osrm      the routing engine, reads data/osrm/study-area.osrm.*
 #   caddy     static files for the repo on :8080 (Range requests → PMTiles works) + /osrm/* proxy

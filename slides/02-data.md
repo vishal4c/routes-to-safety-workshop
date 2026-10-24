@@ -6,7 +6,7 @@ footer: 'Routes to Safety · FOSS4G NA 2026'
 size: 16:9
 ---
 
-<!-- S13 · Block 2 starts 0:30 · 🎤 S13–S19 = 8 min total · ~1 min -->
+<!-- S13 · Phase 1 starts 0:30 · 🎤 S13–S19 = 8 min total · ~1 min -->
 <!-- Say: "Every road, place and building on today's map comes from one open dataset: Overture Maps. Here's what it is in one slide." -->
 
 # Overture Maps in one slide
@@ -79,12 +79,12 @@ WHERE  ST_Intersects(s.geom, h.geom)
 
 - `ST_Intersects(a, b)` → **true / false**: do the two shapes touch or overlap?
 - It goes in `WHERE`, like any other condition
-- Lab 1b: which shelters sit in a Very High zone?
+- Phase 1b: which shelters sit in a Very High zone?
 
 ---
 
 <!-- S17 · ~1.5 min -->
-<!-- Say: "Overture columns can hold structs. Dot into them. This is your cheat sheet — it's also on the lab card." -->
+<!-- Say: "Overture columns can hold structs. Dot into them. This is your cheat sheet — it's also on the phase card." -->
 
 <!-- _class: small -->
 
@@ -118,15 +118,15 @@ duckdb → read Overture (S3) → filter to bbox
 
 - Files: `segments`, `connectors`, `places`, `water`, `localities`, `buildings_auburn`
 - Committed to git — `git clone --depth 1` is 38 MB, 3 s; no network needed in the room
-- Re-run for your own town: `scripts/make-data.sh` (Block 5)
+- Re-run for your own town: `scripts/make-data.sh` (Phase 4)
 
 ---
 
-<!-- _class: lab -->
-<!-- S19 · 🧪 stays on screen for Lab 1 · working dir = repo root; out/ exists · 1a 6+2 · 1b 8+2 · 1c 6+2 · exercises 5 -->
-<!-- Say: "Open a terminal at the repo root. Lab 1a — three queries, each has an expected result. Hands up when you match it." -->
+<!-- _class: card -->
+<!-- S19 · 🧪 stays on screen for Phase 1 · working dir = repo root; out/ exists · 1a 6+2 · 1b 8+2 · 1c 6+2 · exercises 5 -->
+<!-- Say: "Open a terminal at the repo root. Phase 1a — three queries, each has an expected result. Hands up when you match it." -->
 
-# 🧪 Lab 1 — Extract the data
+# 🧪 Phase 1 — Extract the data
 
 **1a Look around (6 min)** — `DESCRIBE` segments · roads by `class` · places by `taxonomy.primary` → *Expected:* output on the printed card 👀
 **1b Candidate shelters (8 min)** — category filter + `confidence >= 0.7` → spot the noise (a Chevrolet dealer tagged `community_center`) → open `data/shelters.geojson` → `ST_Intersects` with FHSZ 👀
@@ -141,5 +141,5 @@ TO 'out/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
 then the rest: `duckdb -c ".read 00-data/03-export.sql"` → *Expected:* `out/` lists 6–7 files 👀
 ⏱ not done by minute 5 → `cp data/prebuilt/out/* out/`
 
-**Exercises:** **[R] A** count `primary`+ roads · **[R] B** crow-flies nearest shelter to Foresthill (remember it!) · **[F] C** Colfax bbox re-export
+**Exercises:** **A** count `primary`+ roads · **B** crow-flies nearest shelter to Foresthill (remember it!) · **C (finish early)** Colfax bbox re-export
 🎯 `duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"` → **36,294**

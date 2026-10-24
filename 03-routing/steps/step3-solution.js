@@ -1,5 +1,5 @@
-// Lab 3b + 3c SOLUTION — nearest shelter BY ROAD, with draggable house + shelter markers.
-// Lab 3b scaffold: steps/step2-scaffold.js · finished version (this file) = steps/step3-solution.js
+// Phase 3c, steps 2 + 3 SOLUTION — nearest shelter BY ROAD, with draggable house + shelter markers.
+// Phase 3c, step 2 scaffold: steps/step2-scaffold.js · finished version (this file) = steps/step3-solution.js
 // Loaded from 02-web/index.html:  import('../03-routing/route.js').then(m => m.start(map, maplibregl))
 
 const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same as versions.env
@@ -68,7 +68,7 @@ function addRouteLayers() {
   map.addLayer({ id: 'route', type: 'line', source: 'route', layout, paint: { 'line-color': ROUTE_COLOR, 'line-width': 4 } }, top);
 }
 
-// Lab 3c: the "I-80 closed" checkbox. Returns the extra URL text for /route and /table.
+// Phase 3c, step 3: the "I-80 closed" checkbox. Returns the extra URL text for /route and /table.
 function closureParam() {
   const box = document.getElementById('i80-closed');
   return box && box.checked ? '&exclude=motorway' : '';
@@ -124,7 +124,7 @@ async function findNearestShelter(house, exclude) {
 
   // ===== YOU WRITE THESE 6 LINES =====
   // `shelters` = list of GeoJSON features; a shelter's [lon, lat] is s.geometry.coordinates
-  // `exclude` = '' or '&exclude=motorway' — add it at the end of both OSRM URLs (Lab 3c)
+  // `exclude` = '' or '&exclude=motorway' — add it at the end of both OSRM URLs (step 3)
   // OSRM call 1 (/table): house first, then all shelters; durations[0][1..] are the drive times
   const table = await osrm(`/table/v1/driving/${coords}?sources=0&annotations=duration,distance${exclude}`);
   const secs = table.durations[0].slice(1).map((s) => s ?? Infinity);   // null = unreachable

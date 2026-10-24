@@ -3,7 +3,7 @@
 #   scripts/make-data.sh                 run every stage
 #   scripts/make-data.sh overture hazard  run only these stages (overture | hazard | osm | exports)
 #   scripts/make-data.sh --plan          print what would run (queries, files, estimated sizes) — no network
-# Lab 4: edit BBOX_* in versions.env and run with --plan to see the pipeline re-pointed at your town.
+# Phase 4: edit BBOX_* in versions.env and run with --plan to see the pipeline re-pointed at your town.
 . "$(dirname "$0")/lib.sh"
 
 PLAN=0; STAGES=()
@@ -65,7 +65,7 @@ if want osm; then
 fi
 
 if want exports; then
-  echo "== exports → data/prebuilt/out/*.geojson  (the fallback copy of what attendees produce in Lab 1c; same SQL as 00-data/03-export.sql)"
+  echo "== exports → data/prebuilt/out/*.geojson  (the fallback copy of what attendees produce in Phase 1c; same SQL as 00-data/03-export.sql)"
   if [ $PLAN -eq 0 ]; then
     need duckdb; mkdir -p "$D/prebuilt/out"
     duck_run "$REPO_ROOT/00-data/03-export.sql" out="$D/prebuilt/out" data="$D"

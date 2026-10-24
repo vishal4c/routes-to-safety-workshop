@@ -15,14 +15,14 @@ size: 16:9
 - `scripts/check-versions.sh` fails CI on drift
 
 <!--
-Block 5 = 23 min (talk 8 · Lab 4 8 · close 4 · slack 3). Opening: "Everything you built today is a recipe. Here is how to rerun it, change it, and make it bigger."
+Phase 4 = 23 min (talk 8 · Phase 4 8 · close 4 · slack 3). Opening: "Everything you built today is a recipe. Here is how to rerun it, change it, and make it bigger."
 ⏱ 1.5 min. Say: "If we can't rebuild it next year with the same answers, it's a demo, not a method."
 -->
 
 ---
-<!-- _class: lab -->
+<!-- _class: card -->
 
-# 🧪 Lab 4 — Swap the community  (6 min +2, offline)
+# 🧪 Phase 4 — Swap the community  (6 min +2, offline)
 
 1. Open `scripts/make-data.sh`
 2. Edit `BBOX` to your town (W,S,E,N)
@@ -34,7 +34,7 @@ The real run is **homework**.
 
 <!--
 ⏱ 8 min incl. regroup. Say: "Pick a town you know. Edit one line. The plan shows what would be downloaded and how big, and touches no network."
-Hard-stop cut order: Lab 4 live part is the first to go.
+Hard-stop cut order: Phase 4 live part is the first to go.
 -->
 
 ---

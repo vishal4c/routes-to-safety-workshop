@@ -6,7 +6,7 @@ footer: 'Routes to Safety · FOSS4G NA 2026'
 size: 16:9
 ---
 
-<!-- S20 · Block 3 starts 1:20 · 🎤 S20–S26 = 9 min total · ~1 min -->
+<!-- S20 · Phase 2 → 3 starts 1:20 · 🎤 S20–S26 = 9 min total · ~1 min -->
 <!-- Say: "Welcome back. We have GeoJSON. A browser can't draw 36,294 roads fast from that — so we cut the map into tiles." -->
 
 # What is a vector tile?
@@ -41,7 +41,7 @@ layers:
     features: [{ source: hazard, geometry: polygon, min_zoom: 4 }]
 ```
 
-- Planetiler's YAML has **no GeoParquet source** → that's why Lab 1 exports GeoJSON
+- Planetiler's YAML has **no GeoParquet source** → that's why Phase 1 exports GeoJSON
 - Illustrative excerpt; the full file is `01-tiles/evac.yml`
 
 ---
@@ -109,34 +109,34 @@ curl -sI -H "Range: bytes=0-15" URL | head -1   # want: 206
 
 ---
 
-<!-- _class: lab -->
-<!-- S25 · 🧪 stays on screen for Lab 2 · 2a 7+2 · 2b 8+2 · 2c 12+2 -->
-<!-- Say: "Lab 2a: build your tiles. Command is on the card. By minute 5 if there's no PMTiles file, copy the prebuilt one." -->
+<!-- _class: card -->
+<!-- S25 · 🧪 stays on screen for Phase 2a → 3b · 2a 7+2 · 3a 20+2 -->
+<!-- Say: "Phase 2a: build your tiles. Command is on the card. By minute 5 if there's no PMTiles file, copy the prebuilt one." -->
 
-# 🧪 Lab 2 — Build the basemap
+# 🧪 Phase 2a → 3b — Build and style the map
 
 **Open the page:** Codespaces → Ports tab → 8080 → globe · Docker → `http://localhost:8080/02-web/` · Native → `npx serve -l 8080 .` then the same URL
 
-**2a Build (7 min)**
+**2a Build the tiles (7 min)**
 ```
 java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
 pmtiles show out/evac.pmtiles
 ```
 *Expected:* 8 layers, zoom 4–14, ≈ 6.5 MB 👀 ⏱ no PMTiles by minute 5 → `cp data/prebuilt/evac.pmtiles out/`
 
-**2b Serve & render (8 min)** — in `02-web/index.html` find `// STEP 1: paste here` → paste `steps/step1-roads.json` → reload; add `AttributionControl` → *Expected:* grey roads + attribution bottom-right 👀
+**3a Serve & render (8 min)** — in `02-web/index.html` find `// STEP 1: paste here` → paste `steps/step1-roads.json` → reload; add `AttributionControl` → *Expected:* grey roads + attribution bottom-right 👀
 
-**2c Restyle (12 min)** — **[R]** hazard `match` (OrRd) · **[R]** water fill · **[R]** shelters: filled = verified, hollow = candidate + legend · **[R]** city labels (`places`) · **[M]** perimeters dashed grey · **[F]** click popup `name` · **[F]** `fill-extrusion` on `buildings_auburn` 👀
+**3a Restyle (12 min)** — hazard `match` (OrRd) · water fill · shelters: filled = verified, hollow = candidate + legend · city labels (`places`) · (if time) perimeters dashed grey · (finish early) click popup `name` · (finish early) `fill-extrusion` on `buildings_auburn` 👀
 ⏱ stuck past minute 8 → paste `steps/step3-styled.json`
 
 🎯 Very High solid red · water blue · 10 shelters (1 filled) · Mosquito perimeter dashed · attribution visible
 
 ---
 
-<!-- S26 · after lab · ~1 min + Maputnik 60 s -->
+<!-- S26 · after the hands-on · ~1 min + Maputnik 60 s -->
 <!-- Say: "Compare yours with the prebuilt file. Two road datasets, so a small misalignment is expected — that's fine, and worth noticing." -->
 
-# After the lab: yours vs prebuilt
+# After the hands-on: yours vs prebuilt
 
 - Load `data/prebuilt/evac.pmtiles` next to `out/evac.pmtiles` — same layers?
 - **Maputnik, 60 s** (instructor): the same tiles in a visual style editor, served via `pmtiles serve`
@@ -144,4 +144,4 @@ pmtiles show out/evac.pmtiles
 
 <div class="warn">Hazard edges are zone boundaries, not a guarantee: a road just outside a polygon is not "safe".</div>
 
-Next: **Block 4** — routes on top of this map.
+Next: **Phase 3c** — routes on top of this map.

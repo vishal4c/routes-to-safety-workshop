@@ -1,8 +1,8 @@
-# Block 2 exercises (optional)
+# Phase 1 exercises (optional)
 
 Run from the repo root. Solutions are collapsed — try first.
 
-## [R] A — How many `primary`-or-bigger roads?
+## A — How many `primary`-or-bigger roads?
 
 Count the road segments in `data/overture/segments.parquet` whose `class` is `motorway`, `trunk` or `primary`.
 
@@ -19,10 +19,10 @@ duckdb -c "SELECT count(*) AS primary_plus FROM 'data/overture/segments.parquet'
 │         1909 │
 └──────────────┘
 ```
-= 541 motorway + 63 trunk + 1,305 primary (the numbers from Lab 1a).
+= 541 motorway + 63 trunk + 1,305 primary (the numbers from Phase 1a).
 </details>
 
-## [R] B — Nearest shelter to Foresthill, as the crow flies
+## B — Nearest shelter to Foresthill, as the crow flies
 
 Foresthill is at lon/lat **(-120.8182, 39.0199)**. Which of the 10 shelters in `data/shelters.geojson` is closest in a straight line, and how far?
 Hint: `ST_Distance_Sphere(a, b)` returns metres, and needs `SET geometry_always_xy = true;` in DuckDB 2.0.
@@ -44,11 +44,11 @@ duckdb -c "LOAD spatial; SET geometry_always_xy = true; SELECT name, round(ST_Di
 ```
 **Georgetown School, 12.4 km.**
 
-> **Remember this for Lab 3.** The road network will disagree: the American River canyon sits between Foresthill and
+> **Remember this for Phase 3c.** The road network will disagree: the American River canyon sits between Foresthill and
 > Georgetown, so by road Georgetown is about an hour away, not minutes. Nearest on the map ≠ nearest by road.
 </details>
 
-## [F] C — Re-export the roads for the Colfax box
+## C (finish early) — Re-export the roads for the Colfax box
 
 Re-export `roads.geojson`, but only the drivable roads that touch the Colfax clip in `versions.env`
 (`COLFAX_W/S/E/N` = -121.02, 39.05, -120.90, 39.13) to `out/roads_colfax.geojson`. How many features?

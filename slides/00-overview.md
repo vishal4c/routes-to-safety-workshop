@@ -36,7 +36,7 @@ FOSS4G NA 2026 · Sacramento · Room Beavis
 
 # Who we are, and how to ask for help
 
-- **Vishal Kumar** and **Shaishav Maisuria** — two instructors, both on the floor during labs
+- **Vishal Kumar** and **Shaishav Maisuria** — two instructors, both on the floor during the hands-on phases
 - Sticky note on your laptop lid:
   - 🟩 **green** = I'm fine, keep going
   - 🟥 **red** = I'm stuck, come find me
@@ -59,7 +59,7 @@ FOSS4G NA 2026 · Sacramento · Room Beavis
 | **2:37** | **Reproduce, adapt, scale** |
 | 3:00 | Done |
 
-<!-- S3. 1 min. Say: "Here's the whole morning. Two times to remember: at 2:05 you build live routing, and at 2:37 we adapt it to your own town. The break is at 1:10 and it's ten minutes." (Block 4 is 2:05–2:37; Block 5 is 2:37–3:00.) -->
+<!-- S3. 1 min. Say: "Here's the whole morning. Two times to remember: at 2:05 you build live routing, and at 2:37 we adapt it to your own town. The break is at 1:10 and it's ten minutes." (Phase 3c is 2:05–2:37; Phase 4 is 2:37–3:00.) -->
 
 ---
 
@@ -76,12 +76,12 @@ Overture + OSM  ──►  DuckDB  ──►  GeoJSON  ──►  Planetiler  �
 - One extract → **both** a basemap **and** live evacuation routes
 - No database server, no tile server: files + a static web server (+ OSRM for routing)
 
-<!-- S4. 1 min. Printed as a handout. Say: "This is the whole workshop in one picture. Data goes in on the left, a map and routes come out on the right. Every lab is one arrow on this slide. We'll fill in the pieces as we build them, and I'll show it again at the end." -->
+<!-- S4. 1 min. Printed as a handout. Say: "This is the whole workshop in one picture. Data goes in on the left, a map and routes come out on the right. Every phase is one arrow on this slide. We'll fill in the pieces as we build them, and I'll show it again at the end." -->
 
 ---
-<!-- _class: lab -->
+<!-- _class: card -->
 
-# 🧪 Three ways to run — and Lab 0
+# 🧪 Three ways to run — and Phase 0
 
 | Tier | For |
 |---|---|
@@ -90,9 +90,9 @@ Overture + OSM  ──►  DuckDB  ──►  GeoJSON  ──►  Planetiler  �
 | **3 Native** | no Docker · **Windows: Git Bash** · map + shelters, no routing |
 | **4 Browser-only** | laptop failed · Pages site · no routing |
 
-<div class="lab">
+<div class="card">
 
-### 🧪 Lab 0 · setup check &nbsp; <span class="small">⏱ 8 min · 🔴 red for >10 min → switch tier</span>
+### 🧪 Phase 0 · setup check &nbsp; <span class="small">⏱ 8 min · 🔴 red for >10 min → switch tier</span>
 
 ```bash
 python setup/check_setup.py
@@ -105,7 +105,7 @@ duckdb -c ".read setup/hello-geo.sql"
 
 </div>
 
-<!-- S5. 5 min incl. Lab 0 (8 min lab). Say: "Three ways to run this. Codespaces needs nothing installed, but launch it from your personal GitHub account. Docker is the one I recommend if you have it, because it keeps working if the wifi dies. Native works without Docker — on Windows use Git Bash — but has no routing. Browser-only is the last resort. If you're red for more than ten minutes, we switch your tier. Codespaces people: sit next to a Docker user, you'll pair for routing if wifi dies. Now run the two commands on the right." Room split geographically between instructors for triage. Checkpoint: same line on every screen — check_setup.py is green/red per tool (go-pmtiles CLI, Java 21, DuckDB 2.0.0, OSRM reachable). -->
+<!-- S5. 5 min incl. Phase 0 (8 min hands-on). Say: "Three ways to run this. Codespaces needs nothing installed, but launch it from your personal GitHub account. Docker is the one I recommend if you have it, because it keeps working if the wifi dies. Native works without Docker — on Windows use Git Bash — but has no routing. Browser-only is the last resort. If you're red for more than ten minutes, we switch your tier. Codespaces people: sit next to a Docker user, you'll pair for routing if wifi dies. Now run the two commands on the right." Room split geographically between instructors for triage. Checkpoint: same line on every screen — check_setup.py is green/red per tool (go-pmtiles CLI, Java 21, DuckDB 2.0.0, OSRM reachable). -->
 
 ---
 
