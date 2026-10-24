@@ -8,7 +8,7 @@
   1. H3 hex grid (res 8, ~0.7 km² cells) over the study bbox, keeping cells that contain a drivable road.
   2. For every cell centroid, OSRM /table drive time to all shelters (batched ≤ --max-table-size 500).
   3. coverage_hex.geojson   = one hex per cell: nearest shelter by road + minutes + km
-     coverage_bands.geojson = per shelter, dissolved 10 / 20 / 30-minute bands (nested)
+     coverage_bands.geojson = per shelter, dissolved 0–10 / 10–20 / 20–30-minute rings (non-overlapping)
 
 Usage:  scripts/make-coverage.py [--osrm http://localhost:5000] [--res 8]
 This is the "proper" version of Lab 3 Stretch A — same /table call, more points, dissolved with DuckDB spatial.
@@ -78,10 +78,12 @@ TO '{ROOT}/data/coverage/coverage_hex.geojson' (FORMAT GDAL, DRIVER 'GeoJSON', L
 """)
 con.execute(f"""
 COPY (
-  SELECT shelter_id, shelter_name, status, band,
-         ST_SimplifyPreserveTopology(ST_Union_Agg(c.geom), 0.0003) AS geometry
-  FROM (SELECT * FROM reach, (SELECT unnest([10, 20, 30]) AS band) b WHERE minutes <= band) r
+  -- one ring per shelter and band (0–10, 10–20, 20–30 min): rings never overlap, so the map can draw them
+  -- semi-transparent without two bands blending into a third colour. Cells belong to their nearest shelter.
+  SELECT shelter_id, shelter_name, status, band, ST_Union_Agg(c.geom) AS geometry
+  FROM (SELECT *, CASE WHEN minutes <= 10 THEN 10 WHEN minutes <= 20 THEN 20 WHEN minutes <= 30 THEN 30 END AS band FROM reach) r
   JOIN cells c USING (h3)
+  WHERE band IS NOT NULL
   GROUP BY shelter_id, shelter_name, status, band
 ) TO '{ROOT}/data/coverage/coverage_bands.geojson' (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'COORDINATE_PRECISION=5')
 """)

@@ -129,8 +129,8 @@
           "#fcae91",
           "#fcae91"
         ],
-        "fill-opacity": 0.92,
-        "fill-outline-color": "#ffffff80"
+        "fill-opacity": 0.45,
+        "fill-outline-color": "#ffffff00"
       },
       "layout": {
         "visibility": "none",

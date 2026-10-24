@@ -546,7 +546,7 @@ async function ensureReachLayer() {
   map.addLayer({
     id: 'coverage-bands', type: 'fill', source: 'coverage',
     layout: { visibility: 'none', 'fill-sort-key': ['-', ['get', 'band']] },   // 30-min drawn first, 10-min on top
-    paint: { 'fill-color': REACH_COLORS, 'fill-opacity': 0.92, 'fill-outline-color': '#ffffff80' }   // opaque: overlapping shelters never blend into a fourth colour
+    paint: { 'fill-color': REACH_COLORS, 'fill-opacity': 0.45, 'fill-outline-color': '#ffffff00' }   // rings never overlap (make-coverage.py), so they can be translucent without blending
   }, before);
   return true;
 }

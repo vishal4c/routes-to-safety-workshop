@@ -182,7 +182,7 @@ scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm
 curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # laptop: OSRM_URL=http://localhost:8080/osrm → {"code":"Ok", …}
 ```
 
-**2c · Reach bands** — drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters, dissolved into 10 / 20 / 30-minute bands:
+**2c · Reach bands** — drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter:
 ```bash
 scripts/make-coverage.py --osrm http://osrm:5000      # container; laptop: --osrm http://localhost:8080/osrm  → data/coverage/*.geojson
 ```
