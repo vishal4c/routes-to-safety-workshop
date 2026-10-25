@@ -11,7 +11,7 @@ You build an evacuation map for the **Placer County I-80 corridor** from open da
 > **Teaching example, not an official evacuation resource.** Drive-time estimates assume no traffic and no closures.
 > In an emergency follow county OES / Genasys-Zonehaven alerts and CAL FIRE incident pages.
 
-## Four phases
+## Five phases
 
 ```mermaid
 flowchart LR
@@ -19,6 +19,7 @@ flowchart LR
   classDef file fill:#E6F0FF,stroke:#0678FF,color:#161D26
   classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
 
+  P0["Phase 0 · Setup<br/>Codespaces / Docker / native<br/><code>setup/</code>"]:::ph
   P1["Phase 1 · Data prep<br/>DuckDB over Overture + CAL FIRE<br/><code>00-data/</code>"]:::ph
   P2["Phase 2 · Map artifacts<br/>Planetiler · OSRM · reach bands<br/><code>01-tiles/</code> <code>scripts/</code>"]:::ph
   P3["Phase 3 · Application<br/>MapLibre, three views + routing<br/><code>02-web/</code> <code>03-routing/</code> <code>demo/</code>"]:::ph
@@ -27,20 +28,21 @@ flowchart LR
   A2[/"evac.pmtiles<br/>OSRM graph<br/>coverage_bands.geojson"/]:::file
   A3(["Fire evac map · Base map · Shelter reach<br/>+ nearest shelter by road"]):::out
 
-  P1 --> A1 --> P2 --> A2 --> P3 --> A3
+  P0 --> P1 --> A1 --> P2 --> A2 --> P3 --> A3
   P3 --> P4
 ```
 
-| Phase | You do | Folder |
-|---|---|---|
-| 1 Data prep | query Overture Maps + CAL FIRE with DuckDB, export GeoJSON | [`00-data/`](00-data/) |
-| 2 Map artifacts | one PMTiles file (Planetiler), one routing graph (OSRM), drive-time reach bands | [`01-tiles/`](01-tiles/) · [`scripts/`](scripts/) |
-| 3 Application | style three views in MapLibre, wire nearest-shelter routing, run the app | [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/) |
-| 4 Adapt | change one box, rerun the pipeline for your town | [`04-adapt/`](04-adapt/) |
+| Phase | Name | Steps | Folder |
+|---|---|---|---|
+| 0 | Setup | pick Codespaces / Docker / native · checkpoint line | [`setup/`](setup/) |
+| 1 | Data prep | 1a explore · 1b shelters × hazard · 1c export | [`00-data/`](00-data/) |
+| 2 | Map artifacts | 2a tiles · 2b routing graph · 2c reach rings | [`01-tiles/`](01-tiles/) · [`scripts/`](scripts/) |
+| 3 | Application | 3a style · 3b three views · 3c routing · 3d finished app | [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/) |
+| 4 | Adapt | one bbox → rerun | [`04-adapt/`](04-adapt/) |
 
 Always run commands from the **repo root**.
 
-## Setup — pick one
+## Phase 0 — Setup · pick one way to run
 
 ```mermaid
 flowchart LR

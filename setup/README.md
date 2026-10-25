@@ -1,4 +1,4 @@
-# Setup — pick one way to run
+# Setup — Phase 0: pick one way to run
 
 ```mermaid
 flowchart LR
