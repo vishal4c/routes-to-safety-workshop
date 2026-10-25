@@ -96,21 +96,33 @@ function showNotice(text) {
   el.style.display = 'block';
 }
 
-// Use out/evac.pmtiles (the one YOU built); otherwise the prebuilt copy.
-// We ask for 2 bytes with a Range header: a correct server answers 206.
-async function pickPmtilesUrl() {
-  const mine = new URL('../out/evac.pmtiles', location.href).href;
-  const prebuilt = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
-  try {
-    const r = await fetch(mine, { headers: { Range: 'bytes=0-1' } });
-    if (r.status === 206) return mine;
-    console.warn('out/evac.pmtiles: HTTP ' + r.status + (r.status === 200 ? ' (server ignored the Range header — use Caddy or `npx serve`, not python http.server)' : ''));
-  } catch (e) {
-    console.warn('out/evac.pmtiles not reachable', e);
+// The tiles — the file you built in Phase 2a. Plugged in with the first row of the Edit panel.
+// We ask the server for 2 bytes with a Range header: a correct server answers 206 (that is what PMTiles needs).
+// out/evac.pmtiles is preferred; if it is missing we fall back to the prebuilt copy and say so.
+const TILE_FILES = ['../out/evac.pmtiles', '../data/prebuilt/evac.pmtiles'];
+let tilesFile = null;   // which one is plugged in (shown in the Edit panel)
+
+async function loadTiles() {
+  let chosen = null;
+  for (const f of TILE_FILES) {
+    const url = new URL(f, location.href).href;
+    try {
+      const r = await fetch(url, { headers: { Range: 'bytes=0-1' }, cache: 'no-store' });
+      if (r.status === 206) { chosen = f; break; }
+      if (r.status === 200) throw new Error(f + ': the server ignored the Range header — serve with Caddy or `npx serve`, never python http.server');
+      console.warn(f + ': HTTP ' + r.status);
+    } catch (e) { if (/Range header/.test(e.message)) throw e; console.warn(f + ' not reachable', e); }
   }
-  console.info('Using data/prebuilt/evac.pmtiles instead of out/evac.pmtiles');
-  showNotice('Using the prebuilt tiles (data/prebuilt/evac.pmtiles) — out/evac.pmtiles not found.');
-  return prebuilt;
+  if (!chosen) throw new Error('no evac.pmtiles found — run 01-tiles/build.sh, or scripts/get-bundle.sh for the prebuilt copy');
+  if (chosen !== TILE_FILES[0]) showNotice('Using the prebuilt tiles (data/prebuilt/evac.pmtiles) — out/evac.pmtiles not found. Build yours with 01-tiles/build.sh, then Reload this row.');
+  // (Re)plug the source: drop every layer that draws from it, swap the source, put the layers back.
+  const drawn = map.getStyle().layers.filter((l) => l.source === 'evac').map((l) => l.id);
+  for (const id of drawn) map.removeLayer(id);
+  if (map.getSource('evac')) map.removeSource('evac');
+  map.addSource('evac', { type: 'vector', url: 'pmtiles://' + new URL(chosen, location.href).href, minzoom: 4, maxzoom: 14 });
+  tilesFile = chosen.replace('../', ''); loaded.add('tiles');
+  for (const s of STEPS) if (loaded.has('step' + s.n)) await loadStep(s);   // re-add what was already plugged in
+  console.info('tiles: ' + tilesFile);
 }
 
 // Layers in drawing order (bottom -> top). Whatever you plug in is inserted at its place in this list,
@@ -128,7 +140,7 @@ function insertOrdered(layer) {
 // ---------------------------------------------------------------------------
 // PHASE 3a/3b — the data you plug in with the Edit button (top-left). Each entry is one file.
 // The step files are JSON arrays of MapLibre layers: open them to read and change the style.
-// Shortcut for demos and the solution page: index.html?steps=1,2,3,4&reach=1&routing=1
+// Shortcut for demos and the solution page: index.html?steps=1,2,3,4&reach=1&routing=1  (steps imply tiles)
 // ---------------------------------------------------------------------------
 const STEPS = [
   { n: 1, label: 'Roads',                                           file: 'steps/step1-roads.json' },
@@ -136,11 +148,12 @@ const STEPS = [
   { n: 3, label: 'Past fire perimeters (dashed)',                   file: 'steps/step3-styled.json' },
   { n: 4, label: '3D buildings over Auburn (zoom in past 13, right-drag to tilt)', file: 'steps/step4-final.json' }
 ];
-const PRELOAD = { steps: [1, 2, 3, 4], reach: true, routing: true };   // solution.html sets all three
+const PRELOAD = { tiles: true, steps: [1, 2, 3, 4], reach: true, routing: true };   // solution.html sets all of these
 
-const loaded = new Set();   // keys: 'step1'…'step4', 'reach', 'routing'
+const loaded = new Set();   // keys: 'tiles', 'step1'…'step4', 'reach', 'routing'
 
 async function loadStep(step) {
+  if (!map.getSource('evac')) throw new Error('plug in the tiles first (row 0)');
   const r = await fetch(step.file, { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const layers = await r.json();          // a syntax error in the JSON shows up here with line/column
@@ -157,8 +170,6 @@ async function loadRouting() {
   loaded.add('routing');
 }
 
-const pmtilesUrl = await pickPmtilesUrl();
-
 const map = new maplibregl.Map({
   container: 'map',
   center: [-121.0, 38.95],
@@ -170,8 +181,7 @@ const map = new maplibregl.Map({
     // Glyphs (fonts) for text labels — vendored in 02-web/fonts/ so labels work offline. {fontstack}/{range} are
     // filled in by MapLibre; the URL must be absolute, so build it from the page location.
     glyphs: location.href.replace(/[^/]*$/, '') + 'fonts/{fontstack}/{range}.pbf',
-    sources: {
-      evac: { type: 'vector', url: 'pmtiles://' + pmtilesUrl, minzoom: 4, maxzoom: 14 },
+    sources: {   // 'evac' (the PMTiles) is added by loadTiles() — the first row of the Edit panel
       osm:  { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19,
               attribution: '© OpenStreetMap contributors' }
     },
@@ -240,10 +250,12 @@ const editBtn = document.getElementById('edit-btn'), editPanel = document.getEle
 editBtn.onclick = () => { const open = editPanel.style.display !== 'block'; editPanel.style.display = open ? 'block' : 'none'; editBtn.setAttribute('aria-expanded', open); };
 
 function editItems() {
+  const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy)', file: tilesFile || 'out/evac.pmtiles', run: loadTiles };
+  const needTiles = (it) => Object.assign(it, { disabled: !loaded.has('tiles'), hint: 'plug in the tiles first' });
   const routing = { key: 'routing', label: 'Routing — click the map for the nearest shelter by road, I-80 toggle', file: '03-routing/route.js', run: loadRouting };
-  if (view === 'evac') return [...STEPS.map((s) => ({ key: 'step' + s.n, label: s.n + ' · ' + s.label, file: '02-web/' + s.file, run: () => loadStep(s) })), routing];
-  if (view === 'reach') return [
-    { key: 'step2', label: 'Roads, water, shelters, town labels (steps 1 + 2)', file: '02-web/steps/step2-hazard-water.json', run: async () => { await loadStep(STEPS[0]); await loadStep(STEPS[1]); } },
+  if (view === 'evac') return [tiles, ...STEPS.map((s) => needTiles({ key: 'step' + s.n, label: s.n + ' · ' + s.label, file: '02-web/' + s.file, run: () => loadStep(s) })), routing];
+  if (view === 'reach') return [tiles,
+    needTiles({ key: 'step2', label: 'Roads, water, shelters, town labels (steps 1 + 2)', file: '02-web/steps/step2-hazard-water.json', run: async () => { await loadStep(STEPS[0]); await loadStep(STEPS[1]); } }),
     { key: 'reach', label: 'Reach rings — 10 / 20 / 30 min drive to each shelter', file: 'data/coverage/coverage_bands.geojson', run: loadReach },
     routing];
   return [];
@@ -260,6 +272,7 @@ function renderEditPanel() {
     const done = loaded.has(it.key);
     row.innerHTML = '<span>' + it.label + '</span><code>' + it.file + '</code>';
     const b = document.createElement('button'); b.type = 'button'; b.textContent = done ? 'Reload' : 'Add'; b.className = done ? 'done' : '';
+    if (it.disabled && !done) { b.disabled = true; b.title = it.hint; row.style.opacity = 0.55; }
     b.onclick = async () => {
       b.disabled = true; b.textContent = '…';
       try { await it.run(); } catch (e) { showNotice(it.file + ': ' + e.message); console.error(e); }
@@ -334,6 +347,7 @@ map.on('load', async () => {
   // ?steps=1,2,3,4&reach=1&routing=1 (or PRELOAD above) plugs data in without clicking — used by solution.html and demos
   const q = new URLSearchParams(location.search);
   const steps = q.has('steps') ? q.get('steps').split(',').map(Number) : PRELOAD.steps;
+  if (steps.length || q.get('tiles') === '1' || PRELOAD.tiles) await loadTiles().catch((e) => showNotice(e.message));
   for (const n of steps) { const s = STEPS.find((x) => x.n === n); if (s) await loadStep(s).catch((e) => showNotice(s.file + ': ' + e.message)); }
   if (q.get('reach') === '1' || PRELOAD.reach) await loadReach().catch((e) => showNotice(e.message));
   if (q.get('routing') === '1' || PRELOAD.routing) await loadRouting().catch((e) => showNotice(e.message));

@@ -1,7 +1,7 @@
 # 02-web — Phase 3a/3b: Application — style the map, three views
 
-`index.html` is one MapLibre GL JS page (6.14, ESM) + pmtiles.js that reads `../out/evac.pmtiles` (falls back to `../data/prebuilt/evac.pmtiles`).
-The **Edit** button (top-left) opens a panel with one row per dataset; **Add** plugs the file into the live map (no file edits, no reload). Each step is a JSON array of MapLibre layers in [`steps/`](steps/).
+`index.html` is one MapLibre GL JS page (6.14, ESM) + pmtiles.js. It starts empty.
+The **Edit** button (top-left) opens a panel with one row per dataset; **Add** plugs the file into the live map (no file edits, no reload). Row 0 is the tiles (`../out/evac.pmtiles`, falls back to `../data/prebuilt/evac.pmtiles`); rows 1–4 are JSON arrays of MapLibre layers in [`steps/`](steps/) and stay locked until the tiles are in.
 
 ```mermaid
 flowchart LR
@@ -13,6 +13,7 @@ flowchart LR
 
   PM[/"out/evac.pmtiles"/]:::file
   SV["Serve on :8080<br/>Caddy or npx serve<br/>must answer 206"]:::tool
+  S0["Add 0 · tiles<br/>out/evac.pmtiles"]:::step
   S1["Add 1 · roads<br/>step1-roads.json"]:::step
   S2["Add 2 · hazard · water<br/>land cover · shelters · labels<br/>step2-hazard-water.json"]:::step
   S3["Add 3 · fire perimeters<br/>step3-styled.json<br/>(also the bail-out: has 1 + 2)"]:::step
@@ -21,7 +22,7 @@ flowchart LR
   CB[/"data/coverage/coverage_bands.geojson<br/>scripts/make-coverage.py"/]:::file
   B["Blank map?<br/>python -m http.server ignores Range<br/>Lost? open solution.html"]:::bail
 
-  PM --> SV --> S1 --> S2 --> S3 --> S4 --> V
+  PM --> SV --> S0 --> S1 --> S2 --> S3 --> S4 --> V
   CB --> V
   B -.-> SV
 ```
@@ -39,12 +40,13 @@ Never `python -m http.server`: PMTiles needs `Range` requests (`206`), it answer
 
 ## Steps — Fire evac map → Edit → Add
 
-1. **Roads** (`steps/step1-roads.json`) → grey roads (motorways darker). No "Using the prebuilt tiles" note = your own build.
+0. **Tiles** (`out/evac.pmtiles`, built in Phase 2a) → nothing visible yet; the row shows which file it took and rows 1–4 unlock. A "Using the prebuilt tiles" note = `out/evac.pmtiles` was not found. Rebuilt the tiles? **Reload** this row; added layers redraw on the new file.
+1. **Roads** (`steps/step1-roads.json`) → grey roads (motorways darker).
 2. **Hazard, water, land cover, shelters, labels** (`steps/step2-hazard-water.json`) → `match` on `FHSZ_Description` (Moderate `#fdbb84` · High `#e34a33` · Very High `#b30000`), blue water, green land cover, 10 shelter circles (filled = verified), town labels (fonts in `fonts/`, works offline).
 3. **Fire perimeters** (`steps/step3-styled.json`) → dashed grey River 2021 / Mosquito 2022. Contains steps 1 + 2 as well.
 4. **3D buildings** (`steps/step4-final.json`) → zoom to Auburn (≥ 13), tilt with right-drag or the compass. Click a shelter for its popup.
 
-Restyle: edit the JSON file, click the row's **Reload** — the layers are replaced in place. Layer order is automatic (water < land cover < hazard < perimeters < reach rings < roads < buildings < route < shelters < labels); a layer id that appears in two files is taken from the file added last. Everything plugged in stays until the page is refreshed. Shortcut: `index.html?steps=1,2,3,4&reach=1&routing=1`.
+Restyle: edit the JSON file, click the row's **Reload** — the layers are replaced in place. Layer order is automatic (water < land cover < hazard < perimeters < reach rings < roads < buildings < route < shelters < labels); a layer id that appears in two files is taken from the file added last. Everything plugged in stays until the page is refreshed. Shortcut: `index.html?steps=1,2,3,4&reach=1&routing=1` (steps imply the tiles).
 
 Checkpoint: Very High solid dark red · water blue · 10 shelter circles, 1 filled (Sierra College) · Mosquito perimeter dashed · attribution visible.
 Lost? open `02-web/solution.html` — `index.html` with everything preloaded.
@@ -55,7 +57,7 @@ Lost? open `02-web/solution.html` — `index.html` with everything preloaded.
 |---|---|---|
 | **Fire evac map** (default) | our tiles: hazard, land cover, water, roads, buildings, places, fire perimeters, shelters | nothing — offline |
 | **Base map** | OpenStreetMap raster; only shelters, the pin and the route on top | internet (`tile.openstreetmap.org`) |
-| **Shelter reach** | drive-time bands from every shelter: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter to isolate it | Edit → Add the rings: `data/coverage/coverage_bands.geojson` |
+| **Shelter reach** | drive-time bands from every shelter: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter to isolate it | Edit → Add tiles + roads/shelters (if not yet), then the rings: `data/coverage/coverage_bands.geojson` |
 
 The switch only toggles `visibility` over a list of layer ids (`VIEW_LAYERS`); the legend follows the view. Nothing is overlaid: hazard is never drawn under the reach bands. Routing (Phase 3c) works in every view.
 

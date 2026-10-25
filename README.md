@@ -214,7 +214,7 @@ flowchart LR
   classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
 
   PM[/"out/evac.pmtiles<br/>coverage_bands.geojson"/]:::file
-  S["3a · style<br/>Edit → Add steps 1–4"]:::step
+  S["3a · style<br/>Edit → Add tiles, then steps 1–4"]:::step
   V(["3b · three views<br/>Fire evac map · Base map · Shelter reach"]):::chk
   R["3c · routing<br/>/table → argmin → /route<br/>you write 6 lines"]:::step
   I80["I-80 closed<br/>exclude=motorway"]:::step
@@ -222,20 +222,21 @@ flowchart LR
   PM --> S --> V --> R --> I80 --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The page loads your `out/evac.pmtiles`, but the **Fire evac map is blank**: no layers are plugged in yet. Nothing in this phase needs a file edit — the **Edit** button (top-left, next to the view buttons) opens a panel with one row per dataset. Whatever you plug in stays in the browser's memory until you reload the page.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The **Fire evac map is blank**: nothing is plugged in yet, not even the tiles. Nothing in this phase needs a file edit — the **Edit** button (top-left, next to the view buttons) opens a panel with one row per dataset; each row has an **Add** button. Whatever you plug in stays in the browser's memory until you reload the page.
 
 **3a · Style** — Fire evac map view → **Edit** → click **Add**, top to bottom:
 
 | Row | What appears |
 |---|---|
+| 0 · Tiles (`out/evac.pmtiles`, built in 2a) | nothing visible yet — the tiles are now the map's data source, and rows 1–4 unlock. No `out/evac.pmtiles`? It falls back to `data/prebuilt/evac.pmtiles` and says so |
 | 1 · Roads (`steps/step1-roads.json`) | grey road network |
 | 2 · Hazard zones, water, land cover, shelters, town labels (`step2-hazard-water.json`) | the map now matches the legend: Moderate / High / Very High fill, water, shelters (filled = verified, hollow = candidate), labels |
 | 3 · Past fire perimeters (`step3-styled.json`) | dashed Mosquito 2022 / River 2021 outlines |
 | 4 · 3D buildings over Auburn (`step4-final.json`, finish early) | zoom past 13 over Auburn, right-drag to tilt |
 
-Each row is one JSON file of MapLibre layers. To restyle: open the file, change a colour or a width, click the row's **Reload**. Order never matters; the attribution bottom-right is always on (the licences require it). Lost? `02-web/solution.html` is the page with everything plugged in.
+Rows 1–4 are each one JSON file of MapLibre layers drawn from the tiles. To restyle: open the file, change a colour or a width, click the row's **Reload**. Rebuilt the tiles in 2a? **Reload** row 0 and the layers you already added redraw on the new tiles. Order never matters; the attribution bottom-right is always on (the licences require it). Lost? `02-web/solution.html` is the page with everything plugged in.
 
-**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (what you just styled) · **Base map** (OpenStreetMap raster, needs internet; nothing to plug in) · **Shelter reach** → **Edit** → **Add** the reach rings (`data/coverage/coverage_bands.geojson`, the Phase 2c output: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
+**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (what you just styled) · **Base map** (OpenStreetMap raster, needs internet; nothing to plug in) · **Shelter reach** → **Edit** → **Add** the tiles and roads if you have not yet, then the reach rings (`data/coverage/coverage_bands.geojson`, the Phase 2c output: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
 
 <img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map with all four datasets plugged in: hazard classes, perimeters, labels, shelters"/>
 
