@@ -214,51 +214,66 @@ flowchart LR
   classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
 
   PM[/"out/evac.pmtiles<br/>coverage_bands.geojson"/]:::file
-  S["3a · style<br/>Edit → Add tiles, then steps 1–4"]:::step
-  V(["3b · three views<br/>Fire evac map · Base map · Shelter reach"]):::chk
-  R["3c · routing<br/>/table → argmin → /route<br/>you write 6 lines"]:::step
-  I80["I-80 closed<br/>exclude=motorway"]:::step
+  S["3a · Fire evac map<br/>Edit → Add rows 0–4"]:::step
+  V["3b · Shelter reach<br/>Edit → Add the rings"]:::step
+  R["3c · Routing<br/>Edit → Add → click · drag · I-80"]:::step
   D(["3d · demo/<br/>the finished app"]):::out
-  PM --> S --> V --> R --> I80 --> D
+  PM --> S --> V --> R --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The **Fire evac map is blank**: nothing is plugged in yet, not even the tiles. Nothing in this phase needs a file edit — the **Edit** button (top-left, next to the view buttons) opens a panel with one row per dataset; each row has an **Add** button. Whatever you plug in stays in the browser's memory until you reload the page.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The map is blank. Click **Edit** (top-left): a panel lists the data files, one row each, with an **Add** button. Clicking **Add** puts that file into the map. **You type and edit nothing in this phase** — every step below is one click. What you add stays until you refresh the page.
 
-**3a · Style** — Fire evac map view → **Edit** → click **Add**, top to bottom:
+### 3a · Style — stay on **Fire evac map**, click **Edit**, then **Add** on each row, top to bottom
 
-| Row | What appears |
-|---|---|
-| 0 · Tiles (`out/evac.pmtiles`, built in 2a) | nothing visible yet — the tiles are now the map's data source, and rows 1–4 unlock. No `out/evac.pmtiles`? It falls back to `data/prebuilt/evac.pmtiles` and says so |
-| 1 · Roads (`steps/step1-roads.json`) | grey road network |
-| 2 · Hazard zones, water, land cover, shelters, town labels (`step2-hazard-water.json`) | the map now matches the legend: Moderate / High / Very High fill, water, shelters (filled = verified, hollow = candidate), labels |
-| 3 · Past fire perimeters (`step3-styled.json`) | dashed Mosquito 2022 / River 2021 outlines |
-| 4 · 3D buildings over Auburn (`step4-final.json`, finish early) | zoom past 13 over Auburn, right-drag to tilt |
+**0 · Tiles → Add.** Map still blank; rows 1–4 unlock. (A note "Using the prebuilt tiles" means your `out/evac.pmtiles` from 2a was not found — fine, carry on.)
 
-Rows 1–4 are each one JSON file of MapLibre layers drawn from the tiles. To restyle: open the file, change a colour or a width, click the row's **Reload**. Rebuilt the tiles in 2a? **Reload** row 0 and the layers you already added redraw on the new tiles. Order never matters; the attribution bottom-right is always on (the licences require it). Lost? `02-web/solution.html` is the page with everything plugged in.
+<img src="docs/img/p3-step0-tiles.jpg" width="80%" alt="Edit panel after Add on row 0: Tiles shows Reload, rows 1–4 are now clickable, map still blank"/>
 
-**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (what you just styled) · **Base map** (OpenStreetMap raster, needs internet; nothing to plug in) · **Shelter reach** → **Edit** → **Add** the tiles and roads if you have not yet, then the reach rings (`data/coverage/coverage_bands.geojson`, the Phase 2c output: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
+**1 · Roads → Add.** Grey road network.
 
-<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map with all four datasets plugged in: hazard classes, perimeters, labels, shelters"/>
+<img src="docs/img/p3-step1-roads.jpg" width="80%" alt="Grey roads over a blank background"/>
 
-**3c · Routing** — in any view's Edit panel, the last row **Routing** plugs in the finished router ([`03-routing/route.js`](03-routing/route.js)): click the map → nearest shelter **by road**, drag the pin to recompute, tick **I-80 closed** (`&exclude=motorway` on both calls). What it calls:
+**2 · Hazard zones, water, land cover, shelters, town labels → Add.** The map now matches the legend: Moderate / High / Very High fill, blue water, green land cover, 10 shelter circles (filled = verified), town names.
 
-```bash
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"                                   # snap a point  → {"code":"Ok",…}
-curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0"     # seconds pin → shelter
-```
-Want to write it yourself? Skip the Routing row and uncomment one `import(…)` line at the end of `02-web/index.html`: `steps/step1-route.js` (one hard-coded `/route`, Foresthill → Placer High, console `Route: 35.8 min, 31.8 km`) or `steps/step2-scaffold.js` (you fill the 6 lines: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup; answer in `steps/step3-solution.js`).
+<img src="docs/img/p3-step2-hazard.jpg" width="80%" alt="Hazard classes, water, land cover, shelter circles and town labels"/>
 
-<img src="docs/img/route-foresthill.jpg" width="85%" alt="Foresthill pin, route to Placer High School, 36 min"/>
+**3 · Past fire perimeters → Add.** Thin dashed outlines of the Mosquito 2022 and River 2021 fires (north-east, around Foresthill and Colfax).
 
-Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min. From Dutch Flat with I-80 closed, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
+<img src="docs/img/p3-step3-perimeters.jpg" width="80%" alt="Dashed fire perimeters added"/>
+
+**4 · 3D buildings → Add**, then zoom in over Auburn (past zoom 13) and right-drag to tilt.
+
+<img src="docs/img/p3-step4-buildings.jpg" width="80%" alt="3D buildings over Auburn, tilted view"/>
+
+Want to change a colour or a width? Open that row's JSON file (`02-web/steps/…`), edit, click the row's **Reload**. Lost? `02-web/solution.html` is the page with everything added.
+
+### 3b · Shelter reach — click **Shelter reach** (top-left), then **Edit**
+
+**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0 and 1+2 are already green if you did 3a; if not, Add them first.)
+
+<img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
+
+**Base map** (the third button) needs nothing added: OpenStreetMap under the shelters, internet required.
+
+### 3c · Routing — in any view, **Edit** → **Routing → Add**
+
+**Routing → Add.** A pin drops on Foresthill and a pink line is drawn to the nearest shelter **by road**: Placer High School, ~36 min, 31.8 km. Nothing to write.
+
+<img src="docs/img/p3-routing.jpg" width="80%" alt="Pin on Foresthill, pink route to Placer High School, popup 36 min"/>
+
+**Drag the pin**, then tick **I-80 closed** (top-right). The route recomputes without the motorway. From Gold Run: Sierra Vista CC 13 min → **21 min**.
+
+<img src="docs/img/p3-routing-i80.jpg" width="80%" alt="I-80 closed ticked: pin at Gold Run, detour route to Sierra Vista Community Center, 21 min"/>
+
+Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12.4 km away but 59.7 min; Placer High is 35.8 min. Under the hood it is two calls to OSRM — `/table` (seconds from the pin to every shelter, pick the smallest) and `/route` (the line); I-80 closed adds `&exclude=motorway` to both. Want to write those 6 lines yourself instead of clicking Add? → [`03-routing/README.md`](03-routing/README.md).
 
 > A real closure is not a URL parameter. This is the calculation, not detection; shelter status, traffic, smoke and capacity are not in the data.
 
-**3d · The finished app** — [`demo/`](demo/): the same three views + the router with a small side panel (view switch, legend, I-80 toggle, result). Static files only; routing via your Caddy `/osrm` locally, the public OSRM server on GitHub Pages.
+### 3d · The finished app — [`demo/`](demo/)
 
-<img src="docs/img/demo-app.jpg" width="85%" alt="demo app: Fire evac map view with a pin and the route to the nearest shelter"/>
+The same three views + the router with a side panel (view switch, legend, I-80 toggle, result). Static files only. <http://localhost:8080/demo/> · URL state: `?lng=&lat=&closed=1&view=reach&shelter=placer-high`
 
-<http://localhost:8080/demo/> · URL state: `?lng=&lat=&closed=1&view=reach&shelter=placer-high`
+<img src="docs/img/demo-app.jpg" width="80%" alt="demo app: Fire evac map view with a pin and the route to the nearest shelter"/>
 
 ---
 
