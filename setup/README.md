@@ -28,7 +28,7 @@ flowchart LR
 |---|---|---|---|
 | 1 Codespaces | no Docker, corporate laptop | yes | no |
 | 2 Local containers — **recommended if you can run containers** | wants offline, nothing to install | yes | yes |
-| 3 Native, no containers | containers blocked | **no** (pair with a neighbour) | yes |
+| 3 Native, no containers | containers blocked | **no** (pair with a neighbour; or `docker compose up -d osrm caddy` if you do have Docker) | yes |
 | 4 Browser only (GitHub Pages) | laptop failed | no | no |
 
 Clone shallow: `git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git`. **Windows: use Git Bash** (PowerShell equivalents at the bottom).
@@ -45,7 +45,7 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 
 ## Tier 2 — Local containers
 
-### 2a. Install a container runtime (pick one)
+### Install a container runtime (pick one)
 
 | Runtime | Notes | Install |
 |---|---|---|
@@ -56,7 +56,7 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 
 Podman / nerdctl also work. The scripts and `check_setup.py` auto‑detect `docker → finch → podman → nerdctl`; override with `CONTAINER_CLI=finch`.
 
-### 2b. Pull images and data (~1 GB, once)
+### Pull images and data (~1 GB, once)
 
 ```bash
 git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git
@@ -70,7 +70,7 @@ Planetiler, go-pmtiles, Node 22, osmium, uv — the same image Codespaces uses, 
 
 Finch first time only: `finch vm init` (a few minutes), later `finch vm start`.
 
-### 2c. Run
+### Run
 
 ```bash
 docker compose up -d                  # Finch: finch compose up -d
@@ -78,7 +78,7 @@ docker compose up -d                  # Finch: finch compose up -d
 docker compose down                   # when finished
 ```
 
-### 2d. Work inside the tool container (recommended — nothing else to install)
+### Work inside the tool container (recommended — nothing else to install)
 
 ```bash
 docker compose exec workshop bash     # Finch: finch compose exec workshop bash

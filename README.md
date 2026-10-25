@@ -96,8 +96,15 @@ The tool container cannot *build* an OSRM graph (no Docker inside); the graph sh
 
 ### C — native tools
 
-Git, DuckDB CLI 2.0.0, Temurin 21, Node 22, uv, go-pmtiles → `bash scripts/get-bundle.sh` → `npx serve -l 8080 .`
-(**never** `python -m http.server`: no Range support, blank map). No routing (OSRM has no Windows/macOS binary) — pair up for Phase 3c. Per-OS commands: [`setup/README.md`](setup/).
+Install Git, DuckDB CLI 2.0.0, Temurin 21, Node 22, uv, go-pmtiles ([per-OS commands](setup/README.md#tier-3--native-no-containers-no-routing)), then:
+
+```bash
+git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git && cd routes-to-safety-workshop
+bash scripts/get-bundle.sh       # run this before check_setup (150 MB, checksum-verified)
+python3 setup/check_setup.py     # the OSRM and web-server lines are red here — expected without containers
+npx serve -l 8080 .              # never `python -m http.server` (no Range support → blank map); another port is fine, swap it in every URL below
+```
+No routing without containers (OSRM has no Windows/macOS binary). Have Docker anyway? `docker compose up -d osrm caddy` serves the repo on :8080 **and** adds routing — skip `npx serve`, and `export OSRM_URL=http://localhost:8080/osrm`. Otherwise pair up for Phase 3c.
 
 ### Phase 0 — setup checkpoint
 
@@ -107,7 +114,7 @@ duckdb -c ".read setup/hello-geo.sql"
 ```
 OK — DuckDB 2.0.0 · 10 shelters (1 verified, 9 candidate) · nearest to Colfax (crow-flies): Sierra Vista Community Center, 0.2 km
 ```
-Same line on every screen → ready. Still red after the fixes it prints → switch option, or follow along on the demo site.
+Same line on every screen → ready. Still red after the fixes it prints → switch option (`check_setup.py` calls them tiers 1–3), or follow along on the demo site.
 
 ---
 
@@ -135,7 +142,7 @@ flowchart LR
 ```bash
 duckdb -c ".read 00-data/01-explore.sql"      # schema · drivable roads by class (sum 36,294) · top place categories
 duckdb -c ".read 00-data/02-shelters.sql"     # 10 candidate shelters, each tagged with its FHSZ class
-duckdb -c ".read 00-data/03-export.sql"       # out/*.geojson — 8 files
+duckdb -c ".read 00-data/03-export.sql"       # prints nothing; `ls out/` → 8 GeoJSON files
 duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"      # → 36294
 ```
 
@@ -160,7 +167,7 @@ flowchart LR
 
   GJ[/"out/*.geojson"/]:::file
   PT["2a · Planetiler<br/>01-tiles/evac.yml"]:::tool
-  PM(["out/evac.pmtiles<br/>8 layers · z4–14 · 6.5 MB"]):::chk
+  PM(["out/evac.pmtiles<br/>8 layers · z4–14 · ≈ 7 MB"]):::chk
   PBF[/"data/osm/study-area.osm.pbf"/]:::file
   OS["2b · OSRM<br/>extract → partition → customize"]:::tool
   GR(["data/osrm/study-area.osrm.*<br/>served at /osrm"]):::chk
@@ -181,12 +188,13 @@ No GeoJSON yet? `01-tiles/build.sh --prebuilt`.
 **2b · Routing graph** — already in the bundle and loaded by the `osrm` container. To watch it being built on a tiny clip (laptop, needs Docker/Finch):
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # laptop: OSRM_URL=http://localhost:8080/osrm → {"code":"Ok", …}
+export OSRM_URL=http://localhost:8080/osrm            # laptop; inside the tool container and Codespaces it is already set
+curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # → {"code":"Ok", …}
 ```
 
 **2c · Reach bands** — drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter:
 ```bash
-scripts/make-coverage.py --osrm http://osrm:5000      # container; laptop: --osrm http://localhost:8080/osrm  → data/coverage/*.geojson
+scripts/make-coverage.py --osrm http://osrm:5000      # run as written (uv shebang, not python3) · laptop: --osrm $OSRM_URL · about 4 s · overwrites data/coverage/*.geojson
 ```
 
 ---
@@ -211,7 +219,7 @@ flowchart LR
 
 Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`) and reload after each paste.
 
-**3a · Style** — in `02-web/index.html` replace `const STEPn = [];` with the matching file from `02-web/steps/`: step 1 roads (also uncomment `AttributionControl`) · step 2 hazard, water, land cover, shelters, labels · step 3 dashed fire perimeters (contains 1 + 2 — the bail-out) · step 4 3D buildings over Auburn at zoom ≥ 13.
+**3a · Style** — in `02-web/index.html` replace `const STEPn = [];` with the matching file from `02-web/steps/`: step 1 roads (also uncomment the three `AttributionControl` lines just below the paste block) · step 2 hazard, water, land cover, shelters, labels · step 3 dashed fire perimeters (contains 1 + 2 — the bail-out) · step 4 3D buildings over Auburn at zoom ≥ 13.
 
 **3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (FHSZ Moderate / High / Very High, past perimeters, shelters) · **Base map** (OpenStreetMap raster, needs internet) · **Shelter reach** (≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
 
@@ -220,12 +228,12 @@ Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → a
 **3c · Routing** — one module, [`03-routing/route.js`](03-routing/route.js); works in every view.
 
 ```bash
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"                                   # snap a point
+curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"                                   # snap a point  ($OSRM_URL as in 2b)
 curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0"     # seconds pin → shelter
 ```
 1. In `02-web/index.html` uncomment `import('../03-routing/steps/step1-route.js')` → pink line Foresthill → Placer High School, console `Route: 35.8 min, 31.8 km`.
 2. Switch to `steps/step2-scaffold.js`, fill the block `YOU WRITE THESE 6 LINES`: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup. Answer: `steps/step3-solution.js`.
-3. Tick **I-80 closed** → `&exclude=motorway` on both calls. From Dutch Flat, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
+3. Switch the import to `../03-routing/route.js` (the finished version, with the checkbox) and tick **I-80 closed** → `&exclude=motorway` on both calls. From Dutch Flat, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
 
 <img src="docs/img/route-foresthill.jpg" width="85%" alt="Foresthill pin, route to Placer High School, 36 min"/>
 
