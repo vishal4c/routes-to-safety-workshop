@@ -211,22 +211,11 @@ flowchart LR
 
 Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`) and reload after each paste.
 
-**3a · Style** — in `02-web/index.html` replace `const STEPn = [];` with the matching file from `02-web/steps/`.
+**3a · Style** — in `02-web/index.html` replace `const STEPn = [];` with the matching file from `02-web/steps/`: step 1 roads (also uncomment `AttributionControl`) · step 2 hazard, water, land cover, shelters, labels · step 3 dashed fire perimeters (contains 1 + 2 — the bail-out) · step 4 3D buildings over Auburn at zoom ≥ 13.
 
-| Step 1 — roads (`step1-roads.json`, uncomment `AttributionControl`) | Step 2 — hazard, water, land cover, shelters, labels (`step2-hazard-water.json`) |
-|---|---|
-| <img src="docs/img/step1-roads.jpg" alt="grey road network"/> | <img src="docs/img/step2-hazard-water.jpg" alt="FHSZ polygons coloured by class, water, shelters"/> |
+**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (FHSZ Moderate / High / Very High, past perimeters, shelters) · **Base map** (OpenStreetMap raster, needs internet) · **Shelter reach** (≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
 
-| Step 3 — fire perimeters (`step3-styled.json`, also contains 1 + 2 = bail-out) | Step 4 — 3D buildings over Auburn, zoom ≥ 13 (`step4-final.json`) |
-|---|---|
-| <img src="docs/img/step3-styled.jpg" alt="dashed fire perimeters and town labels"/> | <img src="docs/img/step4-3d-buildings.jpg" alt="fill-extrusion buildings over Auburn"/> |
-
-**3b · Three views, one at a time** — the buttons top-left flip layer visibility; the legend follows the view; nothing is drawn on top of anything else.
-
-| Fire evac map | Base map | Shelter reach |
-|---|---|---|
-| <img src="docs/img/view-evac.jpg" alt="Fire hazard severity Moderate / High / Very High, past fire perimeters, shelters"/> | <img src="docs/img/view-normal.jpg" alt="OpenStreetMap basemap with shelters and route"/> | <img src="docs/img/view-reach.jpg" alt="10-minute bands green, 20-minute blue, 30-minute light red"/> |
-| FHSZ Moderate / High / Very High · past perimeters · shelters | OpenStreetMap raster (internet) · shelters | ≤ 10 min green · ≤ 20 blue · ≤ 30 light red · click a shelter for its reach only |
+<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map after steps 1–4: hazard classes, perimeters, labels, shelters"/>
 
 **3c · Routing** — one module, [`03-routing/route.js`](03-routing/route.js); works in every view.
 
@@ -236,17 +225,15 @@ curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0" 
 ```
 1. In `02-web/index.html` uncomment `import('../03-routing/steps/step1-route.js')` → pink line Foresthill → Placer High School, console `Route: 35.8 min, 31.8 km`.
 2. Switch to `steps/step2-scaffold.js`, fill the block `YOU WRITE THESE 6 LINES`: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup. Answer: `steps/step3-solution.js`.
-3. Tick **I-80 closed** → `&exclude=motorway` on both calls.
+3. Tick **I-80 closed** → `&exclude=motorway` on both calls. From Dutch Flat, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
 
-| Nearest on the map ≠ nearest by road | I-80 open → closed |
-|---|---|
-| <img src="docs/img/route-foresthill.jpg" alt="Foresthill pin, route to Placer High School, 36 min"/> | <img src="docs/img/route-i80-closed.jpg" alt="Dutch Flat to Sierra Vista Community Center, 31 min with exclude=motorway"/> |
-| From Foresthill: Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min. | From Dutch Flat: Sierra Vista CC stays nearest, 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd. |
+<img src="docs/img/route-foresthill.jpg" width="85%" alt="Foresthill pin, route to Placer High School, 36 min"/>
+
+Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min.
 
 > A real closure is not a URL parameter. This is the calculation, not detection; shelter status, traffic, smoke and capacity are not in the data.
 
-**3d · The finished app** — [`demo/`](demo/) = the same three views + the router with a small side panel: view switch, legend for the current view, I-80 toggle, result.
-Static files only; routing via your Caddy `/osrm` locally, the public OSRM server on GitHub Pages.
+**3d · The finished app** — [`demo/`](demo/): the same three views + the router with a small side panel (view switch, legend, I-80 toggle, result). Static files only; routing via your Caddy `/osrm` locally, the public OSRM server on GitHub Pages.
 
 <img src="docs/img/demo-app.jpg" width="85%" alt="demo app: Fire evac map view with a pin and the route to the nearest shelter"/>
 
