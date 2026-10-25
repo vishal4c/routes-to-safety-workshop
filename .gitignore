@@ -3,8 +3,10 @@ out/*
 !out/.gitkeep
 
 # Shipped via data-bundle.zip (GitHub Release / USB), not git
-data/osm/
-data/osrm/
+data/osm/*
+!data/osm/.gitkeep
+data/osrm/*
+!data/osrm/.gitkeep
 data/prebuilt/evac.pmtiles
 data/tmp/
 01-tiles/planetiler.jar

@@ -31,7 +31,12 @@ services:
 
   osrm:
     image: ${OSRM_IMAGE:-ghcr.io/project-osrm/osrm-backend:v26.10.0-debian}
-    command: osrm-routed --algorithm mld --max-table-size 500 /data/study-area.osrm
+    # Waits for the graph: a fresh clone has no data/osrm until scripts/get-bundle.sh runs, so
+    # `docker compose up -d` may legitimately come first. No restart loop, no red OSRM line.
+    command:
+      - sh
+      - -c
+      - until [ -f /data/study-area.osrm.mldgr ]; do echo "osrm waiting for data/osrm - run scripts/get-bundle.sh"; sleep 3; done; exec osrm-routed --algorithm mld --max-table-size 500 /data/study-area.osrm
     volumes:
       - ./data/osrm:/data:ro
     restart: unless-stopped

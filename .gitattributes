@@ -1,0 +1,11 @@
+# Scripts must stay LF even on Windows (core.autocrlf): bash in the container chokes on CRLF
+*.sh text eol=lf
+*.py text eol=lf
+*.sql text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+Caddyfile text eol=lf
+*.ps1 text eol=crlf
+*.jar binary
+*.pbf binary
+*.pmtiles binary
