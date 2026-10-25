@@ -103,8 +103,11 @@ git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git &&
 bash scripts/get-bundle.sh       # run this before check_setup (150 MB, checksum-verified)
 python3 setup/check_setup.py     # the OSRM and web-server lines are red here — expected without containers
 npx serve -l 8080 .              # never `python -m http.server` (no Range support → blank map); another port is fine, swap it in every URL below
+export WEB_URL=http://localhost:8080             # in a second terminal; the checks below use it
 ```
 No routing without containers (OSRM has no Windows/macOS binary). Have Docker anyway? `docker compose up -d osrm caddy` serves the repo on :8080 **and** adds routing — skip `npx serve`, and `export OSRM_URL=http://localhost:8080/osrm`. Otherwise pair up for Phase 3c.
+
+**Where to type.** Options A and B: every command in this README runs in the **tool container shell** — the terminal Codespaces opens, or `docker compose exec workshop bash` (prompt `vscode ➜ /workspaces/routes-to-safety-workshop`). It has every tool, and `$WEB_URL` (`http://caddy:8080`) and `$OSRM_URL` (`http://caddy:8080/osrm`) are preset there; `localhost` inside it is the container itself, not Caddy. Your browser reaches the same server at `http://localhost:8080`. The only commands that run in a **laptop terminal** (your own shell, in the clone folder) are `docker compose …` and `scripts/build-osrm.sh` — both marked below. Option C: everything is the laptop terminal, with the two variables exported as above.
 
 ### Phase 0 — setup checkpoint
 
@@ -181,20 +184,22 @@ flowchart LR
 ```bash
 01-tiles/build.sh                                   # java -jar planetiler.jar generate-custom --schema=01-tiles/evac.yml … (about 4 s)
 pmtiles show out/evac.pmtiles                       # 8 vector layers, min zoom 4, max zoom 14, 1607 tiles
-curl -sI -H "Range: bytes=0-15" http://localhost:8080/out/evac.pmtiles | head -1     # HTTP/1.1 206 Partial Content  (container: http://caddy:8080/…)
+curl -sSI -H "Range: bytes=0-15" "$WEB_URL/out/evac.pmtiles" | head -1     # HTTP/1.1 206 Partial Content — anything else means the wrong server
 ```
 No GeoJSON yet? `01-tiles/build.sh --prebuilt`.
 
-**2b · Routing graph** — already in the bundle and loaded by the `osrm` container. To watch it being built on a tiny clip (laptop, needs Docker/Finch):
+**2b · Routing graph** — already in the bundle and served by the `osrm` container:
 ```bash
-scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm
-export OSRM_URL=http://localhost:8080/osrm            # laptop; inside the tool container and Codespaces it is already set
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # → {"code":"Ok", …}
+curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # → {"code":"Ok", …}  the graph answers
+```
+Optional — watch a graph being built on a tiny clip. **Laptop terminal**, in the clone folder (needs Docker/Finch; the tool container has no Docker inside it):
+```bash
+scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm     # about 1 min → out/osrm/colfax.osrm.*
 ```
 
 **2c · Reach bands** — drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter:
 ```bash
-scripts/make-coverage.py --osrm http://osrm:5000      # run as written (uv shebang, not python3) · laptop: --osrm $OSRM_URL · about 4 s · overwrites data/coverage/*.geojson
+scripts/make-coverage.py --osrm http://osrm:5000      # about 4 s · overwrites data/coverage/*.geojson · run as written (uv shebang) · Option C: --osrm $OSRM_URL
 ```
 
 ---
@@ -217,23 +222,34 @@ flowchart LR
   PM --> S --> V --> R --> I80 --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`) and reload after each paste.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The three view buttons work and the **Base map** and **Shelter reach** views already show something, but the **Fire evac map is blank**: the page loads your `out/evac.pmtiles`, yet its list of layers to draw is four empty arrays. Phase 3 fills them, then wires in the router.
 
-**3a · Style** — in `02-web/index.html` replace `const STEPn = [];` with the matching file from `02-web/steps/`: step 1 roads (also uncomment the three `AttributionControl` lines just below the paste block) · step 2 hazard, water, land cover, shelters, labels · step 3 dashed fire perimeters (contains 1 + 2 — the bail-out) · step 4 3D buildings over Auburn at zoom ≥ 13.
+**3a · Style** — four pastes into `02-web/index.html` (edit it with any editor; it is the same file on the laptop and in the container). Reload the browser after each.
 
-**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (FHSZ Moderate / High / Very High, past perimeters, shelters) · **Base map** (OpenStreetMap raster, needs internet) · **Shelter reach** (≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
+| Do | What you see |
+|---|---|
+| 1. Open `02-web/steps/step1-roads.json`, copy the whole file, paste it over the `[]` after `// STEP 1: paste here` | grey road network |
+| 2. Just below `ScaleControl`, remove the `//` from the three `AttributionControl` lines | © OpenStreetMap · Overture · CAL FIRE credit bottom-right — the licences require it |
+| 3. `step2-hazard-water.json` → the `[]` after `// STEP 2` | hazard fill (Moderate / High / Very High), water, land cover, shelters (filled = verified, hollow = candidate), town labels — the map now matches the legend |
+| 4. `step3-styled.json` → `STEP 3` | dashed past-fire perimeters (Mosquito 2022, River 2021). This file also contains steps 1 + 2, so pasting only this one is the **bail-out** |
+| 5. `step4-final.json` → `STEP 4` (finish early) | 3D buildings over Auburn from zoom 13 — right-drag to tilt |
 
-<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map after steps 1–4: hazard classes, perimeters, labels, shelters"/>
+Paste order never matters (the page sorts layers and de-duplicates by id). Lost? `02-web/solution.html` is the page with every paste done.
 
-**3c · Routing** — one module, [`03-routing/route.js`](03-routing/route.js); works in every view.
+**3b · Three views, one at a time** — nothing to edit. The buttons top-left: **Fire evac map** (your tiles, as styled above) · **Base map** (OpenStreetMap raster, needs internet) · **Shelter reach** (the 2c rings: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
+
+<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map after the four pastes: hazard classes, perimeters, labels, shelters"/>
+
+**3c · Routing** — the last block of `index.html`, inside `map.on('load', …)`: three commented `import(…)` lines. Exactly one is uncommented at a time; reload after each.
 
 ```bash
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"                                   # snap a point  ($OSRM_URL as in 2b)
-curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0"     # seconds pin → shelter
+curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"      # what the browser is about to call: snap a point → {"code":"Ok",…}
 ```
-1. In `02-web/index.html` uncomment `import('../03-routing/steps/step1-route.js')` → pink line Foresthill → Placer High School, console `Route: 35.8 min, 31.8 km`.
-2. Switch to `steps/step2-scaffold.js`, fill the block `YOU WRITE THESE 6 LINES`: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup. Answer: `steps/step3-solution.js`.
-3. Switch the import to `../03-routing/route.js` (the finished version, with the checkbox) and tick **I-80 closed** → `&exclude=motorway` on both calls. From Dutch Flat, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
+| Do | What you see |
+|---|---|
+| 1. Uncomment the `step1-route.js` line | a pink line Foresthill → Placer High School; console `Route: 35.8 min, 31.8 km`. One hard-coded `/route` call |
+| 2. Comment it again, uncomment `step2-scaffold.js`. Open `03-routing/steps/step2-scaffold.js`, find `YOU WRITE THESE 6 LINES`: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup. Answer: `steps/step3-solution.js` | drop a pin anywhere → the **nearest shelter by road** is found and drawn; drag the pin, it recomputes |
+| 3. Switch to the `route.js` line | the finished router with an **I-80 closed** checkbox (`&exclude=motorway` on both calls). Start at Dutch Flat: Sierra Vista CC stays nearest, 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd |
 
 <img src="docs/img/route-foresthill.jpg" width="85%" alt="Foresthill pin, route to Placer High School, 36 min"/>
 
@@ -276,7 +292,7 @@ scripts/make-data.sh                             # 3. fetch: overture · hazard 
 #    5. hazard outside California: swap the source, keep the SQL + style → 04-adapt/README.md#swap-the-hazard
 duckdb -c ".read 00-data/03-export.sql"          # 6. rebuild artifacts
 01-tiles/build.sh
-scripts/build-osrm.sh                            #    laptop (Docker/Finch), then: docker compose restart osrm
+scripts/build-osrm.sh                            #    laptop terminal (Docker/Finch), then: docker compose restart osrm
 scripts/make-coverage.py --osrm http://osrm:5000
 #    7. center/zoom in 02-web/index.html and demo/app.js, default pin in 03-routing/route.js
 sha256sum -c data/CHECKSUMS.sha256               # 8. verify, then publish out/evac.pmtiles + data/coverage/ + 02-web/ + demo/ to any static host
@@ -285,6 +301,16 @@ sha256sum -c data/CHECKSUMS.sha256               # 8. verify, then publish out/e
 Laptop → planet: same shapes, bigger inputs — [`04-adapt/README.md`](04-adapt/README.md#laptop--planet).
 
 ---
+
+## Stop everything
+
+**Laptop terminal**, in the clone folder:
+```bash
+docker compose down              # stops and removes the three containers; images stay cached (`docker compose up -d` brings it back in seconds)
+docker compose down --rmi all    # the same, plus delete the 3 GB of images
+```
+Option C: `Ctrl-C` in the `npx serve` terminal. Something still holding :8080? `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano | findstr :8080`), then `kill <PID>`.
+Codespaces: <https://github.com/codespaces> → … → **Stop codespace** (it also stops itself after 30 idle minutes).
 
 ## The stack (pinned in [`versions.env`](versions.env))
 
