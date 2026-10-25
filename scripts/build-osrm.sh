@@ -8,8 +8,8 @@
 PBF="${1:-$REPO_ROOT/data/osm/study-area.osm.pbf}"
 OUT="${2:-$REPO_ROOT/data/osrm}"
 [ -f "$PBF" ] || die "no such file: $PBF (run scripts/make-data.sh osm, or scripts/get-bundle.sh)"
-CLI="$(detect_container_cli)" || die "no container CLI found (docker / finch / podman). Routing needs one — see setup/README.md"
-mkdir -p "$OUT"
+CLI="$(detect_container_cli)" || die "no container CLI found (docker / finch / podman). Run this from a laptop terminal, not inside the tool container — the study-area graph is already in the bundle; this script is only for building your own. See setup/README.md"
+mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"    # docker -v needs an absolute host path (out/osrm alone is read as a volume name)
 NAME="$(basename "${PBF%.osm.pbf}")"
 cp -f "$PBF" "$OUT/$NAME.osm.pbf"
 
