@@ -214,7 +214,7 @@ flowchart LR
   classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
 
   PM[/"out/evac.pmtiles<br/>coverage_bands.geojson"/]:::file
-  S["3a · style<br/>paste steps 1–4 into 02-web/index.html"]:::step
+  S["3a · style<br/>Edit → Add steps 1–4"]:::step
   V(["3b · three views<br/>Fire evac map · Base map · Shelter reach"]):::chk
   R["3c · routing<br/>/table → argmin → /route<br/>you write 6 lines"]:::step
   I80["I-80 closed<br/>exclude=motorway"]:::step
@@ -222,38 +222,34 @@ flowchart LR
   PM --> S --> V --> R --> I80 --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The three view buttons work and the **Base map** and **Shelter reach** views already show something, but the **Fire evac map is blank**: the page loads your `out/evac.pmtiles`, yet its list of layers to draw is four empty arrays. Phase 3 fills them, then wires in the router.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The page loads your `out/evac.pmtiles`, but the **Fire evac map is blank**: no layers are plugged in yet. Nothing in this phase needs a file edit — the **Edit** button (top-left, next to the view buttons) opens a panel with one row per dataset. Whatever you plug in stays in the browser's memory until you reload the page.
 
-**3a · Style** — four pastes into `02-web/index.html` (edit it with any editor; it is the same file on the laptop and in the container). Reload the browser after each.
+**3a · Style** — Fire evac map view → **Edit** → click **Add**, top to bottom:
 
-| Do | What you see |
+| Row | What appears |
 |---|---|
-| 1. Open `02-web/steps/step1-roads.json`, copy the whole file, paste it over the `[]` after `// STEP 1: paste here` | grey road network |
-| 2. Just below `ScaleControl`, remove the `//` from the three `AttributionControl` lines | © OpenStreetMap · Overture · CAL FIRE credit bottom-right — the licences require it |
-| 3. `step2-hazard-water.json` → the `[]` after `// STEP 2` | hazard fill (Moderate / High / Very High), water, land cover, shelters (filled = verified, hollow = candidate), town labels — the map now matches the legend |
-| 4. `step3-styled.json` → `STEP 3` | dashed past-fire perimeters (Mosquito 2022, River 2021). This file also contains steps 1 + 2, so pasting only this one is the **bail-out** |
-| 5. `step4-final.json` → `STEP 4` (finish early) | 3D buildings over Auburn from zoom 13 — right-drag to tilt |
+| 1 · Roads (`steps/step1-roads.json`) | grey road network |
+| 2 · Hazard zones, water, land cover, shelters, town labels (`step2-hazard-water.json`) | the map now matches the legend: Moderate / High / Very High fill, water, shelters (filled = verified, hollow = candidate), labels |
+| 3 · Past fire perimeters (`step3-styled.json`) | dashed Mosquito 2022 / River 2021 outlines |
+| 4 · 3D buildings over Auburn (`step4-final.json`, finish early) | zoom past 13 over Auburn, right-drag to tilt |
 
-Paste order never matters (the page sorts layers and de-duplicates by id). Lost? `02-web/solution.html` is the page with every paste done.
+Each row is one JSON file of MapLibre layers. To restyle: open the file, change a colour or a width, click the row's **Reload**. Order never matters; the attribution bottom-right is always on (the licences require it). Lost? `02-web/solution.html` is the page with everything plugged in.
 
-**3b · Three views, one at a time** — nothing to edit. The buttons top-left: **Fire evac map** (your tiles, as styled above) · **Base map** (OpenStreetMap raster, needs internet) · **Shelter reach** (the 2c rings: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
+**3b · Three views, one at a time** — the buttons top-left: **Fire evac map** (what you just styled) · **Base map** (OpenStreetMap raster, needs internet; nothing to plug in) · **Shelter reach** → **Edit** → **Add** the reach rings (`data/coverage/coverage_bands.geojson`, the Phase 2c output: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter for its reach only). The legend follows the view; nothing is drawn on top of anything else.
 
-<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map after the four pastes: hazard classes, perimeters, labels, shelters"/>
+<img src="docs/img/view-evac.jpg" width="85%" alt="Fire evac map with all four datasets plugged in: hazard classes, perimeters, labels, shelters"/>
 
-**3c · Routing** — the last block of `index.html`, inside `map.on('load', …)`: three commented `import(…)` lines. Exactly one is uncommented at a time; reload after each.
+**3c · Routing** — in any view's Edit panel, the last row **Routing** plugs in the finished router ([`03-routing/route.js`](03-routing/route.js)): click the map → nearest shelter **by road**, drag the pin to recompute, tick **I-80 closed** (`&exclude=motorway` on both calls). What it calls:
 
 ```bash
-curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"      # what the browser is about to call: snap a point → {"code":"Ok",…}
+curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"                                   # snap a point  → {"code":"Ok",…}
+curl "$OSRM_URL/table/v1/driving/-120.8182,39.0199;-121.0768,38.8971?sources=0"     # seconds pin → shelter
 ```
-| Do | What you see |
-|---|---|
-| 1. Uncomment the `step1-route.js` line | a pink line Foresthill → Placer High School; console `Route: 35.8 min, 31.8 km`. One hard-coded `/route` call |
-| 2. Comment it again, uncomment `step2-scaffold.js`. Open `03-routing/steps/step2-scaffold.js`, find `YOU WRITE THESE 6 LINES`: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup. Answer: `steps/step3-solution.js` | drop a pin anywhere → the **nearest shelter by road** is found and drawn; drag the pin, it recomputes |
-| 3. Switch to the `route.js` line | the finished router with an **I-80 closed** checkbox (`&exclude=motorway` on both calls). Start at Dutch Flat: Sierra Vista CC stays nearest, 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd |
+Want to write it yourself? Skip the Routing row and uncomment one `import(…)` line at the end of `02-web/index.html`: `steps/step1-route.js` (one hard-coded `/route`, Foresthill → Placer High, console `Route: 35.8 min, 31.8 km`) or `steps/step2-scaffold.js` (you fill the 6 lines: `/table` → drop `durations[0][0]` → argmin → `/route` → `setData` → popup; answer in `steps/step3-solution.js`).
 
 <img src="docs/img/route-foresthill.jpg" width="85%" alt="Foresthill pin, route to Placer High School, 36 min"/>
 
-Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min.
+Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12.4 km away but 59.7 min by road; Placer High is 35.8 min. From Dutch Flat with I-80 closed, Sierra Vista CC stays nearest but 17.9 → **31.3 min** via Dutch Flat Rd / Rollins Lake Rd.
 
 > A real closure is not a URL parameter. This is the calculation, not detection; shelter status, traffic, smoke and capacity are not in the data.
 
