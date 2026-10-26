@@ -40,7 +40,7 @@ Never `python -m http.server`: PMTiles needs `Range` requests (`206`), it answer
 
 ## Steps — Fire evac map → Edit → Add
 
-0. **Tiles** (`out/evac.pmtiles`, built in Phase 2a) → nothing visible yet; the row shows which file it took and rows 1–4 unlock. A "Using the prebuilt tiles" note = `out/evac.pmtiles` was not found. Rebuilt the tiles? **Reload** this row; added layers redraw on the new file.
+0. **Tiles** (`out/evac.pmtiles`, built in Phase 2a) → a dashed box around the covered area, the row lists the file's 8 layers and tile count, rows 1–4 unlock. A "Using the prebuilt tiles" note = `out/evac.pmtiles` was not found. Rebuilt the tiles? **Reload** this row; added layers redraw on the new file.
 1. **Roads** (`steps/step1-roads.json`) → grey roads (motorways darker).
 2. **Hazard, water, land cover, shelters, labels** (`steps/step2-hazard-water.json`) → `match` on `FHSZ_Description` (Moderate `#fdbb84` · High `#e34a33` · Very High `#b30000`), blue water, green land cover, 10 shelter circles (filled = verified), town labels (fonts in `fonts/`, works offline).
 3. **Fire perimeters** (`steps/step3-styled.json`) → dashed grey River 2021 / Mosquito 2022. Contains steps 1 + 2 as well.

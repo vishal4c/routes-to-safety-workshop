@@ -225,9 +225,9 @@ Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → a
 
 ### 3a · Style — stay on **Fire evac map**, click **Edit**, then **Add** on each row, top to bottom
 
-**0 · Tiles → Add.** Map still blank; rows 1–4 unlock. (A note "Using the prebuilt tiles" means your `out/evac.pmtiles` from 2a was not found — fine, carry on.)
+**0 · Tiles → Add.** The row turns green and lists what is in the file (1607 tiles · zoom 4–14 · 8 layers), a **dashed box** shows the area the tiles cover, and rows 1–4 unlock. Nothing else is drawn yet — the tiles are data; rows 1–4 are the drawing instructions. (A note "Using the prebuilt tiles" means your `out/evac.pmtiles` from 2a was not found — fine, carry on.)
 
-<img src="docs/img/p3-step0-tiles.jpg" width="80%" alt="Edit panel after Add on row 0: Tiles shows Reload, rows 1–4 are now clickable, map still blank"/>
+<img src="docs/img/p3-step0-tiles.jpg" width="80%" alt="Edit panel after Add on row 0: green tick with 1607 tiles and 8 layer names, dashed box around the study area, rows 1–4 now clickable"/>
 
 **1 · Roads → Add.** Grey road network.
 

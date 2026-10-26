@@ -12,7 +12,7 @@
   #map { position: absolute; inset: 0 0 44px 0; }
   #footer { position: absolute; bottom: 0; left: 0; right: 0; height: 44px; box-sizing: border-box;
             padding: 4px 10px; background: #fff8e1; border-top: 1px solid #d4b24c; font-size: 12px; overflow: auto; }
-  #notice { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5; max-width: 80%;
+  #notice { position: absolute; top: 8px; right: 100px; z-index: 7; max-width: 46%;
             background: #fff3cd; border: 1px solid #d4b24c; border-radius: 4px; padding: 4px 10px; display: none; }
   #legend { position: absolute; left: 8px; bottom: 54px; z-index: 5; background: #fffffff0; border-radius: 4px;
             padding: 6px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; max-width: 260px; }
@@ -33,6 +33,7 @@
   #edit-panel b { display: block; margin-bottom: 4px; }
   #edit-panel .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 4px 0; border-top: 1px solid #0001; }
   #edit-panel .item code { font-size: 11px; color: #555; grid-column: 1; }
+  #edit-panel .item small { grid-column: 1; color: #2e8b57; }
   #edit-panel .item button { grid-column: 2; grid-row: 1 / span 2; font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid #0003; border-radius: 4px; background: #fff; cursor: pointer; min-width: 64px; }
   #edit-panel .item button.done { background: #e6f5ea; border-color: #2e8b57; }
   #edit-panel small { color: #555; }
@@ -100,6 +101,7 @@ function showNotice(text) {
 // out/evac.pmtiles is preferred; if it is missing we fall back to the prebuilt copy and say so.
 const TILE_FILES = ['../out/evac.pmtiles', '../data/prebuilt/evac.pmtiles'];
 let tilesFile = null;   // which one is plugged in (shown in the Edit panel)
+let tilesInfo = '';     // "1607 tiles · z4–14 · 8 layers: …" (shown under row 0)
 
 async function loadTiles() {
   let chosen = null;
@@ -120,13 +122,25 @@ async function loadTiles() {
   if (map.getSource('evac')) map.removeSource('evac');
   map.addSource('evac', { type: 'vector', url: 'pmtiles://' + new URL(chosen, location.href).href, minzoom: 4, maxzoom: 14 });
   tilesFile = chosen.replace('../', ''); loaded.add('tiles');
+  // Something to see: read the file header, draw a dashed box around the area the tiles cover, list its layers.
+  const pm = new pmtiles.PMTiles(new URL(chosen, location.href).href);
+  const h = await pm.getHeader(); const meta = await pm.getMetadata();
+  const names = (meta.vector_layers || []).map((l) => l.id);
+  tilesInfo = h.numAddressedTiles + ' tiles · zoom ' + h.minZoom + '–' + h.maxZoom + ' · ' + names.length + ' layers: ' + names.join(', ');
+  const box = [[h.minLon, h.minLat], [h.maxLon, h.minLat], [h.maxLon, h.maxLat], [h.minLon, h.maxLat], [h.minLon, h.minLat]];
+  const extent = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: box } };
+  if (map.getSource('tile-extent')) map.getSource('tile-extent').setData(extent); else map.addSource('tile-extent', { type: 'geojson', data: extent });
+  insertOrdered({ id: 'tile-extent', type: 'line', source: 'tile-extent', paint: { 'line-color': '#444', 'line-width': 1.5, 'line-dasharray': [4, 3] } });
+  map.fitBounds([[h.minLon, h.minLat], [h.maxLon, h.maxLat]], { padding: 40, duration: 800 });
   for (const s of STEPS) if (loaded.has('step' + s.n)) await loadStep(s);   // re-add what was already plugged in
-  console.info('tiles: ' + tilesFile);
+  applyView();
+  if (chosen === TILE_FILES[0]) showNotice('Tiles plugged in. The dashed box is the area they cover — nothing is drawn until you Add rows 1–4.');
+  console.info('tiles: ' + tilesFile + ' — ' + tilesInfo);
 }
 
 // Layers in drawing order (bottom -> top). Whatever you plug in is inserted at its place in this list,
 // so the order you click the buttons never matters. Plugging a file in twice replaces its layers (edit -> click again).
-const ORDER = ['basemap-osm', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'coverage-bands', 'roads-minor', 'roads-major',
+const ORDER = ['basemap-osm', 'tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'coverage-bands', 'roads-minor', 'roads-major',
                'buildings_auburn', 'route-casing', 'route', 'shelters', 'places'];
 
 function insertOrdered(layer) {
@@ -215,9 +229,9 @@ map.on('error', (e) => {
 // Nothing is re-styled: each view is just setLayoutProperty(id, 'visibility', ...) on a list of layer ids.
 // ---------------------------------------------------------------------------
 const VIEW_LAYERS = {
-  evac:   { show: ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places'], hide: ['basemap-osm', 'coverage-bands'] },
-  normal: { show: ['basemap-osm'], hide: ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places', 'coverage-bands'] },
-  reach:  { show: ['water', 'roads-minor', 'roads-major', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings_auburn'] }
+  evac:   { show: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places'], hide: ['basemap-osm', 'coverage-bands'] },
+  normal: { show: ['basemap-osm'], hide: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places', 'coverage-bands'] },
+  reach:  { show: ['tile-extent', 'water', 'roads-minor', 'roads-major', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings_auburn'] }
 };
 const viewButtons = [...document.querySelectorAll('#view-toggle button')];
 let view = 'evac';
@@ -249,7 +263,7 @@ const editBtn = document.getElementById('edit-btn'), editPanel = document.getEle
 editBtn.onclick = () => { const open = editPanel.style.display !== 'block'; editPanel.style.display = open ? 'block' : 'none'; editBtn.setAttribute('aria-expanded', open); };
 
 function editItems() {
-  const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy)', file: tilesFile || 'out/evac.pmtiles', run: loadTiles };
+  const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy). Draws only a dashed box around the covered area; rows 1–4 draw from it', file: tilesFile || 'out/evac.pmtiles', info: tilesInfo, run: loadTiles };
   const needTiles = (it) => Object.assign(it, { disabled: !loaded.has('tiles'), hint: 'plug in the tiles first' });
   const routing = { key: 'routing', label: 'Routing — click the map for the nearest shelter by road, I-80 toggle', file: '03-routing/route.js', run: loadRouting };
   if (view === 'evac') return [tiles, ...STEPS.map((s) => needTiles({ key: 'step' + s.n, label: s.n + ' · ' + s.label, file: '02-web/' + s.file, run: () => loadStep(s) })), routing];
@@ -269,8 +283,9 @@ function renderEditPanel() {
   for (const it of items) {
     const row = document.createElement('div'); row.className = 'item';
     const done = loaded.has(it.key);
-    row.innerHTML = '<span>' + it.label + '</span><code>' + it.file + '</code>';
+    row.innerHTML = '<span>' + it.label + '</span><code>' + it.file + '</code>' + (done && it.info ? '<small>✓ ' + it.info + '</small>' : '');
     const b = document.createElement('button'); b.type = 'button'; b.textContent = done ? 'Reload' : 'Add'; b.className = done ? 'done' : '';
+    b.style.gridRow = '1 / span ' + (done && it.info ? 3 : 2);
     if (it.disabled && !done) { b.disabled = true; b.title = it.hint; row.style.opacity = 0.55; }
     b.onclick = async () => {
       b.disabled = true; b.textContent = '…';
