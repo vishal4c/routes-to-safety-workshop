@@ -64,7 +64,7 @@ flowchart LR
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/vishal4c/routes-to-safety-workshop?quickstart=1)
 
 Or: repository page → green **Code** button → **Codespaces** → **Create codespace on main** (personal GitHub account, free tier is enough).
-Three containers start (tool shell, OSRM, Caddy) and the 150 MB data bundle downloads; you land in a terminal with `setup/check_setup.py` already run.
+Three containers start (tool shell, OSRM, Caddy — the same ones as option B, pulled, not built) and the 150 MB data bundle downloads; after 2–3 minutes you land in a terminal with `setup/check_setup.py` already run.
 Open the map: **Ports** tab → port **8080** → globe icon. Never forward port 5000; routing is `/osrm` on port 8080.
 
 ### B — Docker image on your laptop

@@ -47,7 +47,6 @@ jobs:
             NODE_VERSION=${{ steps.pins.outputs.NODE_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-# Prebuild note: this image is the "workshop" service only (tools, no data). To make Codespaces
-# start fast, enable a Codespaces prebuild (repo Settings → Codespaces → Prebuilds) on main, or
-# switch the workshop service in .devcontainer/docker-compose.yml from `build:` to
-# `image: ghcr.io/vishal4c/routes-to-safety-workshop:latest`. Make the ghcr package public.
+# This image is the "workshop" service only (tools, no data). Codespaces pulls it through
+# docker-compose.yml (no build at codespace creation); the ghcr package must stay public.
+# Optional: enable a Codespaces prebuild (repo Settings → Codespaces → Prebuilds) on main.

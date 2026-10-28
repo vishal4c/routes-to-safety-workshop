@@ -31,7 +31,6 @@ expect "\${OSRM_IMAGE:-$OSRM_IMAGE}"   "OSRM_IMAGE default"   docker-compose.yml
 expect "\${CADDY_IMAGE:-$CADDY_IMAGE}" "CADDY_IMAGE default"  docker-compose.yml
 for v in DUCKDB_VERSION JAVA_VERSION NODE_VERSION PMTILES_VERSION PLANETILER_VERSION OSMIUM_VERSION; do
   expect "ARG $v=${!v}" "$v ARG default" .devcontainer/Dockerfile
-  expect "$v: \${$v:-${!v}}" "$v build-arg default" .devcontainer/docker-compose.yml
 done
 # CDN URLs: any maplibre-gl@X / pmtiles@X in web files must be the pinned one
 for f in $WEB; do

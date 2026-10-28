@@ -1,13 +1,14 @@
 {
   "name": "Routes to Safety",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "dockerComposeFile": "../docker-compose.yml",
   "service": "workshop",
   "runServices": ["workshop", "osrm", "caddy"],
   "workspaceFolder": "/workspaces/routes-to-safety-workshop",
+  "remoteUser": "vscode",
   "shutdownAction": "stopCompose",
-  "forwardPorts": [8080],
+  "forwardPorts": ["caddy:8080"],
   "portsAttributes": {
-    "8080": { "label": "Workshop (Caddy)", "onAutoForward": "notify" },
+    "caddy:8080": { "label": "Workshop (Caddy)", "onAutoForward": "notify" },
     "5000": { "onAutoForward": "ignore" }
   },
   "postCreateCommand": "bash scripts/get-bundle.sh; ln -sf /opt/planetiler.jar 01-tiles/planetiler.jar; python3 setup/check_setup.py",

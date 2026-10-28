@@ -1,6 +1,8 @@
-# Workshop shell image. Versions mirror versions.env (checked by scripts/check-versions.sh);
-# docker-compose passes them as build args. The data bundle is NOT baked in: postCreateCommand
-# runs scripts/get-bundle.sh (or use the prebuilt ghcr image workflow).
+# Workshop shell image = the `workshop` service in docker-compose.yml, published as
+# ghcr.io/vishal4c/routes-to-safety-workshop by .github/workflows/devcontainer-image.yml (which passes
+# the versions.env pins as build args; scripts/check-versions.sh checks the defaults below match).
+# Codespaces and `docker compose up` both PULL that image; nothing is built on the student side.
+# The data bundle is NOT baked in: postCreateCommand runs scripts/get-bundle.sh.
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 ARG DUCKDB_VERSION=2.0.0
