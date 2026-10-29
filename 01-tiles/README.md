@@ -1,5 +1,7 @@
 # 01-tiles — Phase 2a: Map artifacts — GeoJSON → one PMTiles file (Planetiler)
 
+> Part of **Phase 2** (step 2a) in the [main README](../README.md#phase-2--map-artifacts--01-tiles--scripts). Same commands; this page adds what `build.sh` runs, the expected output and the fixes. Steps 2b (routing graph) and 2c (reach rings) are scripts in [`../scripts/`](../scripts/), not this folder.
+
 [`evac.yml`](evac.yml) is the tile schema: 8 local GeoJSON sources → 8 layers, with the zoom each class appears at and the attributes that survive into the tiles.
 Run everything from the **repo root**.
 
@@ -25,12 +27,15 @@ flowchart LR
 ## Build
 
 ```bash
-java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
+01-tiles/build.sh                                   # about 4 s
 pmtiles show out/evac.pmtiles
 ```
-Same thing with the bbox from `versions.env`, a timer and a fallback: `01-tiles/build.sh` (`--prebuilt` uses `data/prebuilt/out/`; PowerShell: `build.ps1`).
+`build.sh` runs one Java command — Planetiler reads the 8 GeoJSON files through the schema and writes one tile archive — plus the bbox from `versions.env`, a timer and a fallback (`--prebuilt` uses `data/prebuilt/out/`; PowerShell: `build.ps1`):
+```bash
+java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
+```
 
-Expected:
+Expected from `pmtiles show`:
 ```
 tile type: mvt
 bounds: (long: -121.400000, lat: 38.720000) (long: -120.520000, lat: 39.200000)
@@ -46,10 +51,10 @@ pmtiles show out/evac.pmtiles --metadata | grep -o '"id":"[a-z_]*"'
 ## Serve it — the one test that matters
 
 ```bash
-curl -sI -H "Range: bytes=0-15" http://localhost:8080/out/evac.pmtiles | head -1
+curl -sSI -H "Range: bytes=0-15" "$WEB_URL/out/evac.pmtiles" | head -1     # $WEB_URL is preset in the tool container; option C: export WEB_URL=http://localhost:8080
 HTTP/1.1 206 Partial Content
 ```
-PMTiles reads byte ranges. Caddy (`docker compose up -d`) and `npx serve -l 8080 .` answer `206`; `python -m http.server` does not and the map stays blank.
+PMTiles reads byte ranges. Caddy (`docker compose up -d`) and `npx serve -l 8080 .` answer `206`; `python -m http.server` does not and the map stays blank. In the browser, Phase 3 row **0 · Tiles** does this same check for you.
 
 ## If something is red
 

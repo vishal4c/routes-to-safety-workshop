@@ -69,4 +69,4 @@ Public `router.project-osrm.org` rejects `exclude=motorway`; the checkbox is dis
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm
 ```
-Tiny clip, about a minute with Docker/Finch. Details: `03-routing/README.md`.
+Tiny clip, about a minute — **laptop terminal with Docker/Finch only** (option B). Inside the tool container or Codespaces there is no Docker: the script prints what it would run and stops. Details: `03-routing/README.md`.

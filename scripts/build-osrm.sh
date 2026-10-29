@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 # Build an OSRM routing graph (MLD) from an .osm.pbf, inside the pinned OSRM container.
 #   scripts/build-osrm.sh                                    → data/osrm/study-area.osrm.*   (what the workshop ships)
-#   scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   → Phase 3c Stretch B: tiny graph
-# Works with docker, finch, podman or nerdctl (auto-detected; override with CONTAINER_CLI=finch).
+#   scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   → Phase 2b (optional): tiny graph, about a minute
+# Needs a container CLI on the machine you run it on: docker, finch, podman or nerdctl (auto-detected;
+# override with CONTAINER_CLI=finch). That means a LAPTOP TERMINAL (option B). The tool container and
+# Codespaces have no Docker inside, so there the script only explains what it would do and exits 0.
 . "$(dirname "$0")/lib.sh"
 
 PBF="${1:-$REPO_ROOT/data/osm/study-area.osm.pbf}"
 OUT="${2:-$REPO_ROOT/data/osrm}"
-[ -f "$PBF" ] || die "no such file: $PBF (run scripts/make-data.sh osm, or scripts/get-bundle.sh)"
-CLI="$(detect_container_cli)" || die "no container CLI found (docker / finch / podman). Run this from a laptop terminal, not inside the tool container — the study-area graph is already in the bundle; this script is only for building your own. See setup/README.md"
-mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"    # docker -v needs an absolute host path (out/osrm alone is read as a volume name)
 NAME="$(basename "${PBF%.osm.pbf}")"
+[ -f "$PBF" ] || die "no such file: $PBF (run scripts/make-data.sh osm, or scripts/get-bundle.sh)"
+if ! CLI="$(detect_container_cli)"; then
+  cat <<MSG
+build-osrm.sh: no docker / finch / podman here, so the graph cannot be built from this shell.
+${WORKSHOP_CONTAINER:+
+  You are inside the tool container (Codespaces, or docker compose exec workshop). It has no Docker in it, on purpose.
+  Nothing is missing: the study-area graph from the bundle is already running —  curl "\$OSRM_URL/nearest/v1/driving/-121.08,38.90"
+  To build a graph yourself you need a laptop with Docker or Finch (option B): run this same command in a laptop terminal in the clone folder.
+}
+  What this script runs, in the OSRM container ($OSRM_IMAGE), with $OUT mounted at /data:
+    osrm-extract   -p /opt/car.lua /data/$NAME.osm.pbf     # roads out of the .osm.pbf, speeds from the car profile → $NAME.osrm.*
+    osrm-partition /data/$NAME.osrm                        # split the graph into cells
+    osrm-customize /data/$NAME.osrm                        # precompute cell shortcuts → /table and /route answer in milliseconds
+  Then osrm-routed serves /data/$NAME.osrm (the osrm service in docker-compose.yml does this for data/osrm/study-area.osrm).
+MSG
+  exit 0
+fi
+mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"    # docker -v needs an absolute host path (out/osrm alone is read as a volume name)
 cp -f "$PBF" "$OUT/$NAME.osm.pbf"
 
 # Everything happens in /data inside the container, bind-mounted to $OUT.

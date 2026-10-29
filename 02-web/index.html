@@ -298,7 +298,7 @@ function renderEditPanel() {
 
 // Shelter reach data: precomputed drive-time isochrones — for every shelter, the area it can be reached from within
 // 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
-// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Phase 3c Stretch A shows the recipe).
+// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Phase 2c; 03-routing/exercises.md Stretch A shows the recipe).
 const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#74a9cf', 30, '#fcae91', '#fcae91'];
 const reachStatus = document.getElementById('reach-status');
 let reachShelter = null;          // null = all shelters, otherwise one shelter id

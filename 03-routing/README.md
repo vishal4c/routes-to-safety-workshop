@@ -1,5 +1,7 @@
 # 03-routing — Phase 3c: Application — nearest shelter by road (OSRM)
 
+> Part of **Phase 3** (step 3c) in the [main README](../README.md#3c--routing--in-any-view-edit--routing--add). There, routing is one click: **Edit → Routing → Add** loads the finished [`route.js`](route.js). This page is the optional long way — the same module written by you in three steps — plus the OSRM reference.
+
 OSRM turns the road graph (Phase 2b artifact: `data/osrm/study-area.osrm.*`, 99 MB, served by the `osrm` container, proxied by Caddy at `/osrm`) into three HTTP calls.
 One JavaScript module, [`route.js`](route.js), does the rest — in every view of the map.
 
@@ -28,9 +30,8 @@ flowchart LR
 
 | How you run | `$OSRM_URL` for `curl` | In the page |
 |---|---|---|
-| Codespaces | `<forwarded-8080-URL>/osrm` (Ports tab → 8080; never forward 5000) | same-origin `/osrm` |
+| Codespaces terminal · Docker inside `docker compose exec workshop bash` | `$OSRM_URL` is preset to `http://caddy:8080/osrm` | same-origin `/osrm` (Codespaces: Ports tab → 8080 → globe; never forward 5000) |
 | Docker / Finch — laptop shell | `http://localhost:8080/osrm` | same-origin `/osrm` |
-| Docker / Finch — inside `docker compose exec workshop bash` | `$OSRM_URL` is preset to `http://caddy:8080/osrm` | — |
 | Native / browser only | none — OSRM ships no Windows/macOS binary | page says *Routing needs OSRM — map and shelters still work*; the Pages site uses `router.project-osrm.org` (no `exclude=motorway`) |
 
 ## The three calls (HTTP API v1, profile `driving`)
@@ -41,7 +42,7 @@ flowchart LR
 | `GET $OSRM_URL/table/v1/driving/{pin};{s1};…;{s10}?sources=0&annotations=duration,distance` | `durations[0][i]` seconds, `distances[0][i]` metres, pin → each shelter |
 | `GET $OSRM_URL/route/v1/driving/{pin};{winner}?overview=full&geometries=geojson[&exclude=motorway]` | `routes[0].geometry`, `.duration` (s), `.distance` (m) |
 
-## Steps
+## Write it yourself (optional) — instead of Edit → Routing → Add
 
 **Step 1 · Hello route**
 ```bash
@@ -66,13 +67,13 @@ Drag the pin anywhere in the box: the route recomputes. Stuck? point the import 
 From **Dutch Flat (-120.838, 39.198)** to Sierra Vista Community Center: 17.9 min → **31.3 min**, via Dutch Flat Rd / Magra Rd / Rollins Lake Rd.
 A real closure is not a URL parameter — this shows the calculation, not detection.
 
-## Build the graph yourself — Phase 2b (optional, on the laptop — needs Docker/Finch)
+## Build the graph yourself — Phase 2b (optional; option B laptop terminal only)
 
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm        # tiny clip, about a minute
 scripts/build-osrm.sh                                          # the full study area → data/osrm/  (then: docker compose restart osrm)
 ```
-Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian`.
+Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian`. It needs Docker or Finch on the machine it runs on. Inside the tool container and in Codespaces there is no Docker: the script prints the three commands it would run and exits — the study-area graph from the bundle is already running there.
 
 ## Files
 

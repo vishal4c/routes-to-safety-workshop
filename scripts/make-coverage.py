@@ -11,7 +11,7 @@
      coverage_bands.geojson = per shelter, dissolved 0–10 / 10–20 / 20–30-minute rings (non-overlapping)
 
 Usage:  scripts/make-coverage.py [--osrm http://localhost:5000] [--res 8]
-This is the "proper" version of Phase 3c Stretch A — same /table call, more points, dissolved with DuckDB spatial.
+This is Phase 2c — the "proper" version of 03-routing/exercises.md Stretch A — same /table call, more points, dissolved with DuckDB spatial.
 """
 import argparse, json, os, sys, time, urllib.request
 import duckdb

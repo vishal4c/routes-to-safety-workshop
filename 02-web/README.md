@@ -1,5 +1,7 @@
 # 02-web — Phase 3a/3b: Application — style the map, three views
 
+> Part of **Phase 3** (steps 3a and 3b) in the [main README](../README.md#phase-3--application--02-web--03-routing--demo). Same clicks; this page adds what each step file contains, how the page works and the fixes. Step 3c (routing) is [`../03-routing/`](../03-routing/) — it plugs into this page, which is why this folder comes first.
+
 `index.html` is one MapLibre GL JS page (6.14, ESM) + pmtiles.js. It starts empty.
 The **Edit** button (top-left) opens a panel with one row per dataset; **Add** plugs the file into the live map (no file edits, no reload). Row 0 is the tiles (`../out/evac.pmtiles`, falls back to `../data/prebuilt/evac.pmtiles`); rows 1–4 are JSON arrays of MapLibre layers in [`steps/`](steps/) and stay locked until the tiles are in.
 

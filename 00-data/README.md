@@ -1,7 +1,9 @@
 # 00-data — Phase 1: Data prep (DuckDB)
 
+> Part of **Phase 1** in the [main README](../README.md#phase-1--data-prep--00-data). Same steps, same commands; this page adds the expected output of each one, what the SQL does, and the fixes.
+
 Three SQL files turn the Overture + CAL FIRE extracts in `data/` into the GeoJSON that every later phase reads.
-Run everything from the **repo root**.
+`duckdb -c "…"` runs one command and exits; `.read file.sql` runs every statement in that file. Run everything from the **repo root**.
 
 ```mermaid
 flowchart LR
@@ -24,12 +26,12 @@ flowchart LR
   B -.-> O
 ```
 
-## 1a · Look around
+## 1a · Look around — what is in the data before touching it
 
 ```bash
 duckdb -c ".read 00-data/01-explore.sql"
 ```
-Expected: the `segments.parquet` schema (7 columns), drivable roads by class (sum **36,294**), top-15 place categories (27,096 places).
+Three plain `SELECT`s (columns / rows / count per group) over `data/overture/segments.parquet` and `places.parquet`. Expected: the `segments.parquet` schema (7 columns), drivable roads by class (sum **36,294** — the number every later step must reproduce), top-15 place categories (27,096 places).
 ```
 ┌──────────────┬───────┐
 │    class     │   n   │
@@ -44,7 +46,7 @@ Expected: the `segments.parquet` schema (7 columns), drivable roads by class (su
 └──────────────┴───────┘
 ```
 
-## 1b · Candidate shelters
+## 1b · Candidate shelters — which places could be shelters, and do they sit in a hazard zone?
 
 ```bash
 duckdb -c ".read 00-data/02-shelters.sql"
@@ -61,25 +63,26 @@ the broader shelter-ish filter → the hand-verified `data/shelters.geojson` (10
 └───────────────────────────────┴───────────┴──────────────────┴──────────────────┘
 ```
 
-## 1c · Export
+## 1c · Export — write the eight GeoJSON files Phase 2 turns into tiles
 
-One export typed by hand (explicit column list, never `SELECT *`):
-```bash
-duckdb -c "LOAD spatial; SET geometry_always_xy = true; COPY (SELECT id, class, subclass, name, route_ref, geometry FROM 'data/overture/segments.parquet' WHERE class IN ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link')) TO 'out/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"
-```
-Then the rest (water, shelters, hazard, fire perimeters, buildings, land cover, places):
 ```bash
 duckdb -c ".read 00-data/03-export.sql"
 ls out/
 ```
+Eight `COPY (SELECT …) TO 'out/<name>.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')` statements, each with an explicit column list (never `SELECT *` — Overture's list-typed columns would break the GeoJSON writer). Prints nothing. Expected from `ls out/`:
 ```
 buildings_auburn.geojson  fire_perimeters.geojson  hazard.geojson  land_cover.geojson  places.geojson  roads.geojson  shelters.geojson  water.geojson
 ```
+The roads export, typed by hand, to see the shape of one `COPY`:
+```bash
+duckdb -c "LOAD spatial; SET geometry_always_xy = true; COPY (SELECT id, class, subclass, name, route_ref, geometry FROM 'data/overture/segments.parquet' WHERE class IN ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link')) TO 'out/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"
+```
 
-**Checkpoint**
+**Checkpoint** — read one exported file back and count it
 ```bash
 duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"      # → 36294
 ```
+`LOAD spatial` turns on the geo extension; `ST_Read` opens a GeoJSON file as a table. Same 36,294 as 1a: nothing was lost on the way out.
 
 Behind? `cp data/prebuilt/out/* out/` (PowerShell: `Copy-Item data/prebuilt/out/* out/`).
 

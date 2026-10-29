@@ -1,5 +1,7 @@
 # Setup — Phase 0: pick one way to run
 
+> Part of **Phase 0** in the [main README](../README.md#phase-0--setup--pick-one-way-to-run), which has the short version of each option. This page adds the install commands per OS, what each tier can and cannot do, and the PowerShell equivalents. `check_setup.py` calls the options tiers 1–3.
+
 ```mermaid
 flowchart LR
   classDef q    fill:#E6F0FF,stroke:#0678FF,color:#161D26
@@ -39,9 +41,9 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 ## Tier 1 — Codespaces (nothing to install)
 
 1. Use a **personal** GitHub account (employer‑managed accounts often block Codespaces).
-2. Repo page → **Code → Codespaces → Create codespace on main**. First start takes a few minutes; `postCreateCommand` fetches the data bundle and runs `check_setup.py`.
+2. Repo page → **Code → Codespaces → Create codespace on main**. The first start takes 2–3 minutes: GitHub pulls the same three containers as Tier 2, downloads the data bundle and runs `check_setup.py` for you — you type nothing until the terminal prompt appears.
 3. Open the map from the **Ports tab → hover the row for port 8080 ("Workshop (Caddy)") → click the globe icon**. Never type `localhost:8080` into your own browser, and **never forward port 5000** (OSRM is only reached through Caddy at `/osrm/`).
-4. Terminal is Linux bash; all workshop commands work as written.
+4. The terminal is a Linux bash **inside the tool container**: every workshop command works as written, `$WEB_URL` and `$OSRM_URL` are preset. The one thing it cannot do is run Docker, so `scripts/build-osrm.sh` (Phase 2b, optional) only prints what it would do — the graph is already running.
 
 ## Tier 2 — Local containers
 
@@ -88,7 +90,7 @@ duckdb -c ".read setup/hello-geo.sql"
 
 - The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the working directory): every command in the module READMEs runs unchanged; what you write to `out/` is served at <http://localhost:8080/> on your laptop.
 - `curl` inside the container: `$OSRM_URL` (= `http://caddy:8080/osrm`). The browser uses `/osrm` on :8080 automatically.
-- No Docker inside the tool container → `scripts/build-osrm.sh` (your own town only) runs on the laptop.
+- No Docker inside the tool container → `scripts/build-osrm.sh` (Phase 2b optional / your own town) runs in a **laptop terminal** in the clone folder, not in this shell.
 - Prefer native tools? Install as in Tier 3; `osrm` + `caddy` from `docker compose up -d` are all you need from Docker.
 
 ## Tier 3 — Native, no containers (no routing)

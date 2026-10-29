@@ -16,14 +16,14 @@ Image paths in decks are `../assets/img/<file>`; the files do not exist yet (see
 
 ## Decks
 
-| File | Slides | Block |
+| File | Slides | Phase |
 |---|---|---|
-| `00-overview.md` | door + S1–S12 (13 pages) | Phase 0 (setup & welcome) + Phase 0 (problem & plan) |
-| `01-data.md` | S13–S19 | Phase 1 (other agent) |
-| `02-tiles.md` | S20–S26 | Phase 2 → 3 (other agent) |
-| `03-routing.md` | S27–S31 | Phase 3c (other agent) |
-| `04-adapt.md` | S32–S37 | Phase 4 (other agent) |
-| `09-close.md` | S38–S41 | Phase 4 close |
+| `00-overview.md` | door + S1–S12 (13 pages) | Phase 0 — setup, welcome, the problem and the plan |
+| `02-data.md` | S13–S19 | Phase 1 — data prep |
+| `03-tiles.md` | S20–S26 | Phase 2 → 3 — tiles, routing graph, the map |
+| `04-routing.md` | S27–S31 | Phase 3c — routing |
+| `05-adapt.md` | S32–S37 | Phase 4 — adapt |
+| `09-close.md` | S38–S41 | close |
 
 Other files: `notes/cue-sheet.md` (instructor), `IMAGE-CREDITS.md`.
 

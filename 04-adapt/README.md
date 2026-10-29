@@ -1,5 +1,7 @@
 # 04-adapt — Phase 4: Adapt the pipeline to your own community
 
+> Part of **Phase 4** in the [main README](../README.md#phase-4--adapt-the-pipeline-to-your-community--04-adapt). Same eight steps; this page adds the expected output, the hazard-swap table and what changes at scale.
+
 Every script reads one file, [`versions.env`](../versions.env). Change the bounding box, re-run the same pipeline, get the same map for a different place.
 Run everything from the **repo root**.
 
@@ -16,10 +18,10 @@ flowchart LR
   PL["1 · Plan<br/>scripts/make-data.sh --plan<br/>prints what will run · downloads nothing"]:::tool
   RUN["2 · Fetch<br/>scripts/make-data.sh<br/>Overture · hazard · OSM clip · exports"]:::tool
   SH["3 · Your shelters<br/>data/shelters.geojson"]:::step
-  P["4 · Same pipeline<br/>03-export.sql → 01-tiles/build.sh<br/>→ build-osrm.sh → make-coverage.py"]:::tool
-  CK(["5 · CHECKSUMS.sha256<br/>verify what you pulled or built"]):::chk
-  PUB(["6 · Publish<br/>Pages · S3 · USB stick — static files"]):::out
-  SW["Swap the hazard<br/>FEMA NFHL · USGS · county polygons<br/>same SQL, new source"]:::bail
+  P["6 · Same pipeline<br/>03-export.sql → 01-tiles/build.sh<br/>→ build-osrm.sh → make-coverage.py<br/>7 · re-centre the pages"]:::tool
+  CK(["8 · CHECKSUMS.sha256<br/>verify what you pulled or built"]):::chk
+  PUB(["8 · Publish<br/>Pages · S3 · USB stick — static files"]):::out
+  SW["5 · Swap the hazard<br/>FEMA NFHL · USGS · county polygons<br/>same SQL, new source"]:::bail
 
   V --> PL --> RUN --> SH --> P --> CK --> PUB
   SW -.-> RUN
@@ -39,15 +41,16 @@ flowchart LR
    scripts/make-data.sh                     # overture · hazard · osm · exports   (one stage: scripts/make-data.sh overture)
    ```
 4. **Shelters** — replace `data/shelters.geojson` (`id, name, status, type, town, source`); everything is `candidate` until a primary source confirms it. Set `AUBURN_*` to the town whose buildings you want in 3D.
-5. **Rebuild the artifacts**
+5. **Hazard outside California** — swap the source, keep the SQL and the style → [Swap the hazard](#swap-the-hazard) below.
+6. **Rebuild the artifacts**
    ```bash
    duckdb -c ".read 00-data/03-export.sql"            # out/*.geojson
    01-tiles/build.sh                                  # out/evac.pmtiles
-   scripts/build-osrm.sh                              # data/osrm/  — on the laptop (needs Docker/Finch); then: docker compose restart osrm
+   scripts/build-osrm.sh                              # data/osrm/  — option B laptop terminal (needs Docker/Finch); then: docker compose restart osrm. Not possible in Codespaces
    scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson   (laptop: --osrm http://localhost:8080/osrm)
    ```
-6. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/`, the default pin (`START`) in `03-routing/route.js`.
-7. **Verify and publish** — `sha256sum -c data/CHECKSUMS.sha256`; regenerate your own list with `scripts/make-bundle.sh`; push `out/evac.pmtiles`, `data/coverage/`, `02-web/`, `demo/` to any static host that answers Range requests. Keep the attribution line and the disclaimer on the map.
+7. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/app.js`, the default pin (`START`) in `03-routing/route.js`.
+8. **Verify and publish** — `sha256sum -c data/CHECKSUMS.sha256`; regenerate your own list with `scripts/make-bundle.sh`; push `out/evac.pmtiles`, `data/coverage/`, `02-web/`, `demo/` to any static host that answers Range requests. Keep the attribution line and the disclaimer on the map.
 
 ## Swap the hazard
 
@@ -60,7 +63,7 @@ The hazard layer is one polygon file with a class column. Replace it, keep the s
 | **Evacuation zones, live** — Cal OES aggregation | `https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0` | only publishes zones with an active order/warning; empty most days |
 | **Wildfire, static** — CAL FIRE FHSZ (what we use) | `CALFIRE_FHSZ_URL` in `versions.env` | `scripts/make-data.sh hazard` |
 
-> ⚠️ **Going live raises the stakes on every S10 caveat.** A static hazard layer that is out of date is embarrassing; a live
+> ⚠️ **Going live raises the stakes on every caveat in the disclaimer.** A static hazard layer that is out of date is embarrassing; a live
 > perimeter that is out of date, or a "safe" route through a road nobody has mapped as closed, can hurt someone. Before you
 > wire a live feed into anything people will use: show the feed's own timestamp on the map, say what the data does *not*
 > contain (shelter status, closures, capacity, drive time ≠ evacuation time), and send people to the official sources.

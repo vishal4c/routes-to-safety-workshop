@@ -49,7 +49,7 @@ scripts/make-data.sh hazard                 # CAL FIRE REST → data/hazard/    
 scripts/make-data.sh osm                    # Geofabrik norcal (~1 GB) → osmium extract → data/osm/*.osm.pbf
 scripts/make-data.sh exports                # data/prebuilt/out/*.geojson       (same SQL as Phase 1c)
 scripts/build-osrm.sh                       # data/osm/study-area.osm.pbf → data/osrm/study-area.osrm.*  (needs docker/finch/podman)
-scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   # Phase 3c Stretch B, tiny graph
+scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm   # Phase 2b (optional), tiny graph — laptop terminal with Docker
 scripts/make-coverage.py                    # needs OSRM at http://localhost:5000 → data/coverage/*.geojson
 01-tiles/build.sh                           # out/*.geojson → out/evac.pmtiles   (--prebuilt uses data/prebuilt/out)
 cp out/evac.pmtiles data/prebuilt/evac.pmtiles

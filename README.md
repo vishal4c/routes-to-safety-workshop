@@ -37,8 +37,10 @@ flowchart LR
 | 0 | Setup | pick Codespaces / Docker / native · checkpoint line | [`setup/`](setup/) |
 | 1 | Data prep | 1a explore · 1b shelters × hazard · 1c export | [`00-data/`](00-data/) |
 | 2 | Map artifacts | 2a tiles · 2b routing graph · 2c reach rings | [`01-tiles/`](01-tiles/) · [`scripts/`](scripts/) |
-| 3 | Application | 3a style · 3b three views · 3c routing · 3d finished app | [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/) |
+| 3 | Application | 3a style · 3b shelter reach · 3c routing · 3d finished app | [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/) |
 | 4 | Adapt | one bbox → rerun | [`04-adapt/`](04-adapt/) |
+
+**Folders are numbered in the order you open them, not by phase:** `00-data` (Phase 1) → `01-tiles` (2a) → `02-web` (3a–3b) → `03-routing` (3c) → `04-adapt` (4). The routing graph (2b) and the reach rings (2c) are made by two scripts in `scripts/`, so they have no folder of their own. `02-web` comes before `03-routing` because routing is plugged *into* that web page, so the page is built first; the graph it calls was already built in 2b. Each folder has its own README with **the same steps and commands as this page** plus reference detail — what each file is, how it works, what to do when something is red. Follow this page; open a folder README when you want to know why.
 
 Always run commands from the **repo root**.
 
@@ -142,21 +144,39 @@ flowchart LR
   D --> S1 --> S2 --> S3 --> O
 ```
 
-```bash
-duckdb -c ".read 00-data/01-explore.sql"      # schema · drivable roads by class (sum 36,294) · top place categories
-duckdb -c ".read 00-data/02-shelters.sql"     # 10 candidate shelters, each tagged with its FHSZ class
-duckdb -c ".read 00-data/03-export.sql"       # prints nothing; `ls out/` → 8 GeoJSON files
-duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"      # → 36294
-```
+The inputs are already in `data/` (Overture Maps roads, places, water, buildings, town names as Parquet; CAL FIRE hazard zones and fire perimeters). DuckDB is a SQL engine that reads those files in place — no database to set up. `duckdb -c "…"` runs one command and exits; `.read file.sql` runs every statement in that file, so each step below is one SQL file you can open and read.
 
-Expected from 1b — three of the ten candidate shelters sit inside a *Very High* zone:
+**1a · Look around** — what is in the data before touching it
+```bash
+duckdb -c ".read 00-data/01-explore.sql"
+```
+Three plain `SELECT`s over `data/overture/segments.parquet` (roads) and `places.parquet`: which columns the roads table has, how many drivable roads there are per class, and the 15 most common place categories. You see three tables; the roads total **36,294** is the number every later step must reproduce.
+
+**1b · Which places could be shelters, and do they sit in a hazard zone?**
+```bash
+duckdb -c ".read 00-data/02-shelters.sql"
+```
+First filters Overture places by category and confidence (19 "community centers" — one is a car dealer: category data is a hint, not a fact), then takes the hand-checked list `data/shelters.geojson` (10 shelters, 1 verified) and intersects it with the CAL FIRE hazard polygons. The last table is the point of the exercise — three of the ten shelters are inside a *Very High* zone:
 ```
 │ Colfax High School            │ candidate │ school           │ Very High        │
 │ Georgetown School             │ candidate │ school           │ Very High        │
 │ Sierra Vista Community Center │ candidate │ community_center │ Very High        │
 ```
 
-Behind? `cp data/prebuilt/out/* out/`. Optional extra SQL: [`00-data/exercises.md`](00-data/exercises.md).
+**1c · Export** — write the eight GeoJSON files that Phase 2 turns into tiles
+```bash
+duckdb -c ".read 00-data/03-export.sql"
+ls out/
+```
+Eight `COPY (SELECT …) TO 'out/<name>.geojson'` statements — roads, water, shelters, hazard, fire perimeters, Auburn buildings, land cover, places — each naming exactly the columns the map needs. It prints nothing; `ls out/` shows the 8 files.
+
+**Checkpoint** — read one exported file back and count it
+```bash
+duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"      # → 36294
+```
+`LOAD spatial` turns on DuckDB's geo extension, `ST_Read` opens a GeoJSON file as a table. Same 36,294 as 1a: nothing was lost on the way out.
+
+Behind? `cp data/prebuilt/out/* out/` gives you the finished exports. Optional extra SQL: [`00-data/exercises.md`](00-data/exercises.md).
 
 ---
 
@@ -192,10 +212,11 @@ No GeoJSON yet? `01-tiles/build.sh --prebuilt`.
 ```bash
 curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # → {"code":"Ok", …}  the graph answers
 ```
-Optional — watch a graph being built on a tiny clip. **Laptop terminal**, in the clone folder (needs Docker/Finch; the tool container has no Docker inside it):
+Optional — watch a graph being built on a tiny clip (Colfax). **Option B only, laptop terminal**, in the clone folder: the script runs the OSRM container, and there is no Docker inside the tool container or inside a codespace. Codespaces and option C: skip it — the graph above is the finished result; running the script there only prints the three commands it would have run.
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm     # about 1 min → out/osrm/colfax.osrm.*
 ```
+What it does: `osrm-extract` reads the roads out of the `.osm.pbf` with the car profile (speeds per road class) → `osrm-partition` and `osrm-customize` precompute the shortcuts that make `/table` and `/route` answer in milliseconds → `colfax.osrm.*`, the files `osrm-routed` serves.
 
 **2c · Reach bands** — drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter:
 ```bash
@@ -304,7 +325,7 @@ scripts/make-data.sh                             # 3. fetch: overture · hazard 
 #    5. hazard outside California: swap the source, keep the SQL + style → 04-adapt/README.md#swap-the-hazard
 duckdb -c ".read 00-data/03-export.sql"          # 6. rebuild artifacts
 01-tiles/build.sh
-scripts/build-osrm.sh                            #    laptop terminal (Docker/Finch), then: docker compose restart osrm
+scripts/build-osrm.sh                            #    option B, laptop terminal (needs Docker); then: docker compose restart osrm. Not possible in Codespaces
 scripts/make-coverage.py --osrm http://osrm:5000
 #    7. center/zoom in 02-web/index.html and demo/app.js, default pin in 03-routing/route.js
 sha256sum -c data/CHECKSUMS.sha256               # 8. verify, then publish out/evac.pmtiles + data/coverage/ + 02-web/ + demo/ to any static host
