@@ -48,5 +48,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 # This image is the "workshop" service only (tools, no data). Codespaces pulls it through
-# docker-compose.yml (no build at codespace creation); the ghcr package must stay public.
+# docker-compose.yml (no image build at codespace creation — only the small docker-outside-of-docker
+# feature layer is added, a few minutes); the ghcr package must stay public.
 # Optional: enable a Codespaces prebuild (repo Settings → Codespaces → Prebuilds) on main.

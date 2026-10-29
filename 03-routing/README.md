@@ -1,9 +1,9 @@
 # 03-routing — Phase 3c: Application — nearest shelter by road (OSRM)
 
-> Part of **Phase 3** (step 3c) in the [main README](../README.md#3c--routing--in-any-view-edit--routing--add). There, routing is one click: **Edit → Routing → Add** loads the finished [`route.js`](route.js). This page is the optional long way — the same module written by you in three steps — plus the OSRM reference.
+> Part of **Phase 3** (step 3c) in the [main README](../README.md#3c--routing--in-fire-evac-map-or-shelter-reach-edit--routing--add). There, routing is one click: **Edit → Routing → Add** loads the finished [`route.js`](route.js). This page is the optional long way — the same module written by you in three steps — plus the OSRM reference.
 
 OSRM turns the road graph (Phase 2b artifact: `data/osrm/study-area.osrm.*`, 99 MB, served by the `osrm` container, proxied by Caddy at `/osrm`) into three HTTP calls.
-One JavaScript module, [`route.js`](route.js), does the rest — in every view of the map.
+One JavaScript module, [`route.js`](route.js), does the rest. Add it from the **Edit** panel in the **Fire evac map** or **Shelter reach** view (Base map has no Edit button); once loaded, routing works in every view.
 
 ```mermaid
 flowchart LR
@@ -71,7 +71,7 @@ A real closure is not a URL parameter — this shows the calculation, not detect
 
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm        # tiny clip, about a minute
-scripts/build-osrm.sh                                          # the full study area → data/osrm/  (then: docker compose restart osrm)
+scripts/build-osrm.sh                                          # the full study area → data/osrm/  (then: docker compose restart osrm · Codespaces: docker restart $(docker ps -qf name=osrm))
 ```
 Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian`. It needs Docker or Finch where it runs: a laptop terminal (option B) or the Codespaces terminal (which drives its host's Docker). Inside `docker compose exec workshop bash` on a laptop there is no Docker: the script prints the three commands it would run and exits — the study-area graph from the bundle is already running there.
 
@@ -81,7 +81,7 @@ Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `
 |---|---|
 | `steps/step1-route.js` | step 1 — one hard-coded route |
 | `steps/step2-scaffold.js` | step 2 — you write 6 lines |
-| `steps/step3-solution.js` = `route.js` | steps 2 + 3 finished (I-80 checkbox) |
+| `steps/step3-solution.js` — same code as `route.js` | steps 2 + 3 finished (I-80 checkbox) |
 | `grid.sql` · `exercises.md` | stretch: 400 grid points → one `/table` POST → reach colouring |
 
 Each module exports `start(map, maplibregl)`; `02-web/index.html` has the commented `import(...)` lines.

@@ -40,7 +40,7 @@ flowchart LR
 | 3 | Application | 3a style · 3b shelter reach · 3c routing · 3d finished app | [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/) |
 | 4 | Adapt | one bbox → rerun | [`04-adapt/`](04-adapt/) |
 
-**Folders are numbered in the order you open them, not by phase:** `00-data` (Phase 1) → `01-tiles` (2a) → `02-web` (3a–3b) → `03-routing` (3c) → `04-adapt` (4). The routing graph (2b) and the reach rings (2c) are made by two scripts in `scripts/`, so they have no folder of their own. `02-web` comes before `03-routing` because routing is plugged *into* that web page, so the page is built first; the graph it calls was already built in 2b. Each folder has its own README with **the same steps and commands as this page** plus reference detail — what each file is, how it works, what to do when something is red. Follow this page; open a folder README when you want to know why.
+**Folders are numbered in the order you open them, not by phase:** `00-data` (Phase 1) → `01-tiles` (2a) → `02-web` (3a–3b) → `03-routing` (3c) → `04-adapt` (4). The routing graph (2b) and the reach rings (2c) are made by two scripts in `scripts/`, so they have no folder of their own. `02-web` comes before `03-routing` because routing is plugged *into* that web page, so the page is built first; the graph it calls was already built in 2b. Each folder has its own README with **the same steps as this page** plus reference detail — what each file is, how it works, what to do when something is red. Follow this page; open a folder README when you want to know why.
 
 Always run commands from the **repo root**.
 
@@ -66,7 +66,7 @@ flowchart LR
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/vishal4c/routes-to-safety-workshop?quickstart=1)
 
 Or: repository page → green **Code** button → **Codespaces** → **Create codespace on main** (personal GitHub account, free tier is enough).
-Three containers start (tool shell, OSRM, Caddy — the same ones as option B, pulled, not built) and the 150 MB data bundle downloads; after 2–3 minutes you land in a terminal with `setup/check_setup.py` already run.
+Three containers start (tool shell, OSRM, Caddy — the same images as option B, pulled; Codespaces adds one small layer for its Docker helper, a few minutes) and the 150 MB data bundle downloads; after 3–5 minutes you land in a terminal with `setup/check_setup.py` already run.
 Open the map: **Ports** tab → port **8080** → globe icon. Never forward port 5000; routing is `/osrm` on port 8080.
 
 ### B — Docker image on your laptop
@@ -94,7 +94,7 @@ python3 setup/check_setup.py
 | Stop / restart | `docker compose down` · `docker compose up -d` |
 | Offline room | `BUNDLE_ZIP=/path/data-bundle.zip bash scripts/get-bundle.sh` |
 
-The tool container cannot *build* an OSRM graph (no Docker inside); the graph ships in the bundle, and for your own town you run `scripts/build-osrm.sh` in a laptop terminal (Phase 2b optional, Phase 4).
+On a laptop the tool container cannot *build* an OSRM graph (no Docker inside); the graph ships in the bundle, and for your own town you run `scripts/build-osrm.sh` in a laptop terminal (Phase 2b optional, Phase 4).
 
 ### C — native tools
 
@@ -124,6 +124,8 @@ Same line on every screen → ready. Still red after the fixes it prints → swi
 ---
 
 ## Phase 1 — Data prep · [`00-data/`](00-data/)
+
+**Where to type:** the tool container shell (Codespaces terminal, or `docker compose exec workshop bash`); option C: your laptop terminal.
 
 ```mermaid
 flowchart LR
@@ -188,6 +190,8 @@ How the files were made (DuckDB against the public Overture release, clipped to 
 
 ## Phase 2 — Map artifacts · [`01-tiles/`](01-tiles/) · [`scripts/`](scripts/)
 
+**Where to type:** the tool container shell (Codespaces terminal, or `docker compose exec workshop bash`); option C: your laptop terminal.
+
 ```mermaid
 flowchart LR
   classDef file fill:#E6F0FF,stroke:#0678FF,color:#161D26
@@ -233,6 +237,8 @@ scripts/make-coverage.py --osrm http://osrm:5000      # about 4 s · overwrites 
 
 ## Phase 3 — Application · [`02-web/`](02-web/) · [`03-routing/`](03-routing/) · [`demo/`](demo/)
 
+**Where to type:** the tool container shell (Codespaces terminal, or `docker compose exec workshop bash`); option C: your laptop terminal.
+
 ```mermaid
 flowchart LR
   classDef file fill:#E6F0FF,stroke:#0678FF,color:#161D26
@@ -276,13 +282,13 @@ Want to change a colour or a width? Open that row's JSON file (`02-web/steps/…
 
 ### 3b · Shelter reach — click **Shelter reach** (top-left), then **Edit**
 
-**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0, 1 and 2 are already green if you did 3a; if not, Add them first.)
+**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0, 1 and 2 are already green if you did 3a; if not, Add them first. Row 2 is relabelled here — "Water, shelters, town labels" — because hazard and land cover stay hidden in this view.)
 
 <img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
 
 **Base map** (the third button) needs nothing added: OpenStreetMap under the shelters, internet required.
 
-### 3c · Routing — in any view, **Edit** → **Routing → Add**
+### 3c · Routing — in **Fire evac map** or **Shelter reach**, **Edit** → **Routing → Add**
 
 **Routing → Add.** A pin drops on Foresthill and a pink line is drawn to the nearest shelter **by road**: Placer High School, ~36 min, 31.8 km. Nothing to write.
 
@@ -324,15 +330,15 @@ flowchart LR
 ```
 
 ```bash
-# 1. box around your community (bboxfinder.com, keep it under ~0.5 sq. degrees) → the four BBOX_* lines in versions.env
+# 1. box around your community (bboxfinder.com, keep it under ~0.5 sq. degrees) → the four BBOX_* lines in versions.env, plus OSM_EXTRACT_URL (matching Geofabrik region)
 scripts/make-data.sh --plan                      # 2. prints every query, file and size estimate — downloads nothing
 scripts/make-data.sh                             # 3. fetch: overture · hazard · osm · exports  (Geofabrik extract is the big one)
-#    4. replace data/shelters.geojson (id, name, status, type, town, source) — mark everything candidate until confirmed
+#    4. replace data/shelters.geojson (id, name, status, type, town, source) — mark everything candidate until confirmed; AUBURN_* = the town to show in 3D
 #    5. hazard outside California: swap the source, keep the SQL + style → 04-adapt/README.md#swap-the-hazard
 duckdb -c ".read 00-data/03-export.sql"          # 6. rebuild artifacts
 01-tiles/build.sh
-scripts/build-osrm.sh                            #    option B: laptop terminal (needs Docker) · Codespaces: its terminal; then: docker compose restart osrm
-scripts/make-coverage.py --osrm http://osrm:5000
+scripts/build-osrm.sh                            #    option B: laptop terminal (needs Docker) · Codespaces: its terminal; then: docker compose restart osrm  (Codespaces: docker restart $(docker ps -qf name=osrm))
+scripts/make-coverage.py --osrm http://osrm:5000     #    option C / laptop terminal: --osrm http://localhost:8080/osrm
 #    7. center/zoom in 02-web/index.html and demo/app.js, default pin in 03-routing/route.js
 sha256sum -c data/CHECKSUMS.sha256               # 8. verify, then publish out/evac.pmtiles + data/coverage/ + 02-web/ + demo/ to any static host
 ```

@@ -15,9 +15,9 @@ flowchart LR
   classDef bail fill:#FFF4E5,stroke:#FF6101,color:#161D26,stroke-dasharray:5 4
 
   V[/"versions.env<br/>BBOX_W S E N · every version pinned"/]:::file
-  PL["1 · Plan<br/>scripts/make-data.sh --plan<br/>prints what will run · downloads nothing"]:::tool
-  RUN["2 · Fetch<br/>scripts/make-data.sh<br/>Overture · hazard · OSM clip · exports"]:::tool
-  SH["3 · Your shelters<br/>data/shelters.geojson"]:::step
+  PL["2 · Plan<br/>scripts/make-data.sh --plan<br/>prints what will run · downloads nothing"]:::tool
+  RUN["3 · Fetch<br/>scripts/make-data.sh<br/>Overture · hazard · OSM clip · exports"]:::tool
+  SH["4 · Your shelters<br/>data/shelters.geojson"]:::step
   P["6 · Same pipeline<br/>03-export.sql → 01-tiles/build.sh<br/>→ build-osrm.sh → make-coverage.py<br/>7 · re-centre the pages"]:::tool
   CK(["8 · CHECKSUMS.sha256<br/>verify what you pulled or built"]):::chk
   PUB(["8 · Publish<br/>Pages · S3 · USB stick — static files"]):::out
@@ -46,7 +46,7 @@ flowchart LR
    ```bash
    duckdb -c ".read 00-data/03-export.sql"            # out/*.geojson
    01-tiles/build.sh                                  # out/evac.pmtiles
-   scripts/build-osrm.sh                              # data/osrm/  — option B: laptop terminal (needs Docker/Finch) · Codespaces: its terminal; then: docker compose restart osrm
+   scripts/build-osrm.sh                              # data/osrm/  — option B: laptop terminal (needs Docker/Finch) · Codespaces: its terminal; then: docker compose restart osrm  (Codespaces: docker restart $(docker ps -qf name=osrm))
    scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson   (laptop: --osrm http://localhost:8080/osrm)
    ```
 7. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/app.js`, the default pin (`START`) in `03-routing/route.js`. Your rebuilt files land on the default paths, so the Edit panel in `02-web/` needs no change; files elsewhere: type their path into the row's text box.

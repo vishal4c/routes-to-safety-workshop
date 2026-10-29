@@ -12,8 +12,9 @@
   #map { position: absolute; inset: 0 0 44px 0; }
   #footer { position: absolute; bottom: 0; left: 0; right: 0; height: 44px; box-sizing: border-box;
             padding: 4px 10px; background: #fff8e1; border-top: 1px solid #d4b24c; font-size: 12px; overflow: auto; }
-  #notice { position: absolute; top: 8px; right: 100px; z-index: 7; max-width: 46%;
-            background: #fff3cd; border: 1px solid #d4b24c; border-radius: 4px; padding: 4px 10px; display: none; }
+  #notice { position: absolute; top: 44px; right: 50px; z-index: 7; max-width: 46%; cursor: pointer;
+            background: #fff3cd; border: 1px solid #d4b24c; border-radius: 4px; padding: 4px 24px 4px 10px; display: none; }
+  #notice::after { content: '×'; position: absolute; right: 8px; top: 2px; color: #7a5c00; }
   #legend { position: absolute; left: 8px; bottom: 54px; z-index: 5; background: #fffffff0; border-radius: 4px;
             padding: 6px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; max-width: 260px; }
   #legend b { display: block; margin-top: 4px; }
@@ -29,7 +30,7 @@
   #view-toggle button[aria-pressed="true"] { background: #263238; color: #fff; }
   #edit-btn { position: absolute; top: 10px; left: 352px; z-index: 6; font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid #0003; border-radius: 4px; background: #fff3cd; cursor: pointer; box-shadow: 0 1px 4px #0004; }
   #edit-btn[aria-expanded="true"] { background: #263238; color: #fff; }
-  #edit-panel { position: absolute; top: 40px; left: 50px; z-index: 6; width: 400px; background: #fffffff8; border-radius: 4px; padding: 8px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; display: none; }
+  #edit-panel { position: absolute; top: 40px; left: 50px; z-index: 6; width: 400px; max-height: calc(100% - 120px); overflow-y: auto; background: #fffffff8; border-radius: 4px; padding: 8px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; display: none; }
   #edit-panel b { display: block; margin-bottom: 4px; }
   #edit-panel .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 4px 0; border-top: 1px solid #0001; }
   #edit-panel .item input { grid-column: 1; width: 100%; box-sizing: border-box; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #333; background: #fafafa; border: 1px solid #0002; border-radius: 3px; padding: 2px 5px; }
@@ -39,14 +40,14 @@
   #edit-panel .item button { grid-column: 2; grid-row: 1 / span 2; font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid #0003; border-radius: 4px; background: #fff; cursor: pointer; min-width: 64px; }
   #edit-panel .item button.done { background: #e6f5ea; border-color: #2e8b57; }
   #edit-panel small { color: #555; }
-  #reach-status { position: absolute; top: 44px; right: 50px; z-index: 6; font-size: 12px; background: #fffffff0; border-radius: 4px; padding: 2px 8px; display: none; box-shadow: 0 1px 4px #0004; }
+  #reach-status { position: absolute; top: 80px; right: 50px; z-index: 6; font-size: 12px; background: #fffffff0; border-radius: 4px; padding: 2px 8px; display: none; box-shadow: 0 1px 4px #0004; }
   #routing-panel { position: absolute; top: 8px; right: 50px; z-index: 5; background: #fffffff0; border-radius: 4px; padding: 6px 10px; font-size: 12px; display: none; }
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div id="notice"></div>
-<div id="view-toggle" role="radiogroup" aria-label="Map view">
+<div id="notice" role="status" aria-live="polite" title="click to dismiss"></div>
+<div id="view-toggle" role="group" aria-label="Map view">
   <button data-view="evac"   type="button" aria-pressed="true"  title="Our tiles: fire hazard severity, past fire perimeters, land cover, water, roads, shelters">Fire evac map</button>
   <button data-view="normal" type="button" aria-pressed="false" title="Standard OpenStreetMap basemap (needs internet) with shelters and the route on top">Base map</button>
   <button data-view="reach"  type="button" aria-pressed="false" title="Drive-time isochrones on a plain base: the area each shelter can be reached from within 10 / 20 / 30 minutes by road (OSRM, no traffic). Click a shelter to see only its reach.">Shelter reach</button>
@@ -55,7 +56,7 @@
 <div id="edit-panel" role="region" aria-label="Plug in data">
   <b id="edit-title"></b>
   <div id="edit-items"></div>
-  <small>Each button loads the file named in its box. The boxes are prefilled with the workshop files (paths from the repo root); type another path or a URL to plug in your own. Changed a colour in a file? Click Reload.</small>
+  <small>Each button loads the file named in its box. The boxes are prefilled with the workshop files (paths from the repo root); type another path (a leading / means the server root) or a full URL to plug in your own. Changed a colour in a file? Click Reload.</small>
 </div>
 <div id="reach-status"></div>
 
@@ -97,6 +98,9 @@ function showNotice(text) {
   el.textContent = text;
   el.style.display = 'block';
 }
+function hideNotice() { document.getElementById('notice').style.display = 'none'; }
+document.getElementById('notice').onclick = hideNotice;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // The tiles — the file you built in Phase 2a. Plugged in with the first row of the Edit panel.
 // We ask the server for 2 bytes with a Range header: a correct server answers 206 (that is what PMTiles needs).
@@ -110,9 +114,13 @@ const PATHS = {
   reach: 'data/coverage/coverage_bands.geojson',
   routing: '03-routing/route.js'
 };
-const PREBUILT_TILES = 'data/prebuilt/evac.pmtiles';   // used when the default tiles path is empty (Phase 2a not done yet)
+const PREBUILT_TILES = 'data/prebuilt/evac.pmtiles';   // used when the box still says out/evac.pmtiles but that file is missing (Phase 2a not done yet)
 // repo-root path or URL -> absolute URL. This page lives in 02-web/, so the repo root is one level up.
-const fileUrl = (p) => (/^(https?:)?\/\//.test(p) || p.startsWith('/')) ? new URL(p, location.href).href : new URL('../' + p, location.href).href;
+// A full URL is used as is; a path starting with / is from the server root (= repo root under Caddy / npx serve).
+function fileUrl(p) {
+  if (!p) throw new Error('the box is empty — type a path (from the repo root) or a URL');
+  return (/^(https?:)?\/\//.test(p) || p.startsWith('/')) ? new URL(p, location.href).href : new URL('../' + p, location.href).href;
+}
 let tilesInfo = '';     // "1607 tiles · z4–14 · 8 layers: …" (shown under row 0)
 
 async function loadTiles() {
@@ -129,23 +137,26 @@ async function loadTiles() {
   }
   if (!chosen) throw new Error(candidates.length > 1 ? 'not found, nor the prebuilt copy — run 01-tiles/build.sh, or scripts/get-bundle.sh' : 'not found — check the path');
   if (chosen !== want) showNotice('Using the prebuilt tiles (' + chosen + ') — ' + want + ' not found. Build yours with 01-tiles/build.sh, then Reload this row.');
+  // Read the file header first (a corrupt file fails here, before anything on the map is touched).
+  const pm = new pmtiles.PMTiles(fileUrl(chosen));
+  const h = await pm.getHeader(); const meta = await pm.getMetadata();
+  const names = (meta.vector_layers || []).map((l) => l.id);
+  if (!names.length) throw new Error('no vector layers in this file');
   // (Re)plug the source: drop every layer that draws from it, swap the source, put the layers back.
+  const firstTime = !loaded.has('tiles');
   const drawn = map.getStyle().layers.filter((l) => l.source === 'evac').map((l) => l.id);
   for (const id of drawn) map.removeLayer(id);
   if (map.getSource('evac')) map.removeSource('evac');
   map.addSource('evac', { type: 'vector', url: 'pmtiles://' + fileUrl(chosen), minzoom: 4, maxzoom: 14 });
   loaded.add('tiles');
-  // Something to see: read the file header, draw a dashed box around the area the tiles cover, list its layers.
-  const pm = new pmtiles.PMTiles(fileUrl(chosen));
-  const h = await pm.getHeader(); const meta = await pm.getMetadata();
-  const names = (meta.vector_layers || []).map((l) => l.id);
+  // Something to see: a dashed box around the area the tiles cover, and the list of layers under the row.
   tilesInfo = (chosen !== want ? 'loaded ' + chosen + ' instead · ' : '') + h.numAddressedTiles + ' tiles · zoom ' + h.minZoom + '–' + h.maxZoom + ' · ' + names.length + ' layers: ' + names.join(', ');
   const box = [[h.minLon, h.minLat], [h.maxLon, h.minLat], [h.maxLon, h.maxLat], [h.minLon, h.maxLat], [h.minLon, h.minLat]];
   const extent = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: box } };
   if (map.getSource('tile-extent')) map.getSource('tile-extent').setData(extent); else map.addSource('tile-extent', { type: 'geojson', data: extent });
   insertOrdered({ id: 'tile-extent', type: 'line', source: 'tile-extent', paint: { 'line-color': '#444', 'line-width': 1.5, 'line-dasharray': [4, 3] } });
-  map.fitBounds([[h.minLon, h.minLat], [h.maxLon, h.maxLat]], { padding: 40, duration: 800 });
-  for (const s of STEPS) if (loaded.has('step' + s.n)) await loadStep(s);   // re-add what was already plugged in
+  if (firstTime) map.fitBounds([[h.minLon, h.minLat], [h.maxLon, h.maxLat]], { padding: 40, duration: 800 });
+  for (const s of STEPS) if (loaded.has(s.key)) await loadStep(s).catch((e) => showNotice(PATHS[s.key] + ': ' + e.message));   // re-add what was already plugged in
   applyView();
   if (chosen === want) showNotice('Tiles plugged in. The dashed box is the area they cover — nothing is drawn until you Add rows 1–4.');
   console.info('tiles: ' + chosen + ' — ' + tilesInfo);
@@ -159,7 +170,7 @@ const ORDER = ['basemap-osm', 'tile-extent', 'water', 'land_cover', 'hazard', 'f
 function insertOrdered(layer) {
   if (map.getLayer(layer.id)) map.removeLayer(layer.id);
   const rank = ORDER.indexOf(layer.id);
-  const before = ORDER.slice(rank + 1).find((id) => map.getLayer(id));   // first existing layer that must stay above
+  const before = rank < 0 ? undefined : ORDER.slice(rank + 1).find((id) => map.getLayer(id));   // first existing layer that must stay above; an id not in ORDER goes on top
   map.addLayer(layer, before);
 }
 
@@ -184,7 +195,7 @@ async function loadStep(step) {
   const r = await fetch(fileUrl(path), { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status + ' — check the path');
   const layers = await r.json();          // a syntax error in the JSON shows up here with line/column
-  if (!Array.isArray(layers)) throw new Error('expected a JSON array of MapLibre layers');
+  if (!Array.isArray(layers) || layers.some((l) => !l || typeof l.id !== 'string' || !l.type)) throw new Error('expected a JSON array of MapLibre layers (each with an id and a type)');
   for (const layer of layers) insertOrdered(layer);
   loaded.add(step.key);
   applyView();
@@ -288,6 +299,8 @@ function editItems() {
   return [];
 }
 
+const inflight = new Set();   // rows whose load is running (button shows …, no second click)
+let focusKey = null;          // the row whose text box had focus before a re-render
 function renderEditPanel() {
   const items = editItems();
   editBtn.style.display = items.length ? 'block' : 'none';
@@ -302,15 +315,19 @@ function renderEditPanel() {
     input.type = 'text'; input.value = PATHS[it.key]; input.spellcheck = false; input.setAttribute('aria-label', 'file for ' + it.label);
     input.title = 'File this row loads: a path from the repo root, or a full URL. Edit it to plug in your own file, then click the button.';
     input.oninput = () => { PATHS[it.key] = input.value.trim(); };
+    input.onfocus = () => { focusKey = it.key; }; input.onblur = () => { if (focusKey === it.key) focusKey = null; };
     const b = document.createElement('button'); b.type = 'button'; b.textContent = done ? 'Reload' : 'Add'; b.className = done ? 'done' : '';
     b.style.gridRow = '1 / span ' + (done && it.info ? 3 : 2);
-    if (it.disabled && !done) { b.disabled = true; b.title = it.hint; row.style.opacity = 0.55; }
+    if (it.disabled && !done) { b.disabled = true; b.title = it.hint; row.style.opacity = 0.55; label.textContent += ' — ' + it.hint; }
     if (it.once && done) { b.disabled = true; b.textContent = 'Added'; input.disabled = true; b.title = 'A module runs once; reload the page to swap it'; }
+    if (inflight.has(it.key)) { b.disabled = true; b.textContent = '…'; input.disabled = true; }
     b.onclick = async () => {
-      b.disabled = true; b.textContent = '…';
+      if (inflight.has(it.key)) return;
+      inflight.add(it.key); hideNotice(); renderEditPanel();
       try { await it.run(); } catch (e) { showNotice(PATHS[it.key] + ': ' + e.message); console.error(e); }
-      renderEditPanel();
+      inflight.delete(it.key); renderEditPanel();
     };
+    if (focusKey === it.key) setTimeout(() => input.focus(), 0);
     input.onkeydown = (e) => { if (e.key === 'Enter' && !b.disabled) b.click(); };
     row.append(label, input);
     if (done && it.info) { const s = document.createElement('small'); s.textContent = '✓ ' + it.info; row.appendChild(s); }
@@ -320,7 +337,7 @@ function renderEditPanel() {
 
 // Shelter reach data: precomputed drive-time isochrones — for every shelter, the area it can be reached from within
 // 10 / 20 / 30 minutes by road (OSRM /table from H3 cell centroids, free-flow speeds, no closures).
-// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Phase 2c; 03-routing/exercises.md Stretch A shows the recipe).
+// Built by scripts/make-coverage.py -> data/coverage/coverage_bands.geojson (Phase 2c; the Stretch A card in 03-routing/exercises.md is the hand-made version of the same idea).
 const REACH_COLORS = ['match', ['get', 'band'], 10, '#a8ddb5', 20, '#74a9cf', 30, '#fcae91', '#fcae91'];
 const reachStatus = document.getElementById('reach-status');
 let reachShelter = null;          // null = all shelters, otherwise one shelter id
@@ -358,7 +375,7 @@ map.on('click', 'shelters', (e) => {
   if (view === 'reach') setReachShelter(p.id);
   new maplibregl.Popup()
     .setLngLat(e.features[0].geometry.coordinates)
-    .setHTML('<b>' + p.name + '</b><br>' + p.status + ' · ' + p.type + (view === 'reach' ? '<br><small>showing its 10 / 20 / 30-min reach</small>' : ''))
+    .setHTML('<b>' + esc(p.name) + '</b><br>' + esc(p.status) + ' · ' + esc(p.type) + (view === 'reach' ? '<br><small>showing its 10 / 20 / 30-min reach</small>' : ''))
     .addTo(map);
 });
 // Click anywhere else -> back to all shelters' bands.
@@ -374,10 +391,12 @@ map.on('mouseleave', 'shelters', () => { map.getCanvas().style.cursor = ''; });
 // To build it yourself instead, leave that button alone and uncomment ONE line here:
 //   step 1:  ../03-routing/steps/step1-route.js       one hard-coded /route call
 //   step 2:  ../03-routing/steps/step2-scaffold.js    you write 6 lines inside it (/table -> argmin -> /route)
+//   stuck:   ../03-routing/steps/step3-solution.js    the finished answer (same code as route.js)
 // ---------------------------------------------------------------------------
 map.on('load', async () => {
   // import('../03-routing/steps/step1-route.js').then((m) => m.start(map, maplibregl));
   // import('../03-routing/steps/step2-scaffold.js').then((m) => m.start(map, maplibregl));
+  // import('../03-routing/steps/step3-solution.js').then((m) => m.start(map, maplibregl));
 
   // ?steps=1,2,3,4&reach=1&routing=1 (or PRELOAD above) plugs data in without clicking — used by solution.html and demos
   const q = new URLSearchParams(location.search);

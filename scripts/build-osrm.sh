@@ -18,7 +18,7 @@ if ! CLI="$(detect_container_cli)"; then
 build-osrm.sh: no docker / finch / podman here, so the graph cannot be built from this shell.
 ${WORKSHOP_CONTAINER:+
   You are inside the tool container (docker compose exec workshop). It has no Docker in it, on purpose.
-  Nothing is missing: the study-area graph from the bundle is already running —  curl "\$OSRM_URL/nearest/v1/driving/-121.08,38.90"
+  Nothing is missing: the study-area graph from the bundle is already running —  curl \$OSRM_URL/nearest/v1/driving/-121.08,38.90
   To build a graph yourself, run this same command in a laptop terminal in the clone folder (option B), or in a Codespaces terminal.
 }
   What this script runs, in the OSRM container ($OSRM_IMAGE), with $OUT mounted at /data:
@@ -31,6 +31,7 @@ MSG
 fi
 mkdir -p "$OUT"; OUT="$(cd "$OUT" && pwd)"    # docker -v needs an absolute host path (out/osrm alone is read as a volume name)
 cp -f "$PBF" "$OUT/$NAME.osm.pbf"
+trap 'rm -f "$OUT/$NAME.osm.pbf"' EXIT      # the copy is only an input for osrm-extract; drop it even if a step fails
 
 # Everything happens in /data inside the container, bind-mounted to $OUT.
 run() { "$CLI" run --rm -t -v "$OUT:/data" "$OSRM_IMAGE" "$@"; }
@@ -40,13 +41,12 @@ log "osrm-partition"
 run osrm-partition "/data/$NAME.osrm"
 log "osrm-customize"
 run osrm-customize "/data/$NAME.osrm"
-rm -f "$OUT/$NAME.osm.pbf"
 log "done → $OUT/$NAME.osrm.*  ($(du -sh "$OUT" | cut -f1))"
 echo
 if [ -n "${WORKSHOP_CONTAINER:-}" ]; then   # Codespaces: the container must join the compose network to be reachable from this shell
-  NET="$("$CLI" network ls --format '{{.Name}}' | grep -m1 routes-to-safety || echo bridge)"
+  NET="$("$CLI" network ls --format '{{.Name}}' | grep routes-to-safety | head -1 || true)"; NET="${NET:-bridge}"
   echo "Serve it:   $CLI run -d --rm --name osrm-$NAME --network $NET -v \"$OUT:/data\" $OSRM_IMAGE osrm-routed --algorithm mld --max-table-size 500 /data/$NAME.osrm"
-  echo "Test it:    curl \"http://osrm-$NAME:5000/nearest/v1/driving/-120.95,39.10\"      # Colfax is inside the clip; stop with: $CLI rm -f osrm-$NAME"
+  echo "Test it:    curl \"http://osrm-$NAME:5000/nearest/v1/driving/-120.95,39.10\"      # Colfax is inside the graph; stop with: $CLI rm -f osrm-$NAME"
 else
   echo "Serve it:   $CLI run --rm -p 5000:5000 -v \"$OUT:/data\" $OSRM_IMAGE osrm-routed --algorithm mld --max-table-size 500 /data/$NAME.osrm"
   echo "Test it:    curl \"http://localhost:5000/nearest/v1/driving/-120.95,39.10\"        # Colfax is inside the clip"

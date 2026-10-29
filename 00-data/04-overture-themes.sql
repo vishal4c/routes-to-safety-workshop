@@ -65,7 +65,7 @@ SELECT subtype, count(*) AS n
 FROM 'data/overture/land_cover.parquet'
 GROUP BY subtype ORDER BY n DESC;
 
--- 7. divisions / division — the town labels. One city, five towns, ten villages, 105 hamlets; population where Overture has it.
+-- 7. divisions / division — the town labels. One city, five towns, ten villages, 105 hamlets, plus 13 unclassed (neighborhoods) = 134; population where Overture has it.
 -- Expected (top 5 by population):  Roseville 107158 · Rocklin 50131 · Lincoln 39566 · Auburn 13330 · Placerville 10086
 SELECT subtype, class, name, population
 FROM 'data/overture/localities.parquet'

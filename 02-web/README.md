@@ -61,7 +61,7 @@ Lost? open `02-web/solution.html` — `index.html` with everything preloaded.
 | **Base map** | OpenStreetMap raster; only shelters, the pin and the route on top | internet (`tile.openstreetmap.org`) |
 | **Shelter reach** | drive-time bands from every shelter: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter to isolate it | Edit → Add rows 0, 1, 2 (if not yet), then the rings: `data/coverage/coverage_bands.geojson` |
 
-The switch only toggles `visibility` over a list of layer ids (`VIEW_LAYERS`); the legend follows the view. Nothing is overlaid: hazard is never drawn under the reach bands. Routing (Phase 3c) works in every view.
+The switch only toggles `visibility` over a list of layer ids (`VIEW_LAYERS`); the legend follows the view. Nothing is overlaid: hazard is never drawn under the reach bands. Routing (Phase 3c) is added from the Edit panel in Fire evac map or Shelter reach (Base map has no Edit button); once loaded it works in every view.
 
 Reach bands come from Phase 2c (H3 res-8 cells → OSRM `/table` → minutes to each shelter → dissolved per shelter and band):
 ```bash

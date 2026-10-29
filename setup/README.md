@@ -41,7 +41,7 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 ## Tier 1 — Codespaces (nothing to install)
 
 1. Use a **personal** GitHub account (employer‑managed accounts often block Codespaces).
-2. Repo page → **Code → Codespaces → Create codespace on main**. The first start takes 2–3 minutes: GitHub pulls the same three containers as Tier 2, downloads the data bundle and runs `check_setup.py` for you — you type nothing until the terminal prompt appears.
+2. Repo page → **Code → Codespaces → Create codespace on main**. The first start takes 3–5 minutes: GitHub pulls the same three images as Tier 2 (plus a small layer for the Docker helper), downloads the data bundle and runs `check_setup.py` for you — you type nothing until the terminal prompt appears. Smoke test afterwards: `docker ps` should list the three containers; **Ports** should show 8080.
 3. Open the map from the **Ports tab → hover the row for port 8080 ("Workshop (Caddy)") → click the globe icon**. Never type `localhost:8080` into your own browser, and **never forward port 5000** (OSRM is only reached through Caddy at `/osrm/`).
 4. The terminal is a Linux bash **inside the tool container**: every workshop command works as written, `$WEB_URL` and `$OSRM_URL` are preset. It can also run `docker` against the codespace's host (the `docker-outside-of-docker` feature in `.devcontainer/devcontainer.json`), so the optional `scripts/build-osrm.sh` (Phase 2b) works here too. If a codespace ever fails to create, that feature is the first thing to remove.
 
@@ -58,12 +58,11 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 
 Podman / nerdctl also work. The scripts and `check_setup.py` auto‑detect `docker → finch → podman → nerdctl`; override with `CONTAINER_CLI=finch`.
 
-### Pull images and data (~1 GB, once)
+### Pull images (~1 GB, once)
 
 ```bash
 git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git
 cd routes-to-safety-workshop
-bash scripts/get-bundle.sh            # OSRM graph, prebuilt evac.pmtiles, planetiler.jar (checksum‑verified)
 docker compose pull                   # Finch:  finch compose pull      Podman: podman compose pull
 ```
 
@@ -76,7 +75,7 @@ Finch first time only: `finch vm init` (a few minutes), later `finch vm start`.
 
 ```bash
 docker compose up -d                  # Finch: finch compose up -d
-# map + files:  http://localhost:8080/        routing:  http://localhost:8080/osrm/nearest/v1/driving/-121.08,38.90
+# map + files:  http://localhost:8080/        routing (after get-bundle below):  http://localhost:8080/osrm/nearest/v1/driving/-121.08,38.90
 docker compose down                   # when finished
 ```
 
@@ -84,9 +83,12 @@ docker compose down                   # when finished
 
 ```bash
 docker compose exec workshop bash     # Finch: finch compose exec workshop bash
+bash scripts/get-bundle.sh            # first time only: OSRM graph, prebuilt evac.pmtiles, OSM extracts (150 MB, checksum-verified)
 python3 setup/check_setup.py          # expect: tier 2, OSRM reachable via http://caddy:8080/osrm, web server OK
 duckdb -c ".read setup/hello-geo.sql"
 ```
+
+OSRM waits for the graph: `docker compose up -d` before `get-bundle.sh` is fine (it logs "waiting for data/osrm" until the file appears).
 
 - The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the working directory): every command in the module READMEs runs unchanged; what you write to `out/` is served at <http://localhost:8080/> on your laptop.
 - `curl` inside the container: `$OSRM_URL` (= `http://caddy:8080/osrm`). The browser uses `/osrm` on :8080 automatically.
