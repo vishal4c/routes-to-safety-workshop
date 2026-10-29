@@ -12,7 +12,7 @@
 PBF="${1:-$REPO_ROOT/data/osm/study-area.osm.pbf}"
 OUT="${2:-$REPO_ROOT/data/osrm}"
 NAME="$(basename "${PBF%.osm.pbf}")"
-[ -f "$PBF" ] || die "no such file: $PBF (run scripts/make-data.sh osm, or scripts/get-bundle.sh)"
+[ -f "$PBF" ] || die "no such file: $PBF (run scripts/fetch-osm.sh, or scripts/get-bundle.sh)"
 if ! CLI="$(detect_container_cli)"; then
   cat <<MSG
 build-osrm.sh: no docker / finch / podman here, so the graph cannot be built from this shell.
@@ -46,8 +46,8 @@ echo
 if [ -n "${WORKSHOP_CONTAINER:-}" ]; then   # Codespaces: the container must join the compose network to be reachable from this shell
   NET="$("$CLI" network ls --format '{{.Name}}' | grep routes-to-safety | head -1 || true)"; NET="${NET:-bridge}"
   echo "Serve it:   $CLI run -d --rm --name osrm-$NAME --network $NET -v \"$OUT:/data\" $OSRM_IMAGE osrm-routed --algorithm mld --max-table-size 500 /data/$NAME.osrm"
-  echo "Test it:    curl \"http://osrm-$NAME:5000/nearest/v1/driving/-120.95,39.10\"      # Colfax is inside the graph; stop with: $CLI rm -f osrm-$NAME"
+  echo "Test it:    curl \"http://osrm-$NAME:5000/nearest/v1/driving/<lon>,<lat>\"      # a point inside your box; check waypoints[0].distance is a few metres. Stop with: $CLI rm -f osrm-$NAME"
 else
-  echo "Serve it:   $CLI run --rm -p 5000:5000 -v \"$OUT:/data\" $OSRM_IMAGE osrm-routed --algorithm mld --max-table-size 500 /data/$NAME.osrm"
-  echo "Test it:    curl \"http://localhost:5000/nearest/v1/driving/-120.95,39.10\"        # Colfax is inside the clip"
+  echo "Serve it:   docker compose restart osrm        # the compose osrm service reads $OUT   (standalone: $CLI run --rm -p 5000:5000 -v \"$OUT:/data\" $OSRM_IMAGE osrm-routed --algorithm mld --max-table-size 500 /data/$NAME.osrm)"
+  echo "Test it:    in the container shell → curl \"\$OSRM_URL/nearest/v1/driving/<lon>,<lat>\"   # waypoints[0].distance should be a few metres"
 fi

@@ -36,8 +36,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-python.python",
-        "dvirtz.parquet-viewer"
+        "ms-python.python"
       ]
     }
   }

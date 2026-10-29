@@ -64,8 +64,10 @@ flowchart LR
 | | For | Routing | Works without wifi |
 |---|---|---|---|
 | **A** Codespaces | no Docker on the laptop, corporate laptop | yes | no |
-| **B** Docker image — *recommended if you can run containers* | wants everything local | yes | yes |
-| **C** Native tools | containers blocked | **no** (pair with a neighbour) | yes |
+| **B** Docker image — *recommended if you can run containers* | wants everything local | yes | yes* |
+| **C** Native tools | containers blocked | **no** (pair with a neighbour) | yes* |
+
+\* Data, tiles and routing are all local. The one exception is the map page itself: it loads the MapLibre and PMTiles JavaScript libraries from unpkg.com, so the first page load needs a connection (the browser caches them afterwards).
 
 `setup/check_setup.py` calls these tiers 1, 2 and 3. Browser only? <https://vishal4c.github.io/routes-to-safety-workshop/> has the slides, the demo and the map page (no routing, nothing to install).
 
@@ -74,7 +76,7 @@ flowchart LR
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/vishal4c/routes-to-safety-workshop?quickstart=1)
 
 Or: repository page → green **Code** button → **Codespaces** → **Create codespace on main**. Use a **personal** GitHub account (employer-managed accounts often block Codespaces); the free tier is enough.
-Three containers start (tool shell, OSRM, Caddy — the same images as option B, pulled; Codespaces adds one small layer for its Docker helper), the 150 MB data bundle downloads and `setup/check_setup.py` runs for you. After 3–5 minutes you land in a terminal.
+Three containers start (tool shell, OSRM, Caddy — the same images as option B, pulled; Codespaces adds one small layer for its Docker helper), the 143 MB data bundle downloads and `setup/check_setup.py` runs for you. After 3–5 minutes you land in a terminal.
 Open the map: **Ports** tab → row **8080** → globe icon. Never type `localhost:8080` into your own browser there, and **never forward port 5000** — routing is `/osrm` on port 8080. Smoke test: `docker ps` lists three containers.
 
 ### B — Docker image on your laptop
@@ -88,7 +90,7 @@ cd routes-to-safety-workshop
 docker compose pull            # tool image · OSRM · Caddy  (≈ 1 GB, once)
 docker compose up -d           # OSRM waits politely until the graph arrives in the next step
 docker compose exec workshop bash
-bash scripts/get-bundle.sh     # first time: prebuilt tiles, routing graph, OSM extracts (150 MB, checksum-verified)
+bash scripts/get-bundle.sh     # first time: prebuilt tiles, routing graph, OSM extracts (143 MB, checksum-verified)
 python3 setup/check_setup.py
 ```
 
@@ -108,7 +110,7 @@ Install Git, DuckDB CLI 2.0.0, Temurin 21, Node 22, uv and go-pmtiles, then:
 
 ```bash
 git clone --depth 1 https://github.com/vishal4c/routes-to-safety-workshop.git && cd routes-to-safety-workshop
-bash scripts/get-bundle.sh       # 150 MB, checksum-verified
+bash scripts/get-bundle.sh       # 143 MB, checksum-verified
 python3 setup/check_setup.py     # the OSRM and web-server lines are red here — expected without containers
 npx serve -l 8080 .              # never `python -m http.server` (no Range support → blank map); another port is fine, swap it in every URL
 export WEB_URL=http://localhost:8080             # in a second terminal; the checks below use it
@@ -249,7 +251,7 @@ duckdb -c ".read 00-data/03-export.sql"
 ```bash
 duckdb -c "LOAD spatial; SELECT type, count(*) FROM ST_Read('out/shelter-candidates.geojson') GROUP BY type ORDER BY 2 DESC"
 ```
-95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 arenas. Nothing later depends on this file — if you are behind, move on.
+95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 `stadium_arena`. Nothing later depends on this file — if you are behind, move on.
 
 <details><summary><b>▸ Optional · tour every Overture theme</b> (which theme each file came from, one breakdown per file)</summary>
 
@@ -291,7 +293,7 @@ Measured on a laptop (≈ 100 Mbit/s); the time is mostly spent reading Parquet 
 | land cover | 2,564 · 4.2 MB · 3 s | 21 · 20 KB · 2 s |
 | buildings | 12,606 (Auburn box) · 5.2 MB · 5 s | 14,541 (whole box) · 7 MB · 7 s |
 | places | 27,096 · 9.2 MB · 9 s | 10,856 · 3.9 MB · 2 s |
-| **all six** | **24 s** | **16 s** |
+| **all six** | **24 s** | **16–20 s** |
 
 Alternative: Overture's own CLI does the same without SQL — `uvx overturemaps download --bbox=-121.40,38.72,-120.52,39.20 -f geojson --type=segment -o roads.geojson` (one call per type, same bucket).
 
@@ -333,7 +335,7 @@ flowchart LR
 
 ```bash
 01-tiles/build.sh                                   # about 4 s
-pmtiles show out/evac.pmtiles                       # 8 vector layers · min zoom 4 · max zoom 14 · 1607 tiles
+pmtiles show out/evac.pmtiles                       # min zoom 4 · max zoom 14 · 1607 tiles  (layer names: add --metadata, or read row 0 of the map page in Phase 3)
 curl -sSI -H "Range: bytes=0-15" "$WEB_URL/out/evac.pmtiles" | head -1     # HTTP/1.1 206 Partial Content — anything else means the wrong server
 ```
 `build.sh` runs one Java command: Planetiler reads the eight GeoJSON files through the schema [`01-tiles/evac.yml`](01-tiles/evac.yml) — which layer each file becomes, from which zoom each class appears (motorways from 6, residential streets from 10, buildings from 13), which attributes survive into the tiles — and writes **one** archive. PMTiles is a single file the browser reads in pieces with HTTP Range requests; that is what the `206` check is for. Change a number in `evac.yml`, rebuild in 4 s, click **Reload** on row 0 of the map (Phase 3).
@@ -346,7 +348,7 @@ OSRM needs its own graph, pre-computed once from an OpenStreetMap extract. The g
 
 Routing does not use the Overture roads: OSRM reads OpenStreetMap's own `.osm.pbf` format, with turn restrictions and speed limits.
 
-1. **Get a snapshot.** [Geofabrik](https://download.geofabrik.de) publishes one `.osm.pbf` per continent / country / state / sub-region, refreshed daily. Pick the smallest region that contains your box (Northern California: `norcal-latest.osm.pbf`, ≈ 1 GB; a small US state 100–300 MB) and put its URL in `OSM_EXTRACT_URL` in `versions.env`. Similar sites: [BBBike extracts](https://extract.bbbike.org) (draw your own box), [Protomaps](https://protomaps.com/downloads) (smaller areas).
+1. **Get a snapshot.** [Geofabrik](https://download.geofabrik.de) publishes one `.osm.pbf` per continent / country / state / sub-region, refreshed daily. Pick the smallest region that contains your box (Northern California: `norcal-latest.osm.pbf`, ≈ 1 GB; a small US state 100–400 MB) and put its URL in `OSM_EXTRACT_URL` in `versions.env`. Similar sites: [BBBike extracts](https://extract.bbbike.org) (draw your own box), [Protomaps](https://protomaps.com/downloads) (smaller areas).
 2. **Cut the box out of it** — `osmium extract` keeps every way that touches the box complete (`-s smart`):
    ```bash
    scripts/fetch-osm.sh                      # downloads OSM_EXTRACT_URL once (data/osm/), then → data/osm/study-area.osm.pbf  (17 MB for the Placer box)
@@ -371,7 +373,7 @@ curl "$OSRM_URL/route/v1/driving/-120.8182,39.0199;-121.0709,38.8952?overview=fa
 
 Drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters in a handful of OSRM `/table` calls, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter:
 ```bash
-scripts/make-coverage.py --osrm http://osrm:5000      # about 4 s · writes data/coverage/coverage_hex.geojson + coverage_bands.geojson · run as written (uv shebang) · option C: --osrm $OSRM_URL
+scripts/make-coverage.py --osrm http://osrm:5000      # about 2 s · writes data/coverage/coverage_hex.geojson + coverage_bands.geojson · run as written (uv shebang) · option C: --osrm $OSRM_URL
 ```
 "Isochrone" just means "same-time line". OSRM has no isochrone call, so the script asks for many point-to-shelter times and draws the rings itself with DuckDB spatial.
 
@@ -484,6 +486,13 @@ The same three views + the router with a side panel (view switch, legend, I-80 t
 
 Everything above was driven by **one box** — the four `BBOX_*` lines in [`versions.env`](versions.env). Phase 4 is the same steps with a different box. Network needed; the OpenStreetMap region download is the big one.
 
+> **Phase 4 overwrites the Placer data in this clone** — `versions.env`, `data/overture/*`, `data/hazard/*`, `data/shelters.geojson`, `data/coverage/*`, the OSM clip and the OSRM graph, plus the two edited page files. Start on a branch so you can get back:
+> ```bash
+> git switch -c my-town                                                            # before step 1
+> git checkout -- . && git switch main && bash scripts/get-bundle.sh              # undo: Placer data, graph and tiles return
+> ```
+> Every step below runs in the **container shell** unless the comment says *laptop terminal*.
+
 ```mermaid
 flowchart LR
   classDef file fill:#E6F0FF,stroke:#0678FF,color:#161D26
@@ -507,7 +516,10 @@ BBOX_W=-122.244    # west   (longitude, negative in the Americas)
 BBOX_S=47.581      # south
 BBOX_E=-122.159    # east
 BBOX_N=47.639      # north
-BUILDINGS_W=… S E N   # the box for 3D buildings — same four numbers for a town-sized box
+BUILDINGS_W=-122.244   # the box for 3D buildings — for a town-sized box, the same four numbers again
+BUILDINGS_S=47.581
+BUILDINGS_E=-122.159
+BUILDINGS_N=47.639
 OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf   # the Geofabrik region that contains the box
 ```
 
@@ -526,17 +538,20 @@ scripts/fetch-hazard.sh --none     # elsewhere → the two files exist with no f
 **4 · Shelters.** Run the Phase 1c export for your box, open the result, keep the places that really are shelters, and save them as `data/shelters.geojson` — same columns (`id, name, status, type, town, source`), short unique `id`s, `status = candidate` until a county source confirms one.
 ```bash
 duckdb -c ".read 00-data/03-export.sql"           # → out/shelter-candidates.geojson (schools, community centers, colleges, town halls, fairgrounds, arenas)
-duckdb -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson')"
-# edit a copy down to the real ones, then: cp my-shelters.geojson data/shelters.geojson
+duckdb -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson')"   # read the list, note the ids you trust
+duckdb -c "LOAD spatial; SET geometry_always_xy = true;
+  COPY (SELECT * FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN ('id-1', 'id-2', 'id-3'))
+  TO 'data/shelters.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"                                   # keep only those → data/shelters.geojson
 ```
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
 ```bash
-scripts/fetch-osm.sh                               # downloads OSM_EXTRACT_URL once (a US state: 100 MB – 1 GB), clips → data/osm/study-area.osm.pbf
-scripts/build-osrm.sh                              # laptop terminal (option B) or Codespaces · → data/osrm/study-area.osrm.*
+scripts/fetch-osm.sh                               # container shell · downloads OSM_EXTRACT_URL once (a US state: 100 MB – 1 GB), clips → data/osm/study-area.osm.pbf
+scripts/build-osrm.sh                              # laptop terminal (option B) or Codespaces terminal · → data/osrm/study-area.osrm.*
 docker compose restart osrm                        # laptop terminal · Codespaces: docker restart $(docker ps -qf name=osrm)
-curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"    # a point inside your box → {"code":"Ok", …}
+curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"    # back in the container shell · a point inside your box → {"code":"Ok","waypoints":[{"distance":<a few metres> …
 ```
+`"code":"Ok"` alone proves nothing — OSRM snaps to the nearest road it has, even 900 km away. Look at `distance`: a few metres means your graph is serving; thousands of metres means the old graph is still loaded (restart again).
 
 **6 · Tiles** and **7 · Reach bands** — exactly Phase 2a and 2c:
 ```bash
@@ -556,10 +571,10 @@ Box `-122.244, 47.581, -122.159, 47.639` (downtown Bellevue, the I-405 / I-90 in
 
 | Step | Result |
 |---|---|
-| 2 `fetch-overture.sh` | 16 s · roads 2,499 · water 138 · towns 4 · land cover 21 · buildings 14,541 · places 10,856 |
-| 4 `03-export.sql` | shelter candidates: high schools, community centers, Bellevue College … → pick 5–8, all `candidate` |
-| 5 `fetch-osm.sh` → `build-osrm.sh` | Washington extract ≈ 300 MB (once); clip and graph in well under a minute |
-| 6 `build.sh` | `pmtiles show` → bounds -122.244 … 47.639, 8 layers (hazard and fire_perimeters empty) |
+| 2 `fetch-overture.sh` | 16–20 s · roads 2,499 · water 138 · towns 4 · land cover 21 · buildings 14,541 · places 10,856 |
+| 4 `03-export.sql` | 12 candidates: 4 schools, 3 community centers, 3 town halls, 2 for-profit colleges (Bellevue College itself sits just outside the box). Drop the colleges and "service center" rows → 5–8 shelters, all `candidate` |
+| 5 `fetch-osm.sh` → `build-osrm.sh` | Washington extract ≈ 365 MB (once); clip ≈ 9 s, graph ≈ 2 s |
+| 6 `build.sh` | 47 tiles · `pmtiles show` → bounds -122.244 … 47.639 · **6 layers** — hazard and fire_perimeters are empty, so Planetiler leaves them out; the map page says "6 layers" and rows 2–3 simply draw nothing |
 | 7 `make-coverage.py` | a few dozen H3 cells; bands mostly ≤ 10 min — it is a small box |
 | 8 | `route.js`: `STUDY_BBOX = [-122.244, 47.581, -122.159, 47.639]`, `START = [-122.2015, 47.6101]` · `demo/app.js`: `BBOX` same, `CENTER = [-122.20, 47.61]`, `ZOOM = 13` |
 
@@ -614,7 +629,7 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | `check_setup.py`: OSRM / web server red on option C | expected without containers | continue; routing needs a neighbour |
 | `java: command not found` · `Unsupported class file major version` | no Temurin 21 | option C install commands |
 | `planetiler.jar` missing | not in git | `bash scripts/get-bundle.sh` or `curl -L -o 01-tiles/planetiler.jar https://github.com/onthegomap/planetiler/releases/download/v0.10.2/planetiler.jar` |
-| `data/overture/roads.geojson missing` | staged data gone | `git checkout data/` — or `scripts/fetch-overture.sh` |
+| `data/overture/roads.geojson missing` | staged data gone | `git checkout data/` (also undoes a Phase 4 box) — or `scripts/fetch-overture.sh` |
 | Points in the ocean off Africa | lon/lat swapped | the SQL files start with `SET geometry_always_xy = true;` — keep it |
 | `.read` plus another statement in one `-c` does nothing | DuckDB dot-commands must be alone | one `.read` per run |
 | Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` |
