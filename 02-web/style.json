@@ -200,10 +200,10 @@
       }
     },
     {
-      "id": "buildings_auburn",
+      "id": "buildings",
       "type": "fill-extrusion",
       "source": "evac",
-      "source-layer": "buildings_auburn",
+      "source-layer": "buildings",
       "minzoom": 13,
       "paint": {
         "fill-extrusion-color": "#d9d9d9",
@@ -245,10 +245,10 @@
       }
     },
     {
-      "id": "places",
+      "id": "towns",
       "type": "symbol",
       "source": "evac",
-      "source-layer": "places",
+      "source-layer": "towns",
       "minzoom": 6,
       "layout": {
         "text-field": [

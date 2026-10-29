@@ -1,26 +1,29 @@
--- Phase 1a — Look around.  Run from the REPO ROOT:
+-- Phase 1a — Look around.  Run from the repo root:
 --     duckdb -c ".read 00-data/01-explore.sql"
--- Three queries. Each one is preceded by the output you should see (measured on Overture 2026-09-23.1).
--- Plain SQL only: SELECT (which columns) / WHERE (which rows) / GROUP BY (count per group).
+-- Three queries over two of the staged files. Plain SQL: SELECT (which columns) / WHERE (which rows) / GROUP BY (count per group).
+-- ST_Read() opens any GeoJSON (or Shapefile, GeoPackage …) as a table; LOAD spatial switches that on.
+-- The output you should see is written above each query (Overture release 2026-09-23.1).
+LOAD spatial;
+SET geometry_always_xy = true;   -- lon/lat axis order (DuckDB 2.0 needs this for spatial I/O; default from 2.1)
 
--- Query 1 — what columns does the roads table have?  (96,059 rows: every road-type segment in the bbox)
+-- Query 1 — what columns does the roads file have?  (36,294 drivable road segments in the box)
 -- Expected:
 --   [90m┌─────────────────────────────────┐[00m[90m
---   [00m[90m│ [00m[1mdata/overture/segments.parquet[00m[90m  │[00m[90m
+--   [00m[90m│            [00m[1mDescribe[00m[90m             │[00m[90m
 --   [00m[90m│                                 │[00m[90m
+--   [00m[90m│ [00mOGC_FID[90m   [00m[90mbigint[00m[90m                [00m[90m│[00m[90m
 --   [00m[90m│ [00mid[90m        [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00msubtype[90m   [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
 --   [00m[90m│ [00mclass[90m     [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
 --   [00m[90m│ [00msubclass[90m  [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
 --   [00m[90m│ [00mname[90m      [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
 --   [00m[90m│ [00mroute_ref[90m [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00mgeometry[90m  [00m[90mgeometry('ogc:crs84')[00m[90m [00m[90m│[00m[90m
+--   [00m[90m│ [00mgeom[90m      [00m[90mgeometry('ogc:crs84')[00m[90m [00m[90m│[00m[90m
 --   [00m[90m└─────────────────────────────────┘[00m[90m
 --   [00m
-DESCRIBE SELECT * FROM 'data/overture/segments.parquet';
+DESCRIBE SELECT * FROM ST_Read('data/overture/roads.geojson');
 
--- Query 2 — roads by class, drivable classes only (this WHERE is the same filter Phase 1c uses for roads.geojson;
--- remove it to also see service / footway / track / path …).  Sum = 36,294.
+-- Query 2 — roads by class.  Sum = 36,294 — the number every later step must reproduce.
+-- (scripts/fetch-overture.sh kept only the drivable classes; footways, tracks and service roads never left Overture.)
 -- Expected:
 --   ┌──────────────┬───────┐
 --   │    class     │   n   │
@@ -35,9 +38,7 @@ DESCRIBE SELECT * FROM 'data/overture/segments.parquet';
 --   │ trunk        │    63 │
 --   └──────────────┴───────┘
 SELECT class, count(*) AS n
-FROM 'data/overture/segments.parquet'
-WHERE class IN ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street',
-                'motorway_link','trunk_link','primary_link','secondary_link','tertiary_link')
+FROM ST_Read('data/overture/roads.geojson')
 GROUP BY class
 ORDER BY n DESC;
 
@@ -65,7 +66,7 @@ ORDER BY n DESC;
 --   └─────────────────────────────┴───────┘
 --     15 rows                   2 columns
 SELECT category, count(*) AS n
-FROM 'data/overture/places.parquet'
+FROM ST_Read('data/overture/places.geojson')
 GROUP BY category
 ORDER BY n DESC
 LIMIT 15;

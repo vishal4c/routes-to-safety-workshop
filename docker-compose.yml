@@ -11,7 +11,7 @@
 #
 # Three services:
 #   workshop  the tool image (DuckDB + spatial, Temurin 21, Planetiler, go-pmtiles, Node 22, osmium, uv) with the
-#             repo bind-mounted — `docker compose exec workshop bash` and every workshop command runs unchanged.
+#             repo bind-mounted — `docker compose exec workshop bash` and every README command runs unchanged.
 #             Pulled from ghcr.io (multi-arch, public). Codespaces uses THIS file too (.devcontainer/devcontainer.json
 #             points here) — same three containers, same image; .github/workflows/devcontainer-image.yml builds it.
 #   osrm      the routing engine, reads data/osrm/study-area.osrm.*
@@ -24,7 +24,7 @@ services:
     working_dir: /workspaces/routes-to-safety-workshop
     command: sleep infinity
     environment:
-      BUNDLE_TAG: ${BUNDLE_TAG:-data-v1}
+      BUNDLE_TAG: ${BUNDLE_TAG:-data-v2}
       OSRM_URL: http://caddy:8080/osrm
       WEB_URL: http://caddy:8080
       WORKSHOP_CONTAINER: "1"

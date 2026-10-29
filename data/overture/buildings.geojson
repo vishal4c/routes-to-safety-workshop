@@ -1,6 +1,6 @@
 {
 "type": "FeatureCollection",
-"name": "buildings_auburn",
+"name": "buildings",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC::CRS84" } },
 "xy_coordinate_resolution": 1e-06,
 "features": [

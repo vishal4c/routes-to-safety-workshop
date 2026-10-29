@@ -199,10 +199,10 @@
     }
   },
   {
-    "id": "places",
+    "id": "towns",
     "type": "symbol",
     "source": "evac",
-    "source-layer": "places",
+    "source-layer": "towns",
     "minzoom": 6,
     "layout": {
       "text-field": [

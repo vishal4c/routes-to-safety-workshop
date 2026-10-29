@@ -14,7 +14,7 @@ size: 16:9
 - The map is cut into a grid of squares: **z / x / y**
 - Each tile holds **geometry + attributes**, not pixels
 - The browser draws them — so we can **restyle without re-building**
-- Zoom 4–14 for our corridor, named layers: `roads` · `water` · `hazard` · `fire_perimeters` · `shelters` · `buildings_auburn`
+- Zoom 4–14 for our corridor, named layers: `roads` · `water` · `land_cover` · `hazard` · `fire_perimeters` · `buildings` · `shelters` · `towns`
 
 ```
 /{z}/{x}/{y}  →  one tile, all layers inside
@@ -41,7 +41,7 @@ layers:
     features: [{ source: hazard, geometry: polygon, min_zoom: 4 }]
 ```
 
-- Planetiler's YAML has **no GeoParquet source** → that's why Phase 1 exports GeoJSON
+- Planetiler's YAML reads GeoJSON (no GeoParquet source) → that's why every file in `data/` is GeoJSON
 - Illustrative excerpt; the full file is `01-tiles/evac.yml`
 
 ---
@@ -126,7 +126,7 @@ pmtiles show out/evac.pmtiles
 
 **3a Serve & render (8 min)** — in `02-web/index.html` find `// STEP 1: paste here` → paste `steps/step1-roads.json` → reload; add `AttributionControl` → *Expected:* grey roads + attribution bottom-right 👀
 
-**3a Restyle (12 min)** — hazard `match` (OrRd) · water fill · shelters: filled = verified, hollow = candidate + legend · city labels (`places`) · (if time) perimeters dashed grey · (finish early) click popup `name` · (finish early) `fill-extrusion` on `buildings_auburn` 👀
+**3a Restyle (12 min)** — hazard `match` (OrRd) · water fill · shelters: filled = verified, hollow = candidate + legend · town labels (`towns`) · (if time) perimeters dashed grey · (finish early) click popup `name` · (finish early) `fill-extrusion` on `buildings` 👀
 ⏱ stuck past minute 8 → paste `steps/step3-styled.json`
 
 🎯 Very High solid red · water blue · 10 shelters (1 filled) · Mosquito perimeter dashed · attribution visible

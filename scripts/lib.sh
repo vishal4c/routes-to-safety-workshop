@@ -7,7 +7,7 @@ set -a; . "$REPO_ROOT/versions.env"; set +a
 
 log()  { printf '\033[1;34m[%s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
 die()  { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
-need() { command -v "$1" >/dev/null 2>&1 || die "'$1' not found — see setup/README.md"; }
+need() { command -v "$1" >/dev/null 2>&1 || die "'$1' not found — see README.md, Phase 0"; }
 
 # Container CLI detection: docker → finch → podman → nerdctl. Override with CONTAINER_CLI=... .
 detect_container_cli() {

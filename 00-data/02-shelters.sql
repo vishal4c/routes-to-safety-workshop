@@ -1,9 +1,9 @@
--- Phase 1b — Candidate shelters.  Run from the REPO ROOT:
+-- Phase 1b — Candidate shelters.  Run from the repo root:
 --     duckdb -c ".read 00-data/02-shelters.sql"
 -- Idea: ask Overture for "places that could be shelters", look at what comes back, then compare with the
 -- hand-checked data/shelters.geojson and ask the hazard layer which shelters sit in a Very High zone.
 LOAD spatial;
-SET geometry_always_xy = true;   -- DuckDB 2.0: required for spatial functions / GDAL I/O (default from 2.1)
+SET geometry_always_xy = true;
 
 -- Query 1 — community centers with confidence >= 0.7.  19 rows. Look at the names: a Chevrolet dealer and a
 -- child-support office are labelled community_center.  Category data looks authoritative and isn't.
@@ -34,12 +34,13 @@ SET geometry_always_xy = true;   -- DuckDB 2.0: required for spatial functions /
 --   └────────────────────────────────────────────────────┴──────────────────┴────────────┘
 --     19 rows                                                                  3 columns
 SELECT name, category, round(confidence, 2) AS confidence
-FROM 'data/overture/places.parquet'
+FROM ST_Read('data/overture/places.geojson')
 WHERE category = 'community_center'
   AND confidence >= 0.7
 ORDER BY confidence DESC, name;
 
--- Query 2 — the broader 'shelter-ish' filter: community centers, fairgrounds, town halls, high schools, colleges, arenas.
+-- Query 2 — the broader "shelter-ish" filter: community centers, fairgrounds, town halls, high schools, colleges, arenas.
+-- (Phase 1c writes exactly these rows to a file.)
 -- Expected:
 --   ┌────────────────────┬───────┐
 --   │      category      │   n   │
@@ -53,14 +54,13 @@ ORDER BY confidence DESC, name;
 --   │ stadium_arena      │     4 │
 --   └────────────────────┴───────┘
 SELECT category, count(*) AS n
-FROM 'data/overture/places.parquet'
+FROM ST_Read('data/overture/places.geojson')
 WHERE category IN ('community_center','fairgrounds','town_hall','high_school','college_university','stadium_arena')
   AND confidence >= 0.7
 GROUP BY category
 ORDER BY n DESC;
 
 -- Query 3 — the hand-checked file: data/shelters.geojson (10 shelters; 1 verified, 9 candidate).
--- ST_Read opens any GDAL format (GeoJSON, Shapefile, GeoPackage …) as a table.
 -- Expected:
 --   ┌──────────────────────────┬─────────────────────────────────────────┬───────────┬──────────────────┬────────────────────────────────────┐
 --   │            id            │                  name                   │  status   │       type       │                town                │
@@ -94,7 +94,7 @@ ORDER BY status DESC, name;
 --   └───────────────────────────────┴───────────┴──────────────────┴──────────────────┘
 SELECT s.name, s.status, s.type, h.FHSZ_Description
 FROM ST_Read('data/shelters.geojson') AS s
-JOIN 'data/hazard/fhsz.parquet' AS h
-  ON ST_Intersects(s.geom, h.geometry)
+JOIN ST_Read('data/hazard/fhsz.geojson') AS h
+  ON ST_Intersects(s.geom, h.geom)
 WHERE h.FHSZ_Description = 'Very High'
 ORDER BY s.name;

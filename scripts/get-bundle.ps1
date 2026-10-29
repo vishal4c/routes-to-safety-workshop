@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $Repo = Split-Path -Parent $PSScriptRoot
 Set-Location $Repo
-$Tag = if ($env:BUNDLE_TAG) { $env:BUNDLE_TAG } else { 'data-v1' }
+$Tag = if ($env:BUNDLE_TAG) { $env:BUNDLE_TAG } else { 'data-v2' }
 $Url = "https://github.com/vishal4c/routes-to-safety-workshop/releases/download/$Tag/data-bundle.zip"
 New-Item -ItemType Directory -Force dist, data | Out-Null
 

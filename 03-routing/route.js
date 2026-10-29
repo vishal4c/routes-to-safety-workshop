@@ -2,8 +2,9 @@
 // Phase 3c, step 2 scaffold: steps/step2-scaffold.js · finished version (this file) = steps/step3-solution.js
 // Loaded from 02-web/index.html:  import('../03-routing/route.js').then(m => m.start(map, maplibregl))
 
-const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same as versions.env
-const START = [-120.8182, 39.0199];                    // Foresthill (lon, lat)
+// PHASE 4: the two lines to change for your own community
+const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same four numbers as BBOX_* in versions.env
+const START = [-120.8182, 39.0199];                    // where the pin drops first: Foresthill (lon, lat) — must be inside the box
 const ROUTE_COLOR = '#d81b60';
 
 let OSRM = null;           // base URL of the routing server (found by detectOsrm)

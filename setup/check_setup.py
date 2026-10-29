@@ -64,10 +64,10 @@ def vtuple(s):
 PINS = read_pins()
 OS = {"Darwin": "mac", "Windows": "windows", "Linux": "linux"}.get(platform.system(), "linux")
 INSTALL = {
-    "duckdb": {"mac": "brew install duckdb", "windows": "winget install DuckDB.cli", "linux": "see setup/README.md (DuckDB release tarball)"},
-    "java": {"mac": "brew install --cask temurin@21", "windows": "winget install EclipseAdoptium.Temurin.21.JDK", "linux": "sudo apt install temurin-21-jdk (Adoptium repo, see setup/README.md)"},
-    "node": {"mac": "brew install node@22", "windows": "winget install OpenJS.NodeJS.LTS", "linux": "see setup/README.md (NodeSource 22)"},
-    "pmtiles": {"mac": "brew install pmtiles", "windows": "download go-pmtiles_%s_Windows_x86_64.zip (setup/README.md)" % PINS.get("PMTILES_VERSION", "1.31.2"), "linux": "download go-pmtiles tar.gz (setup/README.md)"},
+    "duckdb": {"mac": "brew install duckdb", "windows": "winget install DuckDB.cli", "linux": "see README.md Phase 0 option C (DuckDB release tarball)"},
+    "java": {"mac": "brew install --cask temurin@21", "windows": "winget install EclipseAdoptium.Temurin.21.JDK", "linux": "sudo apt install temurin-21-jdk (Adoptium repo, see README.md Phase 0 option C)"},
+    "node": {"mac": "brew install node@22", "windows": "winget install OpenJS.NodeJS.LTS", "linux": "see README.md Phase 0 option C (NodeSource 22)"},
+    "pmtiles": {"mac": "brew install pmtiles", "windows": "download go-pmtiles_%s_Windows_x86_64.zip (README.md Phase 0 option C)" % PINS.get("PMTILES_VERSION", "1.31.2"), "linux": "download go-pmtiles tar.gz (README.md Phase 0 option C)"},
 }
 
 
@@ -157,7 +157,7 @@ def check_container():
     if shutil.which("docker") or shutil.which("finch") or shutil.which("podman") or shutil.which("nerdctl"):
         add("container runtime", "warn", "CLI found but no `compose` subcommand — install the compose plugin or use Finch", required=False)
     else:
-        add("container runtime", "skip", "inside the workshop container — osrm + caddy run beside it" if IN_WORKSHOP_CONTAINER else "none found (fine for tier 3; recommended: Finch — see setup/README.md)", required=False)
+        add("container runtime", "skip", "inside the workshop container — osrm + caddy run beside it" if IN_WORKSHOP_CONTAINER else "none found (fine for tier 3; recommended: Finch — see README.md Phase 0)", required=False)
 
 
 def http_ok(url, timeout=3):
@@ -201,7 +201,7 @@ def path(*p):
 
 def check_data():
     missing_bundle = False
-    for rel, req in (("data/overture/segments.parquet", True), ("data/shelters.geojson", True)):
+    for rel, req in (("data/overture/roads.geojson", True), ("data/shelters.geojson", True)):
         fp = path(*rel.split("/"))
         if os.path.isfile(fp):
             add(rel, "ok", "%.1f MB" % (os.path.getsize(fp) / 1e6))

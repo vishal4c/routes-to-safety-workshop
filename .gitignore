@@ -29,4 +29,4 @@ node_modules/
 *.mbtiles
 *.zip
 
-# NOTE: data/**/*.parquet and *.geojson ARE committed (small, Git, no LFS).
+# NOTE: data/**/*.geojson IS committed (about 50 MB, plain Git, no LFS). No Parquet anywhere: every staged file is GeoJSON.

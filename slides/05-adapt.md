@@ -11,7 +11,7 @@ size: 16:9
 - `versions.env` — one file pins every tool and image
 - **Dated extracts**: Overture `2026-09-23.1`, a dated Geofabrik norcal snapshot
 - `data/CHECKSUMS.sha256` — verify what you downloaded
-- `scripts/make-data.sh` regenerates the data
+- `scripts/fetch-overture.sh` · `fetch-hazard.sh` · `fetch-osm.sh` regenerate the data
 - `scripts/check-versions.sh` fails CI on drift
 
 <!--
@@ -24,13 +24,13 @@ Phase 4 = 23 min (talk 8 · Phase 4 8 · close 4 · slack 3). Opening: "Everythi
 
 # 🧪 Phase 4 — Swap the community  (6 min +2, offline)
 
-1. Open `scripts/make-data.sh`
-2. Edit `BBOX` to your town (W,S,E,N)
-3. Run `scripts/make-data.sh --plan`
+1. Open `versions.env`
+2. Edit the four `BBOX_*` lines to your town (W,S,E,N)
+3. Run `scripts/fetch-overture.sh roads` — 5 s for the Placer box, usually less for yours
 
-It prints the exact queries, files and estimated sizes — **without network**. 👀
+Then the same steps as this morning: hazard · shelters · OSM → OSRM · tiles · reach bands · the apps. 👀
 
-The real run is **homework**.
+The full run is **homework** — README Phase 4 has every command, with a 4 × 4 mile worked example.
 
 <!--
 ⏱ 8 min incl. regroup. Say: "Pick a town you know. Edit one line. The plan shows what would be downloaded and how big, and touches no network."

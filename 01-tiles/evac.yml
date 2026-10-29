@@ -1,6 +1,6 @@
 # Planetiler custommap schema for the Routes to Safety basemap.
-# Build (from repo root):  java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force
-# Every source is a local file → zero network calls; a missing file fails fast with a clear error.
+# Build (from repo root):  01-tiles/build.sh   = java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force --bounds=…
+# Every source is a local GeoJSON file in data/ (what scripts/fetch-*.sh staged) → zero network calls; a missing file fails fast.
 schema_name: Routes to Safety
 schema_description: Wildfire evacuation basemap — Placer County I-80 corridor (FOSS4G NA 2026 workshop)
 attribution: >-
@@ -10,14 +10,14 @@ attribution: >-
   Land cover: <a href="https://esa-worldcover.org" target="_blank">ESA WorldCover (CC-BY)</a>
 
 sources:
-  roads:            { type: geojson, local_path: out/roads.geojson }
-  water:            { type: geojson, local_path: out/water.geojson }
-  shelters:         { type: geojson, local_path: out/shelters.geojson }
-  hazard:           { type: geojson, local_path: out/hazard.geojson }
-  fire_perimeters:  { type: geojson, local_path: out/fire_perimeters.geojson }
-  buildings_auburn: { type: geojson, local_path: out/buildings_auburn.geojson }
-  land_cover:       { type: geojson, local_path: out/land_cover.geojson }
-  places:           { type: geojson, local_path: out/places.geojson }
+  roads:            { type: geojson, local_path: data/overture/roads.geojson }
+  water:            { type: geojson, local_path: data/overture/water.geojson }
+  land_cover:       { type: geojson, local_path: data/overture/land_cover.geojson }
+  buildings:        { type: geojson, local_path: data/overture/buildings.geojson }
+  towns:            { type: geojson, local_path: data/overture/towns.geojson }
+  hazard:           { type: geojson, local_path: data/hazard/fhsz.geojson }
+  fire_perimeters:  { type: geojson, local_path: data/hazard/fire_perimeters.geojson }
+  shelters:         { type: geojson, local_path: data/shelters.geojson }
 
 layers:
   - id: roads
@@ -83,9 +83,9 @@ layers:
         attributes:
           - { key: subtype, tag_value: subtype }
 
-  - id: buildings_auburn
+  - id: buildings
     features:
-      - source: buildings_auburn
+      - source: buildings
         geometry: polygon
         min_zoom: 13
         min_size: 2
@@ -103,10 +103,10 @@ layers:
           - { key: status, tag_value: status }
           - { key: type,   tag_value: type }
 
-  - id: places
+  - id: towns
     features:
       # Cities and towns from zoom 6, villages from 9, hamlets from 11 — three rules, one source.
-      - source: places
+      - source: towns
         geometry: point
         min_zoom: 6
         include_when:
@@ -115,7 +115,7 @@ layers:
           - { key: name,       tag_value: name }
           - { key: class,      tag_value: class }
           - { key: population, tag_value: population, type: integer }
-      - source: places
+      - source: towns
         geometry: point
         min_zoom: 9
         include_when:
@@ -124,7 +124,7 @@ layers:
           - { key: name,       tag_value: name }
           - { key: class,      tag_value: class }
           - { key: population, tag_value: population, type: integer }
-      - source: places
+      - source: towns
         geometry: point
         min_zoom: 11
         include_when:

@@ -5,9 +5,9 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
 
 ## T-10 days — data and dry runs (OUTLINE §0 prep tasks)
 
-- [x] **(a) Timed dry run** of Phase 1c export and `generate-custom`, with/without land_cover.
-  `duckdb -c ".read 00-data/03-export.sql"` · `01-tiles/build.sh`
-  Measured: export **1.3 s** (39 MB, 7 files); Planetiler **4 s** → `evac.pmtiles` 6.5 MB. **land_cover kept** (4.1 MB GeoJSON, far below the 10 MB / +30 s limit).
+- [x] **(a) Timed dry run** of the Overture fetch and `generate-custom`, with/without land_cover.
+  `scripts/fetch-overture.sh` · `01-tiles/build.sh`
+  Measured (2026-10-29): fetch **24 s** for all six themes (roads 5 s · water 2 s · towns 0 s · land cover 3 s · buildings 5 s · places 9 s); Planetiler **4 s** → `evac.pmtiles` 7.1 MB. **land_cover kept** (4.2 MB GeoJSON, far below the 10 MB / +30 s limit).
   - [ ] Repeat on a **2-vCPU Codespace** (the numbers above are an M-series Mac).
 - [x] **(b) Real OSRM build → per-file sizes.** `scripts/build-osrm.sh` → 15 s, **99 MB** (26 files); `study-area.osm.pbf` 17.0 MB; `colfax.osm.pbf` 0.39 MB.
 - [x] **(c) Phase 0 checkpoint string** — real output of `duckdb -c ".read setup/hello-geo.sql"` (2026-10-23): `OK — DuckDB 2.0.0 · 10 shelters (1 verified, 9 candidate) · nearest to Colfax (crow-flies): Sierra Vista Community Center, 0.2 km` (closes OUTLINE §8 attendee #9).
@@ -49,3 +49,42 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
 - [ ] Door slide up before 09:00; Codespaces users seated next to Docker users (seat map for the pairing rule).
 - [ ] A/B roles assigned, B has the timer and red card. Hard-stop cut order printed: Phase 4 live part → Phase 3c finish-early → Phase 3a optional parts → S35/S37.
 - [ ] Local OSRM running on the instructor laptop (for the demo and for narrated build). **Do not** forward port 5000 in Codespaces.
+
+## Regenerate the data and the bundle (instructor)
+
+Every step reads `versions.env`. From the repo root, in the tool container unless noted:
+
+```bash
+scripts/fetch-overture.sh                      # data/overture/*.geojson  (24 s for the Placer box)
+scripts/fetch-hazard.sh                        # data/hazard/*.geojson    (CAL FIRE)
+scripts/fetch-osm.sh                           # data/osm/study-area.osm.pbf  (downloads norcal-latest, ~1 GB, once)
+osmium extract --overwrite -b -121.02,39.05,-120.90,39.13 -s smart -o data/osm/colfax.osm.pbf data/osm/study-area.osm.pbf   # Phase 2b demo clip
+scripts/build-osrm.sh                          # data/osrm/  — laptop terminal (needs Docker) or Codespaces
+docker compose restart osrm                    # laptop terminal
+scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson
+01-tiles/build.sh && cp out/evac.pmtiles data/prebuilt/evac.pmtiles
+scripts/make-bundle.sh                         # dist/data-bundle.zip + CHECKSUMS.sha256 (then: cp the CHECKSUMS into data/)
+gh release upload data-v2 dist/data-bundle.zip --clobber    # or: gh release create data-v2 dist/data-bundle.zip
+```
+Bump the tag (`data-v3` …) in `scripts/get-bundle.sh`, `scripts/get-bundle.ps1`, `docker-compose.yml`, `.github/workflows/pages.yml` when the bundle's contents change in a way old clones must pick up; `get-bundle.sh` re-downloads whenever the files on disk stop matching `data/CHECKSUMS.sha256`.
+
+## Slides (Marp)
+
+Theme `slides/theme.css` (`@theme rts`), Marp CLI pinned to **4.5.1**; `.marprc.yml` at the repo root sets `html: true` and the theme. Input file first — `--theme-set` swallows positional arguments.
+
+```bash
+npx @marp-team/marp-cli@4.5.1 slides/00-overview.md --html --theme-set slides/theme.css -o out/00-overview.html
+npx @marp-team/marp-cli@4.5.1 slides/00-overview.md --html --pdf --allow-local-files --theme-set slides/theme.css -o out/00-overview.pdf   # needs Chrome
+npx @marp-team/marp-cli@4.5.1 --theme-set slides/theme.css -s slides/      # live preview
+```
+
+| Deck | Slides | Phase |
+|---|---|---|
+| `00-overview.md` | door + S1–S12 | Phase 0 — setup, welcome, the problem and the plan |
+| `02-data.md` | S13–S19 | Phase 1 — data prep |
+| `03-tiles.md` | S20–S26 | Phase 2 → 3 — tiles, routing graph, the map |
+| `04-routing.md` | S27–S31 | Phase 3c — routing |
+| `05-adapt.md` | S32–S37 | Phase 4 — adapt |
+| `09-close.md` | S38–S41 | close |
+
+`notes/cue-sheet.md` is the instructor cue sheet; `IMAGE-CREDITS.md` lists the image sources. The Pages workflow builds every deck to HTML + PDF.

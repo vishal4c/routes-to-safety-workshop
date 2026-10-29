@@ -165,7 +165,7 @@ async function loadTiles() {
 // Layers in drawing order (bottom -> top). Whatever you plug in is inserted at its place in this list,
 // so the order you click the buttons never matters. Plugging a file in twice replaces its layers (edit -> click again).
 const ORDER = ['basemap-osm', 'tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'coverage-bands', 'roads-minor', 'roads-major',
-               'buildings_auburn', 'route-casing', 'route', 'shelters', 'places'];
+               'buildings', 'route-casing', 'route', 'shelters', 'towns'];
 
 function insertOrdered(layer) {
   if (map.getLayer(layer.id)) map.removeLayer(layer.id);
@@ -248,16 +248,16 @@ map.on('error', (e) => {
 
 // ---------------------------------------------------------------------------
 // Three views, one at a time (radio buttons top-left):
-//   evac   — our tiles: hazard, land cover, water, roads, buildings, places, shelters (default, works offline)
+//   evac   — our tiles: hazard, land cover, water, roads, buildings, towns, shelters (default, works offline)
 //   normal — OpenStreetMap raster underneath; only shelters, the pin and the route stay on top (needs internet)
-//   reach  — drive-time isochrones on a plain base (water + roads + places); the thematic evac layers are OFF so the
+//   reach  — drive-time isochrones on a plain base (water + roads + towns); the thematic evac layers are OFF so the
 //            bands are never read on top of the hazard colours.
 // Nothing is re-styled: each view is just setLayoutProperty(id, 'visibility', ...) on a list of layer ids.
 // ---------------------------------------------------------------------------
 const VIEW_LAYERS = {
-  evac:   { show: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places'], hide: ['basemap-osm', 'coverage-bands'] },
-  normal: { show: ['basemap-osm'], hide: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings_auburn', 'places', 'coverage-bands'] },
-  reach:  { show: ['tile-extent', 'water', 'roads-minor', 'roads-major', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings_auburn'] }
+  evac:   { show: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings', 'towns'], hide: ['basemap-osm', 'coverage-bands'] },
+  normal: { show: ['basemap-osm'], hide: ['tile-extent', 'water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'buildings', 'towns', 'coverage-bands'] },
+  reach:  { show: ['tile-extent', 'water', 'roads-minor', 'roads-major', 'towns', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings'] }
 };
 const viewButtons = [...document.querySelectorAll('#view-toggle button')];
 let view = 'evac';

@@ -9,7 +9,7 @@ Footer rule: the disclaimer stays visible. *Teaching example, not an official ev
 ```bash
 curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"        # PowerShell: curl.exe
 ```
-`$OSRM_URL` per tier: see `03-routing/README.md` (Codespaces: `<forwarded-8080-URL>/osrm` · Docker: `http://localhost:8080/osrm`).
+`$OSRM_URL` is preset in the tool container (`http://caddy:8080/osrm`); laptop terminal: `http://localhost:8080/osrm` (README → Phase 0 → Where to type).
 
 **Expected:** JSON containing `"code":"Ok"` and a `waypoints` array (a snapped location near Auburn).
 
@@ -69,4 +69,4 @@ Public `router.project-osrm.org` rejects `exclude=motorway`; the checkbox is dis
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm
 ```
-Tiny clip, about a minute — laptop terminal with Docker/Finch (option B) or the Codespaces terminal. Inside `docker compose exec workshop` on a laptop there is no Docker: the script prints what it would run and stops. Details: `03-routing/README.md`.
+Tiny clip, about a minute — laptop terminal with Docker/Finch (option B) or the Codespaces terminal. Inside `docker compose exec workshop` on a laptop there is no Docker: the script prints what it would run and stops. Details: README → Phase 2b.

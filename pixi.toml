@@ -1,7 +1,7 @@
 # Tier-3 alternative environment (no containers).  `pixi install && pixi shell`
 # NOT included on purpose:
 #   * pmtiles — the conda-forge "pmtiles" package is the *Python* library, not the go-pmtiles CLI.
-#     Install the go-pmtiles v1.31.2 binary instead (brew install pmtiles | GitHub release); see setup/README.md.
+#     Install the go-pmtiles v1.31.2 binary instead (brew install pmtiles | GitHub release); see README.md, Phase 0 option C.
 #   * OSRM — no native Windows/macOS binaries; routing needs tier 1 or 2.
 [project]
 name = "routes-to-safety"

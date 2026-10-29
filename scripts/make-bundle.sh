@@ -20,5 +20,5 @@ cp 01-tiles/planetiler.jar "$STAGE/01-tiles/"
 ls -lh dist/data-bundle.zip
 echo
 echo "Publish with:"
-echo "  gh release create data-v1 dist/data-bundle.zip --title 'Workshop data bundle' --notes 'OSM extracts, OSRM graph, prebuilt evac.pmtiles, planetiler.jar'"
-echo "(re-upload: gh release upload data-v1 dist/data-bundle.zip --clobber)"
+echo "  gh release create data-v2 dist/data-bundle.zip --title 'Workshop data bundle' --notes 'OSM extracts, OSRM graph, prebuilt evac.pmtiles, planetiler.jar'"
+echo "(re-upload: gh release upload data-v2 dist/data-bundle.zip --clobber)"

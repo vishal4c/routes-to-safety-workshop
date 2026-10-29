@@ -2,7 +2,7 @@ Workshop Materials License
 ==========================
 
 The workshop MATERIALS in this repository — slides, documentation, exercises,
-module READMEs, and other prose/instructional content — are licensed under the
+the README and other prose/instructional content — are licensed under the
 
     Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
 
@@ -27,3 +27,7 @@ Third-party DATA used in the workshop retains its own license:
 Overture Maps (Overture Maps Foundation), OpenStreetMap (© OpenStreetMap
 contributors, ODbL), CAL FIRE FRAP perimeters (CC-BY), NIFC/WFIGS (public),
 and FEMA NFHL (US Government Work).
+
+Map label fonts in 02-web/fonts/ are Noto Sans (Regular, Medium; Latin glyph ranges
+0-255 and 256-511, copied from https://github.com/protomaps/basemaps-assets),
+licensed under the SIL Open Font License 1.1.

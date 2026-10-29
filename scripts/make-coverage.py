@@ -11,7 +11,7 @@
      coverage_bands.geojson = per shelter, dissolved 0–10 / 10–20 / 20–30-minute rings (non-overlapping)
 
 Usage:  scripts/make-coverage.py [--osrm http://localhost:5000] [--res 8]
-This is Phase 2c — the "proper" version of 03-routing/exercises.md Stretch A — same /table call, more points, dissolved with DuckDB spatial.
+This is Phase 2c (reach bands / isochrones) — the same /table call as 03-routing/exercises.md Stretch A, with more points, dissolved with DuckDB spatial.
 """
 import argparse, json, os, sys, time, urllib.request
 import duckdb
@@ -25,7 +25,7 @@ W, S, E, N = (float(ENV[k]) for k in ("BBOX_W", "BBOX_S", "BBOX_E", "BBOX_N"))
 DRIVABLE = "('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link')"
 
 con = duckdb.connect()
-con.execute("INSTALL spatial; LOAD spatial; INSTALL h3 FROM community; LOAD h3;")
+con.execute("INSTALL spatial; LOAD spatial; INSTALL h3 FROM community; LOAD h3; SET geometry_always_xy = true;")
 t0 = time.time()
 # 1. hex grid: polyfill the bbox, keep cells whose polygon intersects a drivable road
 con.execute(f"""
@@ -37,8 +37,8 @@ WITH ids AS (
          h3_cell_to_lng(h3) AS lon, h3_cell_to_lat(h3) AS lat FROM ids
 )
 SELECT h.* FROM hex h
-WHERE EXISTS (SELECT 1 FROM '{ROOT}/data/overture/segments.parquet' s
-              WHERE s.class IN {DRIVABLE} AND ST_Intersects(h.geom, s.geometry))
+WHERE EXISTS (SELECT 1 FROM ST_Read('{ROOT}/data/overture/roads.geojson') s
+              WHERE s.class IN {DRIVABLE} AND ST_Intersects(h.geom, s.geom))
 """)
 cells = con.execute("SELECT h3, lon, lat FROM cells ORDER BY h3").fetchall()
 shelters = json.load(open(f"{ROOT}/data/shelters.geojson"))["features"]

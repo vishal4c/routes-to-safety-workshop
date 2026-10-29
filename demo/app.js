@@ -5,8 +5,11 @@
    Module scope keeps everything out of window. */
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs';
 {
-  const BBOX = [-121.40, 38.72, -120.52, 39.20]; // W,S,E,N study area — keep in sync with versions.env BBOX_*
-  const PMTILES_URL = new URL('../data/prebuilt/evac.pmtiles', location.href).href;
+  // ---- PHASE 4: the three lines to change for your own community ---------------------------------------------
+  const BBOX = [-121.40, 38.72, -120.52, 39.20];     // W,S,E,N — same four numbers as BBOX_* in versions.env
+  const CENTER = [-121.10, 38.93], ZOOM = 10;        // where the map opens
+  const PMTILES_URL = new URL('../data/prebuilt/evac.pmtiles', location.href).href;   // your tiles: cp out/evac.pmtiles data/prebuilt/
+  // ------------------------------------------------------------------------------------------------------------
   const $ = (id) => document.getElementById(id);
   const state = { shelters: [], osrm: null, start: null, closed: false, override: null, view: 'evac', reach: null, seq: 0, fixtures: false };
   let map, startMarker, destMarker, hoverPopup, resultPopup;
@@ -159,11 +162,11 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
   //   evac   — fire hazard severity + past fire perimeters on our own tiles (default, works offline)
   //   normal — plain OpenStreetMap basemap (internet needed)
   //   reach  — 10 / 20 / 30-min drive-time bands per shelter on a plain base; hazard is OFF so colours never mix
-  const THEME = ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'roads-motorway', 'buildings', 'places'];
+  const THEME = ['water', 'land_cover', 'hazard', 'fire_perimeters', 'roads-minor', 'roads-major', 'roads-motorway', 'buildings', 'towns'];
   const VIEWS = {
     evac:   { show: THEME, hide: ['basemap-osm', 'coverage-bands'] },
     normal: { show: ['basemap-osm'], hide: THEME.concat('coverage-bands') },
-    reach:  { show: ['water', 'roads-minor', 'roads-major', 'roads-motorway', 'places', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings'] }
+    reach:  { show: ['water', 'roads-minor', 'roads-major', 'roads-motorway', 'towns', 'coverage-bands'], hide: ['basemap-osm', 'land_cover', 'hazard', 'fire_perimeters', 'buildings'] }
   };
   const vis = (id, on) => { if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'); };
   function setView(name) {
@@ -253,7 +256,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     style.sources.shelters.data = shelters;
     style.sources.coverage_bands.data = bands;
     maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile);
-    map = new maplibregl.Map({ container: 'map', style, center: [-121.10, 38.93], zoom: 10, attributionControl: false });
+    map = new maplibregl.Map({ container: 'map', style, center: CENTER, zoom: ZOOM, attributionControl: false });
     map.addControl(new maplibregl.AttributionControl({ compact: false }));
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');

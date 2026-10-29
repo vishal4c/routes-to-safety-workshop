@@ -4,12 +4,12 @@ Run from the repo root. Solutions are collapsed — try first.
 
 ## A — How many `primary`-or-bigger roads?
 
-Count the road segments in `data/overture/segments.parquet` whose `class` is `motorway`, `trunk` or `primary`.
+Count the road segments in `data/overture/roads.geojson` whose `class` is `motorway`, `trunk` or `primary`.
 
 <details><summary>Solution</summary>
 
 ```bash
-duckdb -c "SELECT count(*) AS primary_plus FROM 'data/overture/segments.parquet' WHERE class IN ('motorway','trunk','primary')"
+duckdb -c "LOAD spatial; SELECT count(*) AS primary_plus FROM ST_Read('data/overture/roads.geojson') WHERE class IN ('motorway','trunk','primary')"
 ```
 ```
 ┌──────────────┐
@@ -57,7 +57,7 @@ Hint: `ST_MakeEnvelope(xmin, ymin, xmax, ymax)` + `ST_Intersects`.
 <details><summary>Solution</summary>
 
 ```bash
-duckdb -c "LOAD spatial; SET geometry_always_xy = true; COPY (SELECT id, class, subclass, name, route_ref, geometry FROM 'data/overture/segments.parquet' WHERE class IN ('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link') AND ST_Intersects(geometry, ST_MakeEnvelope(-121.02, 39.05, -120.90, 39.13))) TO 'out/roads_colfax.geojson' (FORMAT GDAL, DRIVER 'GeoJSON'); SELECT count(*) AS colfax_roads FROM ST_Read('out/roads_colfax.geojson')"
+duckdb -c "LOAD spatial; SET geometry_always_xy = true; COPY (SELECT id, class, subclass, name, route_ref, geom AS geometry FROM ST_Read('data/overture/roads.geojson') WHERE ST_Intersects(geom, ST_MakeEnvelope(-121.02, 39.05, -120.90, 39.13))) TO 'out/roads_colfax.geojson' (FORMAT GDAL, DRIVER 'GeoJSON'); SELECT count(*) AS colfax_roads FROM ST_Read('out/roads_colfax.geojson')"
 ```
 ```
 ┌──────────────┐

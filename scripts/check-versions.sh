@@ -42,14 +42,14 @@ for f in $WEB; do
   done
 done
 # Marp pin in workflow / README
-for f in .github/workflows/pages.yml README.md setup/README.md; do
+for f in .github/workflows/pages.yml README.md instructor/prep-checklist.md; do
   [ -f "$f" ] || continue
   for m in $(grep -oE 'marp-cli@[0-9][0-9A-Za-z.\-]*' "$f" | sort -u); do
     [ "$m" = "marp-cli@$MARP_VERSION" ] || { echo "DRIFT  $f: $m (pinned $MARP_VERSION)"; fail=1; }
   done
 done
 # README mentions of the headline pins
-for f in README.md setup/README.md; do
+for f in README.md; do
   [ -f "$f" ] || continue
   while IFS= read -r m; do   # read line-wise: the match may contain a space ("go-pmtiles v1.31.2")
     [ -n "$m" ] || continue

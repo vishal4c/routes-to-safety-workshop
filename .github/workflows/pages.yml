@@ -44,9 +44,9 @@ jobs:
         run: |
           mkdir -p site/data/prebuilt
           # evac.pmtiles is not in git: it is inside data-bundle.zip, or attached directly as evac.pmtiles
-          if gh release download data-v1 --repo "$GITHUB_REPOSITORY" --pattern evac.pmtiles --dir site/data/prebuilt 2>/dev/null; then
+          if gh release download data-v2 --repo "$GITHUB_REPOSITORY" --pattern evac.pmtiles --dir site/data/prebuilt 2>/dev/null; then
             echo "got evac.pmtiles asset"
-          elif gh release download data-v1 --repo "$GITHUB_REPOSITORY" --pattern data-bundle.zip --dir "$RUNNER_TEMP" 2>/dev/null \
+          elif gh release download data-v2 --repo "$GITHUB_REPOSITORY" --pattern data-bundle.zip --dir "$RUNNER_TEMP" 2>/dev/null \
                && unzip -o -j "$RUNNER_TEMP/data-bundle.zip" 'data/prebuilt/evac.pmtiles' -d site/data/prebuilt; then
             echo "extracted evac.pmtiles from bundle"
           else

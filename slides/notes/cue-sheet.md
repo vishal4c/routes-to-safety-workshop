@@ -39,8 +39,8 @@ Door slide before 09:00: "start your Codespace / `docker compose pull` as you si
 | 0 Phase 0 | Check still red | "Still red? Open the Codespaces link on the slide. Codespaces blocked? Open the Pages link and follow along in the browser." |
 | 1 Demo | Live demo fails | Play the 90-s recorded video (no scripted line in outline) |
 | 2 Phase 1b | Attendees see the Chevrolet dealer tagged `community_center` | "this is exactly why shelters.geojson is hand-verified and carries a `status`; at real scale somebody still has to check" (teaching line, not a fallback) |
-| 2 Phase 1c | Not done by minute 5 | `cp data/prebuilt/out/* out/` |
-| 2 general | Behind | "Copy `data/prebuilt/out/` into `out/` and catch up at the next card." |
+| 2 Phase 1c | Not done by minute 5 | skip it — nothing downstream needs `out/shelter-candidates.geojson` |
+| 2 general | Behind | "Nothing in Phase 1 is needed later — the tiles read `data/` directly; catch up at the next card." |
 | 3 Phase 2a | No PMTiles by minute 5 | `cp data/prebuilt/evac.pmtiles out/` |
 | 3 Phase 3a | Stuck past minute 8 | paste `steps/step3-styled.json` |
 | 3 general | Behind | `data/prebuilt/evac.pmtiles` · `steps/step1..4` · instructor Maputnik via `pmtiles serve` ZXY (no scripted line in outline) |
@@ -48,7 +48,7 @@ Door slide before 09:00: "start your Codespace / `docker compose pull` as you si
 | 4 Phase 3c step 3 | Closure question | "Real closures aren't a parameter — nobody flags a downed power line before you drive into it. This shows the calculation, not detection." |
 | 4 general | Tier 3/4 attendee (no routing by design) | Pair with a Docker/Codespaces neighbour or follow the screen (card says so); `steps/step3-solution.js`; Pages demo (map + shelters) |
 | 4 finish-early stretch | Cut / overrun | Card says: "finish at home — the repo has the solution" |
-| 5 Phase 4 | Wants the real run | Real run is homework (card says so); `make-data.sh --plan` works offline |
+| 5 Phase 4 | Wants the real run | Real run is homework (card says so); `scripts/fetch-overture.sh roads` takes seconds if the wifi holds |
 | 5 S34 | Going-live discussion | Caveat: going live raises the stakes on every S10 caveat |
 | Any | Red card cut | "we'll pick this up in the repo" |
 

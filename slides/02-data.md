@@ -31,7 +31,7 @@ Study area: **-121.40, 38.72, -120.85, 39.15** (W, S, E, N)
 
 ```sql
 SELECT count(*)
-FROM read_parquet('s3://overture-maps-data/release/2026-09-23.1/theme=transportation/type=segment/*')
+FROM read_parquet('s3://overturemaps-us-west-2/release/2026-09-23.1/theme=transportation/type=segment/*')
 WHERE bbox.xmin > -121.40 AND bbox.xmax < -120.85
   AND bbox.ymin >   38.72 AND bbox.ymax <   39.15;
 ```
@@ -48,8 +48,8 @@ WHERE bbox.xmin > -121.40 AND bbox.xmax < -120.85
 
 ```sql
 SELECT class, count(*) AS n   -- which columns / what to compute
-FROM 'data/overture/segments.parquet'
-WHERE subtype = 'road'        -- which rows to keep
+FROM ST_Read('data/overture/roads.geojson')
+WHERE class <> 'residential'  -- which rows to keep
 GROUP BY class;               -- one output row per class
 ```
 
@@ -90,7 +90,7 @@ WHERE  ST_Intersects(s.geom, h.geom)
 
 # Columns cheat sheet
 
-| You want | Raw Overture (S3) | Our `data/*.parquet` |
+| You want | Raw Overture (S3) | Our `data/overture/*.geojson` |
 |---|---|---|
 | a place's name | `names.primary` | `name` |
 | a place's category | `taxonomy.primary` | `category` |
@@ -98,7 +98,7 @@ WHERE  ST_Intersects(s.geom, h.geom)
 | road type | `class`, `subclass` | same |
 | the shape | `geometry` | same |
 
-- `scripts/sql/overture.sql` already flattened these — today you type the right-hand column
+- `scripts/fetch-overture.sh` already flattened these — today you type the right-hand column
 - `categories` was removed (Sep 2026) → `taxonomy.primary` · there is **no `fairground`** category
 - Never `SELECT *` on export — list columns (`road_flags[]`-style lists break the GeoJSON writer)
 
@@ -113,12 +113,12 @@ WHERE  ST_Intersects(s.geom, h.geom)
 
 ```
 duckdb → read Overture (S3) → filter to bbox
-       → COPY … TO 'data/overture/*.parquet'
+       → COPY … TO 'data/overture/<theme>.geojson'
 ```
 
-- Files: `segments`, `connectors`, `places`, `water`, `localities`, `buildings_auburn`
-- Committed to git — `git clone --depth 1` is 38 MB, 3 s; no network needed in the room
-- Re-run for your own town: `scripts/make-data.sh` (Phase 4)
+- Files: `roads`, `water`, `towns`, `land_cover`, `buildings`, `places` — six themes, all GeoJSON, 24 s for the whole box
+- Committed to git — no network needed in the room
+- Re-run for your own town: `scripts/fetch-overture.sh` (Phase 4)
 
 ---
 
@@ -128,18 +128,17 @@ duckdb → read Overture (S3) → filter to bbox
 
 # 🧪 Phase 1 — Extract the data
 
-**1a Look around (6 min)** — `DESCRIBE` segments · roads by `class` · places by `taxonomy.primary` → *Expected:* output on the printed card 👀
+**1a Look around (6 min)** — `DESCRIBE` roads · roads by `class` · places by `category` → *Expected:* output on the printed card 👀
 **1b Candidate shelters (8 min)** — category filter + `confidence >= 0.7` → spot the noise (a Chevrolet dealer tagged `community_center`) → open `data/shelters.geojson` → `ST_Intersects` with FHSZ 👀
 
-**1c Export (6 min)** — type **one** export live:
+**1c Export (6 min)** — write GeoJSON with SQL — the shelter-ish places from 1b, in the shape of `shelters.geojson`:
 ```sql
 LOAD spatial; SET geometry_always_xy = true;
-COPY (SELECT id, class, subclass, name, route_ref, geometry
-      FROM 'data/overture/segments.parquet' WHERE class IN (…drivable…))
-TO 'out/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
+COPY (SELECT …, geom AS geometry FROM ST_Read('data/overture/places.geojson')
+      WHERE category IN (…shelter-ish…) AND confidence >= 0.7)
+TO 'out/shelter-candidates.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
 ```
-then the rest: `duckdb -c ".read 00-data/03-export.sql"` → *Expected:* `out/` lists 6–7 files 👀
-⏱ not done by minute 5 → `cp data/prebuilt/out/* out/`
+`duckdb -c ".read 00-data/03-export.sql"` → *Expected:* 95 candidates (39 schools, 19 community centers …) 👀 — Phase 4 reuses this for your town
 
 **Exercises:** **A** count `primary`+ roads · **B** crow-flies nearest shelter to Foresthill (remember it!) · **C (finish early)** Colfax bbox re-export
-🎯 `duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"` → **36,294**
+🎯 `duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('data/overture/roads.geojson')"` → **36,294**

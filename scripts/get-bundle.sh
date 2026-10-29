@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 # Download data-bundle.zip (OSM extracts, OSRM graph, prebuilt evac.pmtiles, planetiler.jar),
-# verify CHECKSUMS.sha256 and unpack. Idempotent: re-running with everything in place does nothing.
+# verify CHECKSUMS.sha256 and unpack. Idempotent: re-running with everything in place and matching does nothing.
 # Offline / USB:  BUNDLE_ZIP=/path/to/data-bundle.zip scripts/get-bundle.sh
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
-BUNDLE_TAG="${BUNDLE_TAG:-data-v1}"
+BUNDLE_TAG="${BUNDLE_TAG:-data-v2}"
 URL="https://github.com/vishal4c/routes-to-safety-workshop/releases/download/${BUNDLE_TAG}/data-bundle.zip"
 mkdir -p dist data
 
+# Already here AND matching the checksums committed in data/CHECKSUMS.sha256 (so an old bundle is replaced, not kept)
 have_all() {
-  [ -f data/prebuilt/evac.pmtiles ] && [ -f data/osrm/study-area.osrm.mldgr ] && [ -f 01-tiles/planetiler.jar ] && [ -d data/osm ]
+  [ -f data/prebuilt/evac.pmtiles ] && [ -f data/osrm/study-area.osrm.mldgr ] && [ -f 01-tiles/planetiler.jar ] && [ -d data/osm ] || return 1
+  if command -v sha256sum >/dev/null; then sha256sum -c data/CHECKSUMS.sha256 --quiet >/dev/null 2>&1
+  else shasum -a 256 -c data/CHECKSUMS.sha256 --quiet >/dev/null 2>&1; fi
 }
 if have_all && [ "${FORCE:-0}" != 1 ]; then
-  echo "Bundle already in place (FORCE=1 to re-download)."
+  echo "Bundle already in place and matches data/CHECKSUMS.sha256 (FORCE=1 to re-download)."
 else
   ZIP="${BUNDLE_ZIP:-dist/data-bundle.zip}"
   if [ ! -f "$ZIP" ]; then
