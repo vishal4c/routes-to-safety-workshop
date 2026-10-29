@@ -43,7 +43,7 @@ Pinned versions (`versions.env`): DuckDB CLI 2.0.0 · Temurin 21 · Node 22 · g
 1. Use a **personal** GitHub account (employer‑managed accounts often block Codespaces).
 2. Repo page → **Code → Codespaces → Create codespace on main**. The first start takes 2–3 minutes: GitHub pulls the same three containers as Tier 2, downloads the data bundle and runs `check_setup.py` for you — you type nothing until the terminal prompt appears.
 3. Open the map from the **Ports tab → hover the row for port 8080 ("Workshop (Caddy)") → click the globe icon**. Never type `localhost:8080` into your own browser, and **never forward port 5000** (OSRM is only reached through Caddy at `/osrm/`).
-4. The terminal is a Linux bash **inside the tool container**: every workshop command works as written, `$WEB_URL` and `$OSRM_URL` are preset. The one thing it cannot do is run Docker, so `scripts/build-osrm.sh` (Phase 2b, optional) only prints what it would do — the graph is already running.
+4. The terminal is a Linux bash **inside the tool container**: every workshop command works as written, `$WEB_URL` and `$OSRM_URL` are preset. It can also run `docker` against the codespace's host (the `docker-outside-of-docker` feature in `.devcontainer/devcontainer.json`), so the optional `scripts/build-osrm.sh` (Phase 2b) works here too. If a codespace ever fails to create, that feature is the first thing to remove.
 
 ## Tier 2 — Local containers
 
@@ -90,7 +90,7 @@ duckdb -c ".read setup/hello-geo.sql"
 
 - The repo is bind-mounted at `/workspaces/routes-to-safety-workshop` (the working directory): every command in the module READMEs runs unchanged; what you write to `out/` is served at <http://localhost:8080/> on your laptop.
 - `curl` inside the container: `$OSRM_URL` (= `http://caddy:8080/osrm`). The browser uses `/osrm` on :8080 automatically.
-- No Docker inside the tool container → `scripts/build-osrm.sh` (Phase 2b optional / your own town) runs in a **laptop terminal** in the clone folder, not in this shell.
+- No Docker inside the tool container on a laptop → `scripts/build-osrm.sh` (Phase 2b optional / your own town) runs in a **laptop terminal** in the clone folder, not in this shell (Codespaces is the exception: its terminal can).
 - Prefer native tools? Install as in Tier 3; `osrm` + `caddy` from `docker compose up -d` are all you need from Docker.
 
 ## Tier 3 — Native, no containers (no routing)

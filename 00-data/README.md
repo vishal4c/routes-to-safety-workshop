@@ -12,7 +12,7 @@ flowchart LR
   classDef chk  fill:#E6F5EA,stroke:#2E8B57,color:#161D26
   classDef bail fill:#FFF4E5,stroke:#FF6101,color:#161D26,stroke-dasharray:5 4
 
-  P[/"data/overture/*.parquet<br/>segments 96,059 · places 27,096<br/>water · buildings · localities"/]:::file
+  P[/"data/overture/*.parquet<br/>segments 96,059 · places 27,096<br/>water · land cover · buildings · localities<br/>(optional tour: 04-overture-themes.sql)"/]:::file
   F[/"data/hazard/fhsz.parquet<br/>355 CAL FIRE polygons"/]:::file
   S1["1a · Look around<br/>01-explore.sql<br/>DESCRIBE · roads by class · place categories"]:::tool
   S2["1b · Candidate shelters<br/>02-shelters.sql<br/>confidence ≥ 0.7 · ST_Intersects(FHSZ)"]:::tool
@@ -92,6 +92,13 @@ Behind? `cp data/prebuilt/out/* out/` (PowerShell: `Copy-Item data/prebuilt/out/
 - One `duckdb -c ".read file.sql"` per run — a dot-command after another statement in the same `-c` does not work.
 - `ST_Read` needs `LOAD spatial;` in the same string (auto-load works online only).
 
+## Optional · the other Overture themes
+
+```bash
+duckdb -c ".read 00-data/04-overture-themes.sql"
+```
+1a opened two of the seven files in `data/overture/`. This opens all of them — `segments`, `connectors`, `places`, `water`, `land_cover`, `localities`, `buildings_auburn` — with the Overture theme/type each came from, row counts, the clipped bbox, and one breakdown per theme (numbered routes, place confidence, water kinds, land-cover classes, towns by population, building heights). Expected output sits above every query. They were staged by [`../scripts/sql/overture.sql`](../scripts/sql/overture.sql) (`scripts/make-data.sh overture` reruns it for a new bbox in Phase 4).
+
 ## Exercises (optional)
 
 [`exercises.md`](exercises.md): **A** primary-and-up roads · **B** nearest shelter to Foresthill (remember it for Phase 3) · **C** re-export for the Colfax box.
@@ -101,5 +108,6 @@ Behind? `cp data/prebuilt/out/* out/` (PowerShell: `Copy-Item data/prebuilt/out/
 | File | What |
 |---|---|
 | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` | steps 1a / 1b / 1c (`03-export.sql` is also run by `scripts/make-data.sh exports`) |
+| `04-overture-themes.sql` | optional — every staged Overture theme, with expected output |
 | `exercises.md` | A / B / C with collapsed solutions |
 | `../scripts/sql/overture.sql` | how `data/overture/` was made — DuckDB against the Overture S3 release (Phase 4) |

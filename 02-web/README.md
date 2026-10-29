@@ -3,7 +3,7 @@
 > Part of **Phase 3** (steps 3a and 3b) in the [main README](../README.md#phase-3--application--02-web--03-routing--demo). Same clicks; this page adds what each step file contains, how the page works and the fixes. Step 3c (routing) is [`../03-routing/`](../03-routing/) — it plugs into this page, which is why this folder comes first.
 
 `index.html` is one MapLibre GL JS page (6.14, ESM) + pmtiles.js. It starts empty.
-The **Edit** button (top-left) opens a panel with one row per dataset; **Add** plugs the file into the live map (no file edits, no reload). Row 0 is the tiles (`../out/evac.pmtiles`, falls back to `../data/prebuilt/evac.pmtiles`); rows 1–4 are JSON arrays of MapLibre layers in [`steps/`](steps/) and stay locked until the tiles are in.
+The **Edit** button (top-left) opens a panel with one row per dataset. Each row has a text box prefilled with the file it loads (path from the repo root — `PATHS` in `index.html`) and an **Add** button that plugs that file into the live map (no file edits, no reload). Row 0 is the tiles (`out/evac.pmtiles`; the default falls back to `data/prebuilt/evac.pmtiles`); rows 1–4 are JSON arrays of MapLibre layers in [`steps/`](steps/) and stay locked until the tiles are in. Type another path or a full URL in a box to plug in your own file (Phase 4) — the Routing row loads a module, which runs once per page.
 
 ```mermaid
 flowchart LR
@@ -59,7 +59,7 @@ Lost? open `02-web/solution.html` — `index.html` with everything preloaded.
 |---|---|---|
 | **Fire evac map** (default) | our tiles: hazard, land cover, water, roads, buildings, places, fire perimeters, shelters | nothing — offline |
 | **Base map** | OpenStreetMap raster; only shelters, the pin and the route on top | internet (`tile.openstreetmap.org`) |
-| **Shelter reach** | drive-time bands from every shelter: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter to isolate it | Edit → Add tiles + roads/shelters (if not yet), then the rings: `data/coverage/coverage_bands.geojson` |
+| **Shelter reach** | drive-time bands from every shelter: ≤ 10 min green · ≤ 20 blue · ≤ 30 light red; click a shelter to isolate it | Edit → Add rows 0, 1, 2 (if not yet), then the rings: `data/coverage/coverage_bands.geojson` |
 
 The switch only toggles `visibility` over a list of layer ids (`VIEW_LAYERS`); the legend follows the view. Nothing is overlaid: hazard is never drawn under the reach bands. Routing (Phase 3c) works in every view.
 

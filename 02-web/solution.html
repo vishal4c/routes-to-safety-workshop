@@ -32,7 +32,9 @@
   #edit-panel { position: absolute; top: 40px; left: 50px; z-index: 6; width: 400px; background: #fffffff8; border-radius: 4px; padding: 8px 10px; font-size: 12px; box-shadow: 0 1px 4px #0004; display: none; }
   #edit-panel b { display: block; margin-bottom: 4px; }
   #edit-panel .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 4px 0; border-top: 1px solid #0001; }
-  #edit-panel .item code { font-size: 11px; color: #555; grid-column: 1; }
+  #edit-panel .item input { grid-column: 1; width: 100%; box-sizing: border-box; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #333; background: #fafafa; border: 1px solid #0002; border-radius: 3px; padding: 2px 5px; }
+  #edit-panel .item input:focus { outline: 2px solid #0678ff55; background: #fff; }
+  #edit-panel .item input:disabled { color: #777; background: #f3f3f3; }
   #edit-panel .item small { grid-column: 1; color: #2e8b57; }
   #edit-panel .item button { grid-column: 2; grid-row: 1 / span 2; font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid #0003; border-radius: 4px; background: #fff; cursor: pointer; min-width: 64px; }
   #edit-panel .item button.done { background: #e6f5ea; border-color: #2e8b57; }
@@ -54,7 +56,7 @@
 <div id="edit-panel" role="region" aria-label="Plug in data">
   <b id="edit-title"></b>
   <div id="edit-items"></div>
-  <small>Each button loads one file into the map. Open the file, change a colour or a width, click the button again.</small>
+  <small>Each button loads the file named in its box. The boxes are prefilled with the workshop files (paths from the repo root); type another path or a URL to plug in your own. Changed a colour in a file? Click Reload.</small>
 </div>
 <div id="reach-status"></div>
 
@@ -100,34 +102,45 @@ function showNotice(text) {
 // The tiles — the file you built in Phase 2a. Plugged in with the first row of the Edit panel.
 // We ask the server for 2 bytes with a Range header: a correct server answers 206 (that is what PMTiles needs).
 // out/evac.pmtiles is preferred; if it is missing we fall back to the prebuilt copy and say so.
-const TILE_FILES = ['../out/evac.pmtiles', '../data/prebuilt/evac.pmtiles'];
-let tilesFile = null;   // which one is plugged in (shown in the Edit panel)
+// Every row of the Edit panel loads one file. PATHS is the file each row points at, relative to the REPO ROOT,
+// prefilled with the workshop defaults; the text box in the panel edits it (a relative path or a full URL).
+const PATHS = {
+  tiles: 'out/evac.pmtiles',
+  step1: '02-web/steps/step1-roads.json', step2: '02-web/steps/step2-hazard-water.json',
+  step3: '02-web/steps/step3-styled.json', step4: '02-web/steps/step4-final.json',
+  reach: 'data/coverage/coverage_bands.geojson',
+  routing: '03-routing/route.js'
+};
+const PREBUILT_TILES = 'data/prebuilt/evac.pmtiles';   // used when the default tiles path is empty (Phase 2a not done yet)
+// repo-root path or URL -> absolute URL. This page lives in 02-web/, so the repo root is one level up.
+const fileUrl = (p) => (/^(https?:)?\/\//.test(p) || p.startsWith('/')) ? new URL(p, location.href).href : new URL('../' + p, location.href).href;
 let tilesInfo = '';     // "1607 tiles · z4–14 · 8 layers: …" (shown under row 0)
 
 async function loadTiles() {
+  const want = PATHS.tiles;
+  const candidates = want === 'out/evac.pmtiles' ? [want, PREBUILT_TILES] : [want];
   let chosen = null;
-  for (const f of TILE_FILES) {
-    const url = new URL(f, location.href).href;
+  for (const f of candidates) {
     try {
-      const r = await fetch(url, { headers: { Range: 'bytes=0-1' }, cache: 'no-store' });
+      const r = await fetch(fileUrl(f), { headers: { Range: 'bytes=0-1' }, cache: 'no-store' });
       if (r.status === 206) { chosen = f; break; }
       if (r.status === 200) throw new Error(f + ': the server ignored the Range header — serve with Caddy or `npx serve`, never python http.server');
       console.warn(f + ': HTTP ' + r.status);
     } catch (e) { if (/Range header/.test(e.message)) throw e; console.warn(f + ' not reachable', e); }
   }
-  if (!chosen) throw new Error('no evac.pmtiles found — run 01-tiles/build.sh, or scripts/get-bundle.sh for the prebuilt copy');
-  if (chosen !== TILE_FILES[0]) showNotice('Using the prebuilt tiles (data/prebuilt/evac.pmtiles) — out/evac.pmtiles not found. Build yours with 01-tiles/build.sh, then Reload this row.');
+  if (!chosen) throw new Error(candidates.length > 1 ? 'not found, nor the prebuilt copy — run 01-tiles/build.sh, or scripts/get-bundle.sh' : 'not found — check the path');
+  if (chosen !== want) showNotice('Using the prebuilt tiles (' + chosen + ') — ' + want + ' not found. Build yours with 01-tiles/build.sh, then Reload this row.');
   // (Re)plug the source: drop every layer that draws from it, swap the source, put the layers back.
   const drawn = map.getStyle().layers.filter((l) => l.source === 'evac').map((l) => l.id);
   for (const id of drawn) map.removeLayer(id);
   if (map.getSource('evac')) map.removeSource('evac');
-  map.addSource('evac', { type: 'vector', url: 'pmtiles://' + new URL(chosen, location.href).href, minzoom: 4, maxzoom: 14 });
-  tilesFile = chosen.replace('../', ''); loaded.add('tiles');
+  map.addSource('evac', { type: 'vector', url: 'pmtiles://' + fileUrl(chosen), minzoom: 4, maxzoom: 14 });
+  loaded.add('tiles');
   // Something to see: read the file header, draw a dashed box around the area the tiles cover, list its layers.
-  const pm = new pmtiles.PMTiles(new URL(chosen, location.href).href);
+  const pm = new pmtiles.PMTiles(fileUrl(chosen));
   const h = await pm.getHeader(); const meta = await pm.getMetadata();
   const names = (meta.vector_layers || []).map((l) => l.id);
-  tilesInfo = h.numAddressedTiles + ' tiles · zoom ' + h.minZoom + '–' + h.maxZoom + ' · ' + names.length + ' layers: ' + names.join(', ');
+  tilesInfo = (chosen !== want ? 'loaded ' + chosen + ' instead · ' : '') + h.numAddressedTiles + ' tiles · zoom ' + h.minZoom + '–' + h.maxZoom + ' · ' + names.length + ' layers: ' + names.join(', ');
   const box = [[h.minLon, h.minLat], [h.maxLon, h.minLat], [h.maxLon, h.maxLat], [h.minLon, h.maxLat], [h.minLon, h.minLat]];
   const extent = { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: box } };
   if (map.getSource('tile-extent')) map.getSource('tile-extent').setData(extent); else map.addSource('tile-extent', { type: 'geojson', data: extent });
@@ -135,8 +148,8 @@ async function loadTiles() {
   map.fitBounds([[h.minLon, h.minLat], [h.maxLon, h.maxLat]], { padding: 40, duration: 800 });
   for (const s of STEPS) if (loaded.has('step' + s.n)) await loadStep(s);   // re-add what was already plugged in
   applyView();
-  if (chosen === TILE_FILES[0]) showNotice('Tiles plugged in. The dashed box is the area they cover — nothing is drawn until you Add rows 1–4.');
-  console.info('tiles: ' + tilesFile + ' — ' + tilesInfo);
+  if (chosen === want) showNotice('Tiles plugged in. The dashed box is the area they cover — nothing is drawn until you Add rows 1–4.');
+  console.info('tiles: ' + chosen + ' — ' + tilesInfo);
 }
 
 // Layers in drawing order (bottom -> top). Whatever you plug in is inserted at its place in this list,
@@ -156,11 +169,11 @@ function insertOrdered(layer) {
 // The step files are JSON arrays of MapLibre layers: open them to read and change the style.
 // Shortcut for demos and the solution page: index.html?steps=1,2,3,4&reach=1&routing=1  (steps imply tiles)
 // ---------------------------------------------------------------------------
-const STEPS = [
-  { n: 1, label: 'Roads',                                           file: 'steps/step1-roads.json' },
-  { n: 2, label: 'Hazard zones, water, land cover, shelters, town labels', file: 'steps/step2-hazard-water.json' },
-  { n: 3, label: 'Past fire perimeters (dashed)',                   file: 'steps/step3-styled.json' },
-  { n: 4, label: '3D buildings over Auburn (zoom in past 13, right-drag to tilt)', file: 'steps/step4-final.json' }
+const STEPS = [   // the file each step loads is PATHS.step1 … PATHS.step4
+  { n: 1, key: 'step1', label: 'Roads' },
+  { n: 2, key: 'step2', label: 'Hazard zones, water, land cover, shelters, town labels', reachLabel: 'Water, shelters, town labels (hazard and land cover stay hidden in this view)' },
+  { n: 3, key: 'step3', label: 'Past fire perimeters (dashed)' },
+  { n: 4, key: 'step4', label: '3D buildings over Auburn (zoom in past 13, right-drag to tilt)' }
 ];
 const PRELOAD = { tiles: true, steps: [1, 2, 3, 4], reach: true, routing: true };   // solution.html sets all of these
 
@@ -168,18 +181,20 @@ const loaded = new Set();   // keys: 'tiles', 'step1'…'step4', 'reach', 'routi
 
 async function loadStep(step) {
   if (!map.getSource('evac')) throw new Error('plug in the tiles first (row 0)');
-  const r = await fetch(step.file, { cache: 'no-store' });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const path = PATHS[step.key];
+  const r = await fetch(fileUrl(path), { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status + ' — check the path');
   const layers = await r.json();          // a syntax error in the JSON shows up here with line/column
+  if (!Array.isArray(layers)) throw new Error('expected a JSON array of MapLibre layers');
   for (const layer of layers) insertOrdered(layer);
-  loaded.add('step' + step.n);
+  loaded.add(step.key);
   applyView();
-  console.info('plugged in ' + step.file + ': ' + layers.map((l) => l.id).join(', '));
+  console.info('plugged in ' + path + ': ' + layers.map((l) => l.id).join(', '));
 }
 
 async function loadRouting() {
-  if (loaded.has('routing')) return;
-  const m = await import('../03-routing/route.js');   // the finished router: nearest shelter by road, I-80 toggle
+  if (loaded.has('routing')) return;   // a module runs once; reload the page to swap it
+  const m = await import(fileUrl(PATHS.routing));   // the finished router: nearest shelter by road, I-80 toggle
   m.start(map, maplibregl);
   loaded.add('routing');
 }
@@ -264,14 +279,13 @@ const editBtn = document.getElementById('edit-btn'), editPanel = document.getEle
 editBtn.onclick = () => { const open = editPanel.style.display !== 'block'; editPanel.style.display = open ? 'block' : 'none'; editBtn.setAttribute('aria-expanded', open); };
 
 function editItems() {
-  const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy). Draws only a dashed box around the covered area; rows 1–4 draw from it', file: tilesFile || 'out/evac.pmtiles', info: tilesInfo, run: loadTiles };
   const needTiles = (it) => Object.assign(it, { disabled: !loaded.has('tiles'), hint: 'plug in the tiles first' });
-  const routing = { key: 'routing', label: 'Routing — click the map for the nearest shelter by road, I-80 toggle', file: '03-routing/route.js', run: loadRouting };
-  if (view === 'evac') return [tiles, ...STEPS.map((s) => needTiles({ key: 'step' + s.n, label: s.n + ' · ' + s.label, file: '02-web/' + s.file, run: () => loadStep(s) })), routing];
-  if (view === 'reach') return [tiles,
-    needTiles({ key: 'step2', label: 'Roads, water, shelters, town labels (steps 1 + 2)', file: '02-web/steps/step2-hazard-water.json', run: async () => { await loadStep(STEPS[0]); await loadStep(STEPS[1]); } }),
-    { key: 'reach', label: 'Reach rings — 10 / 20 / 30 min drive to each shelter', file: 'data/coverage/coverage_bands.geojson', run: loadReach },
-    routing];
+  const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy). Draws only a dashed box around the covered area; rows 1–4 draw from it', info: tilesInfo, run: loadTiles };
+  const step = (s) => needTiles({ key: s.key, label: s.n + ' · ' + (view === 'reach' && s.reachLabel ? s.reachLabel : s.label), run: () => loadStep(s) });
+  const reach = { key: 'reach', label: 'Reach rings — 10 / 20 / 30 min drive to each shelter', run: loadReach };
+  const routing = { key: 'routing', label: 'Routing — click the map for the nearest shelter by road, I-80 toggle', run: loadRouting, once: true };
+  if (view === 'evac') return [tiles, ...STEPS.map(step), routing];
+  if (view === 'reach') return [tiles, step(STEPS[0]), step(STEPS[1]), reach, routing];
   return [];
 }
 
@@ -284,15 +298,23 @@ function renderEditPanel() {
   for (const it of items) {
     const row = document.createElement('div'); row.className = 'item';
     const done = loaded.has(it.key);
-    row.innerHTML = '<span>' + it.label + '</span><code>' + it.file + '</code>' + (done && it.info ? '<small>✓ ' + it.info + '</small>' : '');
+    const label = document.createElement('span'); label.textContent = it.label;
+    const input = document.createElement('input');   // the file this row loads — prefilled, editable
+    input.type = 'text'; input.value = PATHS[it.key]; input.spellcheck = false; input.setAttribute('aria-label', 'file for ' + it.label);
+    input.title = 'File this row loads: a path from the repo root, or a full URL. Edit it to plug in your own file, then click the button.';
+    input.oninput = () => { PATHS[it.key] = input.value.trim(); };
     const b = document.createElement('button'); b.type = 'button'; b.textContent = done ? 'Reload' : 'Add'; b.className = done ? 'done' : '';
     b.style.gridRow = '1 / span ' + (done && it.info ? 3 : 2);
     if (it.disabled && !done) { b.disabled = true; b.title = it.hint; row.style.opacity = 0.55; }
+    if (it.once && done) { b.disabled = true; b.textContent = 'Added'; input.disabled = true; b.title = 'A module runs once; reload the page to swap it'; }
     b.onclick = async () => {
       b.disabled = true; b.textContent = '…';
-      try { await it.run(); } catch (e) { showNotice(it.file + ': ' + e.message); console.error(e); }
+      try { await it.run(); } catch (e) { showNotice(PATHS[it.key] + ': ' + e.message); console.error(e); }
       renderEditPanel();
     };
+    input.onkeydown = (e) => { if (e.key === 'Enter' && !b.disabled) b.click(); };
+    row.append(label, input);
+    if (done && it.info) { const s = document.createElement('small'); s.textContent = '✓ ' + it.info; row.appendChild(s); }
     row.appendChild(b); box.appendChild(row);
   }
 }
@@ -306,8 +328,7 @@ let reachShelter = null;          // null = all shelters, otherwise one shelter 
 let reachData = null;             // the loaded GeoJSON (for shelter names in the status line)
 
 async function loadReach() {
-  const url = new URL('../data/coverage/coverage_bands.geojson', location.href).href;
-  const r = await fetch(url, { cache: 'no-store' });
+  const r = await fetch(fileUrl(PATHS.reach), { cache: 'no-store' });
   if (!r.ok) throw new Error('HTTP ' + r.status + ' — pull the data bundle or run scripts/make-coverage.py (needs OSRM)');
   reachData = await r.json();
   if (map.getSource('coverage')) map.getSource('coverage').setData(reachData); else map.addSource('coverage', { type: 'geojson', data: reachData });
@@ -363,7 +384,7 @@ map.on('load', async () => {
   const q = new URLSearchParams(location.search);
   const steps = q.has('steps') ? q.get('steps').split(',').map(Number) : PRELOAD.steps;
   if (steps.length || q.get('tiles') === '1' || PRELOAD.tiles) await loadTiles().catch((e) => showNotice(e.message));
-  for (const n of steps) { const s = STEPS.find((x) => x.n === n); if (s) await loadStep(s).catch((e) => showNotice(s.file + ': ' + e.message)); }
+  for (const n of steps) { const s = STEPS.find((x) => x.n === n); if (s) await loadStep(s).catch((e) => showNotice(PATHS[s.key] + ': ' + e.message)); }
   if (q.get('reach') === '1' || PRELOAD.reach) await loadReach().catch((e) => showNotice(e.message));
   if (q.get('routing') === '1' || PRELOAD.routing) await loadRouting().catch((e) => showNotice(e.message));
   renderEditPanel();

@@ -46,10 +46,10 @@ flowchart LR
    ```bash
    duckdb -c ".read 00-data/03-export.sql"            # out/*.geojson
    01-tiles/build.sh                                  # out/evac.pmtiles
-   scripts/build-osrm.sh                              # data/osrm/  — option B laptop terminal (needs Docker/Finch); then: docker compose restart osrm. Not possible in Codespaces
+   scripts/build-osrm.sh                              # data/osrm/  — option B: laptop terminal (needs Docker/Finch) · Codespaces: its terminal; then: docker compose restart osrm
    scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson   (laptop: --osrm http://localhost:8080/osrm)
    ```
-7. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/app.js`, the default pin (`START`) in `03-routing/route.js`.
+7. **Re-centre the pages** — `center` / `zoom` in `02-web/index.html` and `demo/app.js`, the default pin (`START`) in `03-routing/route.js`. Your rebuilt files land on the default paths, so the Edit panel in `02-web/` needs no change; files elsewhere: type their path into the row's text box.
 8. **Verify and publish** — `sha256sum -c data/CHECKSUMS.sha256`; regenerate your own list with `scripts/make-bundle.sh`; push `out/evac.pmtiles`, `data/coverage/`, `02-web/`, `demo/` to any static host that answers Range requests. Keep the attribution line and the disclaimer on the map.
 
 ## Swap the hazard

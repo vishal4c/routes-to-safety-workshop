@@ -67,13 +67,13 @@ Drag the pin anywhere in the box: the route recomputes. Stuck? point the import 
 From **Dutch Flat (-120.838, 39.198)** to Sierra Vista Community Center: 17.9 min → **31.3 min**, via Dutch Flat Rd / Magra Rd / Rollins Lake Rd.
 A real closure is not a URL parameter — this shows the calculation, not detection.
 
-## Build the graph yourself — Phase 2b (optional; option B laptop terminal only)
+## Build the graph yourself — Phase 2b (optional; laptop terminal or Codespaces)
 
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm        # tiny clip, about a minute
 scripts/build-osrm.sh                                          # the full study area → data/osrm/  (then: docker compose restart osrm)
 ```
-Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian`. It needs Docker or Finch on the machine it runs on. Inside the tool container and in Codespaces there is no Docker: the script prints the three commands it would run and exits — the study-area graph from the bundle is already running there.
+Runs `osrm-extract` (car profile) → `osrm-partition` → `osrm-customize` in `ghcr.io/project-osrm/osrm-backend:v26.10.0-debian`. It needs Docker or Finch where it runs: a laptop terminal (option B) or the Codespaces terminal (which drives its host's Docker). Inside `docker compose exec workshop bash` on a laptop there is no Docker: the script prints the three commands it would run and exits — the study-area graph from the bundle is already running there.
 
 ## Files
 

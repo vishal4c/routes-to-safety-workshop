@@ -2,19 +2,36 @@
   "name": "Routes to Safety",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "workshop",
-  "runServices": ["workshop", "osrm", "caddy"],
+  "runServices": [
+    "workshop",
+    "osrm",
+    "caddy"
+  ],
   "workspaceFolder": "/workspaces/routes-to-safety-workshop",
   "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
   "shutdownAction": "stopCompose",
-  "forwardPorts": ["caddy:8080"],
+  "forwardPorts": [
+    "caddy:8080"
+  ],
   "portsAttributes": {
-    "caddy:8080": { "label": "Workshop (Caddy)", "onAutoForward": "notify" },
-    "5000": { "onAutoForward": "ignore" }
+    "caddy:8080": {
+      "label": "Workshop (Caddy)",
+      "onAutoForward": "notify"
+    },
+    "5000": {
+      "onAutoForward": "ignore"
+    }
   },
   "postCreateCommand": "bash scripts/get-bundle.sh; ln -sf /opt/planetiler.jar 01-tiles/planetiler.jar; python3 setup/check_setup.py",
   "customizations": {
     "vscode": {
-      "extensions": ["ms-python.python", "dvirtz.parquet-viewer"]
+      "extensions": [
+        "ms-python.python",
+        "dvirtz.parquet-viewer"
+      ]
     }
   }
 }

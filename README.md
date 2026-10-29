@@ -94,7 +94,7 @@ python3 setup/check_setup.py
 | Stop / restart | `docker compose down` · `docker compose up -d` |
 | Offline room | `BUNDLE_ZIP=/path/data-bundle.zip bash scripts/get-bundle.sh` |
 
-The tool container cannot *build* an OSRM graph (no Docker inside); the graph ships in the bundle, and for your own town you run `scripts/build-osrm.sh` on the laptop (Phase 4).
+The tool container cannot *build* an OSRM graph (no Docker inside); the graph ships in the bundle, and for your own town you run `scripts/build-osrm.sh` in a laptop terminal (Phase 2b optional, Phase 4).
 
 ### C — native tools
 
@@ -109,7 +109,7 @@ export WEB_URL=http://localhost:8080             # in a second terminal; the che
 ```
 No routing without containers (OSRM has no Windows/macOS binary). Have Docker anyway? `docker compose up -d osrm caddy` serves the repo on :8080 **and** adds routing — skip `npx serve`, and `export OSRM_URL=http://localhost:8080/osrm`. Otherwise pair up for Phase 3c.
 
-**Where to type.** Options A and B: every command in this README runs in the **tool container shell** — the terminal Codespaces opens, or `docker compose exec workshop bash` (prompt `vscode ➜ /workspaces/routes-to-safety-workshop`). It has every tool, and `$WEB_URL` (`http://caddy:8080`) and `$OSRM_URL` (`http://caddy:8080/osrm`) are preset there; `localhost` inside it is the container itself, not Caddy. Your browser reaches the same server at `http://localhost:8080`. The only commands that run in a **laptop terminal** (your own shell, in the clone folder) are `docker compose …` and `scripts/build-osrm.sh` — both marked below. Option C: everything is the laptop terminal, with the two variables exported as above.
+**Where to type.** Options A and B: every command in this README runs in the **tool container shell** — the terminal Codespaces opens, or `docker compose exec workshop bash` (prompt `vscode ➜ /workspaces/routes-to-safety-workshop`). It has every tool, and `$WEB_URL` (`http://caddy:8080`) and `$OSRM_URL` (`http://caddy:8080/osrm`) are preset there; `localhost` inside it is the container itself, not Caddy. Your browser reaches the same server at `http://localhost:8080`. The only commands that run in a **laptop terminal** (your own shell, in the clone folder) are `docker compose …` and, for option B, `scripts/build-osrm.sh` — both marked below (in Codespaces the one terminal does everything). Option C: everything is the laptop terminal, with the two variables exported as above.
 
 ### Phase 0 — setup checkpoint
 
@@ -176,7 +176,13 @@ duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('out/roads.geojson')"     
 ```
 `LOAD spatial` turns on DuckDB's geo extension, `ST_Read` opens a GeoJSON file as a table. Same 36,294 as 1a: nothing was lost on the way out.
 
-Behind? `cp data/prebuilt/out/* out/` gives you the finished exports. Optional extra SQL: [`00-data/exercises.md`](00-data/exercises.md).
+Behind? `cp data/prebuilt/out/* out/` gives you the finished exports.
+
+**Optional · the other Overture themes** — 1a opened two of the seven staged files. This one opens all of them (roads, connectors, places, water, land cover, towns, buildings): which Overture theme each came from, row counts, and one breakdown per theme, each with its expected output in the file:
+```bash
+duckdb -c ".read 00-data/04-overture-themes.sql"
+```
+How the files were made (DuckDB against the public Overture release, clipped to the bbox): [`scripts/sql/overture.sql`](scripts/sql/overture.sql) — Phase 4 reruns it for your own area. More SQL: [`00-data/exercises.md`](00-data/exercises.md).
 
 ---
 
@@ -212,7 +218,7 @@ No GeoJSON yet? `01-tiles/build.sh --prebuilt`.
 ```bash
 curl "$OSRM_URL/nearest/v1/driving/-121.08,38.90"     # → {"code":"Ok", …}  the graph answers
 ```
-Optional — watch a graph being built on a tiny clip (Colfax). **Option B only, laptop terminal**, in the clone folder: the script runs the OSRM container, and there is no Docker inside the tool container or inside a codespace. Codespaces and option C: skip it — the graph above is the finished result; running the script there only prints the three commands it would have run.
+Optional — watch a graph being built on a tiny clip (Colfax). The script runs the OSRM container, so it needs Docker where you type it: **option B → laptop terminal** in the clone folder (not inside `docker compose exec`, which has no Docker and only prints the three commands it would run); **Codespaces → its own terminal works** (the codespace drives the Docker of its host VM); option C: skip — the graph above is the finished result.
 ```bash
 scripts/build-osrm.sh data/osm/colfax.osm.pbf out/osrm     # about 1 min → out/osrm/colfax.osrm.*
 ```
@@ -242,7 +248,7 @@ flowchart LR
   PM --> S --> V --> R --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The map is blank. Click **Edit** (top-left): a panel lists the data files, one row each, with an **Add** button. Clicking **Add** puts that file into the map. **You type and edit nothing in this phase** — every step below is one click. What you add stays until you refresh the page.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The map is blank. Click **Edit** (top-left): a panel lists the data files, one row each. Every row has a text box **prefilled with the workshop file** (a path from the repo root) and an **Add** button; clicking **Add** puts that file into the map. **You type and edit nothing in this phase** — leave the boxes as they are, every step below is one click. (The boxes exist for Phase 4: type another path or a URL to plug in your own file.) What you add stays until you refresh the page.
 
 ### 3a · Style — stay on **Fire evac map**, click **Edit**, then **Add** on each row, top to bottom
 
@@ -270,7 +276,7 @@ Want to change a colour or a width? Open that row's JSON file (`02-web/steps/…
 
 ### 3b · Shelter reach — click **Shelter reach** (top-left), then **Edit**
 
-**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0 and 1+2 are already green if you did 3a; if not, Add them first.)
+**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0, 1 and 2 are already green if you did 3a; if not, Add them first.)
 
 <img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
 
@@ -325,7 +331,7 @@ scripts/make-data.sh                             # 3. fetch: overture · hazard 
 #    5. hazard outside California: swap the source, keep the SQL + style → 04-adapt/README.md#swap-the-hazard
 duckdb -c ".read 00-data/03-export.sql"          # 6. rebuild artifacts
 01-tiles/build.sh
-scripts/build-osrm.sh                            #    option B, laptop terminal (needs Docker); then: docker compose restart osrm. Not possible in Codespaces
+scripts/build-osrm.sh                            #    option B: laptop terminal (needs Docker) · Codespaces: its terminal; then: docker compose restart osrm
 scripts/make-coverage.py --osrm http://osrm:5000
 #    7. center/zoom in 02-web/index.html and demo/app.js, default pin in 03-routing/route.js
 sha256sum -c data/CHECKSUMS.sha256               # 8. verify, then publish out/evac.pmtiles + data/coverage/ + 02-web/ + demo/ to any static host
