@@ -23,14 +23,14 @@ size: 16:9
 
 # Routes to Safety
 
-## Build a wildfire-evacuation map, then compute the routes
+## An evacuation-services map from open geospatial data — datasets, tiles, routing, rendering
 
 Vishal Kumar · Shaishav Maisuria
 FOSS4G NA 2026 · Sacramento · Room Beavis
 
 <div class="small">Slides, code and data: github.com/vishal4c/routes-to-safety-workshop &nbsp;·&nbsp; [QR placeholder: repo URL]</div>
 
-<!-- S1. 1 min total for S1–S2. Say: "Good morning. In the next three hours we build a wildfire-evacuation map for the Placer County I-80 corridor, and then we compute routes over it. If you haven't started your Codespace or docker compose pull, do it now while I talk." -->
+<!-- S1. 1 min total for S1–S2. Say: "Good morning. In the next three hours we build an evacuation-services map for the Placer County I-80 corridor — and along the way get hands-on with open geospatial datasets, tile generation, a routing engine and a browser map renderer. If you haven't started your Codespace or docker compose pull, do it now while I talk." -->
 
 ---
 
@@ -67,13 +67,13 @@ FOSS4G NA 2026 · Sacramento · Room Beavis
 
 ```text
 Overture + OSM  ──►  DuckDB  ──►  GeoJSON  ──►  Planetiler  ──►  PMTiles  ──►  MapLibre
-   (open data)     (spatial SQL)  (out/*.geojson)  (your tiles)   (one file)    (the map)
+   (open data)     (spatial SQL)  (data/**.geojson) (your tiles)   (one file)    (the map)
                                                                                   │
                          OSRM graph ──►  /table  /route  /nearest  ───────────────┘
                                                               (routes + drive times)
 ```
 
-- One extract → **both** a basemap **and** live evacuation routes
+- One study-area extract → **both** an evacuation-services map **and** live routes over it
 - No database server, no tile server: files + a static web server (+ OSRM for routing)
 
 <!-- S4. 1 min. Printed as a handout. Say: "This is the whole workshop in one picture. Data goes in on the left, a map and routes come out on the right. Every phase is one arrow on this slide. We'll fill in the pieces as we build them, and I'll show it again at the end." -->
@@ -109,21 +109,16 @@ duckdb -c ".read setup/hello-geo.sql"
 
 ---
 
-# Paradise 2018 · Lahaina 2023
+# What we work with — open data, open tools
 
-> The map said go; the road couldn't take them.
+| Open datasets | | Open tools | |
+|---|---|---|---|
+| **OpenStreetMap** | the road network OSRM routes on (`.osm.pbf`, ODbL) | **DuckDB** + spatial | SQL over GeoJSON and Overture's S3 Parquet — pull a county out of the planet in seconds |
+| **Overture Maps** | themes: *transportation · places · divisions · base · buildings* — roads, POIs, towns, water, land cover, 3D buildings | **Planetiler → PMTiles** | GeoJSON → vector tiles, one static file, no tile server |
+| **CAL FIRE** | Fire Hazard Severity Zones · fire perimeters (ArcGIS services) | **OSRM** | routing graph + `/nearest` `/table` `/route` → nearest shelter by road, reach bands, what-if closures |
+| **ESA WorldCover** | land cover (via Overture base) | **MapLibre GL JS** | renders the tiles, three views, routing in the page |
 
-<div class="two-col">
-<div class="imgph" style="min-height:230px">assets/img/paradise-camp-fire-2018.jpg<br>(public domain, credited)</div>
-<div class="imgph" style="min-height:230px">assets/img/lahaina-2023.jpg<br>(public domain, credited)</div>
-</div>
-
-- **Paradise:** Skyway narrowed to two lanes; evacuees gridlocked; 85 died
-- **Lahaina:** Front Street blocked by downed power lines and a roadblock; at least 99 died
-
-<div class="credit">Image credits: slides/IMAGE-CREDITS.md (public-domain imagery only).</div>
-
-<!-- S6. 1.5 min. Say: "Two towns, two fires, five years apart. In Paradise in 2018 the main road out had been narrowed to two lanes and it gridlocked. In Lahaina in 2023 a blocked Front Street funnelled people toward a dead end. The map said go. The road couldn't take them." No identifiable victims in images; public-domain only. -->
+<!-- S6. 1.5 min. Say: "Everything today is open data and open tools. Left column: where the bits of the map come from — OpenStreetMap for the roads we route on, Overture for the roads, places, towns, water and buildings we draw, CAL FIRE for the hazard. Right column: the four tools, one per phase — DuckDB to extract and query, Planetiler to cut tiles, OSRM to route, MapLibre to draw." -->
 
 ---
 
@@ -131,13 +126,12 @@ duckdb -c ".read setup/hello-geo.sql"
 
 - Mandatory evacuation **ordered Aug 4**, lifted **~2 days later**
 - **2,619 acres**, on the I-80 corridor we map today
-- Those two towns are not on today's map
 
-> **Not on today's map — different towns, same two questions.**
+> **A real incident on today's corridor — the two questions below are not abstract here.**
 
 <div class="credit">Source: CAL FIRE incident page, fire.ca.gov/incidents/2021/8/4/river-fire · image: assets/img/river-fire-2021.jpg (placeholder)</div>
 
-<!-- S7. 1.5 min. Say: "Those two towns aren't on today's map — different towns, same two questions. Closer to home: the River Fire, August 2021, at Colfax. Mandatory evacuation ordered August 4th, lifted about two days later, 2,619 acres." -->
+<!-- S7. 1.5 min. Say: "Why this corridor: the River Fire, August 2021, at Colfax. Mandatory evacuation ordered August 4th, lifted about two days later, 2,619 acres." -->
 
 ---
 

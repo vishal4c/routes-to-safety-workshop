@@ -1,8 +1,17 @@
-# Routes to Safety — a wildfire-evacuation map from open data
+# Routes to Safety — an evacuation-services map from open geospatial data
 
 Hands-on workshop for **FOSS4G North America 2026** · Sacramento, CA · Mon Nov 2, 2026 · room Beavis.
-You build an evacuation map for the **Placer County I-80 corridor** from open data and open tools, then ask it:
-*which shelter can I reach by road, and how long does it take if I-80 is closed?* Then you point the same pipeline at your own community.
+
+In three hours we will build an **evacuation-services map** for the **Placer County I-80 corridor** — shelters, fire-hazard zones and the roads that connect them — and use it to answer a route-based question: *which shelter can I reach by road, and how long does it take if I-80 is closed?* In the last phase we point the same pipeline at a community of your choice.
+
+**What you will learn**
+
+| | Topic | Hands-on with |
+|---|---|---|
+| 1 | **Open geospatial datasets** — what is in OpenStreetMap, the Overture Maps themes (transportation, places, divisions, base, buildings) and public hazard layers (CAL FIRE); how to pull a study area out of a planet-wide release in seconds, and how to read and write GeoJSON with SQL | DuckDB + spatial |
+| 2 | **Tile generation** — turning GeoJSON into vector tiles, and serving the whole map as one static file with no tile server | Planetiler · PMTiles |
+| 3 | **Routing engines for route-based analysis** — building a routing graph from an OpenStreetMap extract, then `/nearest`, `/table` and `/route` for nearest-shelter-by-road, drive-time reach bands (isochrones) and what-if closures | OSRM |
+| 4 | **Rendering** — a MapLibre style, three views over the same tiles, and routing wired into the page | MapLibre GL JS |
 
 **Finished result:** <https://vishal4c.github.io/routes-to-safety-workshop/demo/>
 
@@ -11,7 +20,7 @@ You build an evacuation map for the **Placer County I-80 corridor** from open da
 > **Teaching example, not an official evacuation resource.** Drive-time estimates assume no traffic and no closures.
 > In an emergency follow county OES / Genasys-Zonehaven alerts and CAL FIRE incident pages.
 
-## What you will build — five phases
+## What we will build — five phases
 
 ```mermaid
 flowchart LR
@@ -34,7 +43,7 @@ flowchart LR
   P3 --> P4
 ```
 
-| Phase | Steps | You end up with |
+| Phase | Steps | We end up with |
 |---|---|---|
 | 0 Setup | pick Codespaces / Docker / native · one checkpoint line | a shell with every tool, a web server on :8080 |
 | 1 Data prep | 1a look around · 1b shelters × hazard · 1c export | you can read and write GeoJSON with SQL |
@@ -209,7 +218,46 @@ flowchart LR
   D --> S1 --> S2 --> S3 --> O
 ```
 
-Everything the map needs is already in `data/`, as plain **GeoJSON** (one file per theme, clipped to the study box):
+<details><summary><b>▸ Optional · Fetch the data yourself — Overture themes with DuckDB, straight from S3</b> (already done for you; Phase 4 does this for your box)</summary>
+
+Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB can read those files in place and skip every row group outside your box, so a county-sized extract takes **seconds**, not a planet download. One theme, as DuckDB SQL:
+
+```sql
+INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
+SET s3_region = 'us-west-2'; SET geometry_always_xy = true;
+COPY (
+  SELECT id, class, subclass, names.primary AS name, routes[1].ref AS route_ref, geometry
+  FROM read_parquet('s3://overturemaps-us-west-2/release/2026-09-23.1/theme=transportation/type=segment/*')
+  WHERE subtype = 'road'
+    AND bbox.xmin > -121.40 AND bbox.xmax < -120.52 AND bbox.ymin > 38.72 AND bbox.ymax < 39.20
+) TO 'data/overture/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
+```
+Nested Overture columns (`names.primary`, `routes[1].ref`, `taxonomy.primary`) are flattened on the way out, and list-typed columns are left behind — the GeoJSON writer cannot store them. [`scripts/fetch-overture.sh`](scripts/fetch-overture.sh) runs six of these (one per file above) with the box from `versions.env`:
+
+```bash
+scripts/fetch-overture.sh             # all six → data/overture/*.geojson
+scripts/fetch-overture.sh roads       # just one
+```
+
+Measured on a laptop (≈ 100 Mbit/s); the time is mostly spent reading Parquet metadata on S3, so it barely grows with the box:
+
+| Theme | Placer box (0.42 sq. degrees, ≈ 45 × 33 miles) | 4 × 4 mile box (Bellevue, WA) |
+|---|---|---|
+| roads | 36,294 features · 17 MB · **5 s** | 2,499 · 1 MB · 4 s |
+| water | 1,920 · 1.8 MB · 2 s | 138 · 88 KB · 1 s |
+| towns | 121 · 26 KB · < 1 s | 4 · 4 KB · < 1 s |
+| land cover | 2,564 · 4.2 MB · 3 s | 21 · 20 KB · 2 s |
+| buildings | 12,606 (Auburn box) · 5.2 MB · 5 s | 14,541 (whole box) · 7 MB · 7 s |
+| places | 27,096 · 9.2 MB · 9 s | 10,856 · 3.9 MB · 2 s |
+| **all six** | **24 s** | **16–20 s** |
+
+Alternative: Overture's own CLI does the same without SQL — `uvx overturemaps download --bbox=-121.40,38.72,-120.52,39.20 -f geojson --type=segment -o roads.geojson` (one call per type, same bucket).
+
+**Hazard** comes from CAL FIRE's ArcGIS feature services ([`scripts/fetch-hazard.sh`](scripts/fetch-hazard.sh) pages through them with `f=geojson`, so the server reprojects from California State Plane feet to lon/lat for us). **Shelters** are hand-checked from county releases: only Sierra College is `verified` (it was the Mosquito Fire shelter in 2022); everything else is `candidate`.
+
+</details>
+
+**The data is staged in [`data/`](data/)** — plain **GeoJSON**, one file per theme, clipped to the study box. These are the files we explore in this phase and turn into map artifacts in Phase 2:
 
 | File | What | From | Features |
 |---|---|---|---|
@@ -262,45 +310,6 @@ Eight queries with their expected output in the file: an inventory of the six fi
 
 </details>
 
-<details><summary><b>▸ Optional · How the data was fetched — Overture with DuckDB, straight from S3</b> (Phase 4 does this for your box)</summary>
-
-Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB can read those files in place and skip every row group outside your box, so a county-sized extract takes **seconds**, not a planet download. One theme, as DuckDB SQL:
-
-```sql
-INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
-SET s3_region = 'us-west-2'; SET geometry_always_xy = true;
-COPY (
-  SELECT id, class, subclass, names.primary AS name, routes[1].ref AS route_ref, geometry
-  FROM read_parquet('s3://overturemaps-us-west-2/release/2026-09-23.1/theme=transportation/type=segment/*')
-  WHERE subtype = 'road'
-    AND bbox.xmin > -121.40 AND bbox.xmax < -120.52 AND bbox.ymin > 38.72 AND bbox.ymax < 39.20
-) TO 'data/overture/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
-```
-Nested Overture columns (`names.primary`, `routes[1].ref`, `taxonomy.primary`) are flattened on the way out, and list-typed columns are left behind — the GeoJSON writer cannot store them. [`scripts/fetch-overture.sh`](scripts/fetch-overture.sh) runs six of these (one per file above) with the box from `versions.env`:
-
-```bash
-scripts/fetch-overture.sh             # all six → data/overture/*.geojson
-scripts/fetch-overture.sh roads       # just one
-```
-
-Measured on a laptop (≈ 100 Mbit/s); the time is mostly spent reading Parquet metadata on S3, so it barely grows with the box:
-
-| Theme | Placer box (0.42 sq. degrees, ≈ 45 × 33 miles) | 4 × 4 mile box (Bellevue, WA) |
-|---|---|---|
-| roads | 36,294 features · 17 MB · **5 s** | 2,499 · 1 MB · 4 s |
-| water | 1,920 · 1.8 MB · 2 s | 138 · 88 KB · 1 s |
-| towns | 121 · 26 KB · < 1 s | 4 · 4 KB · < 1 s |
-| land cover | 2,564 · 4.2 MB · 3 s | 21 · 20 KB · 2 s |
-| buildings | 12,606 (Auburn box) · 5.2 MB · 5 s | 14,541 (whole box) · 7 MB · 7 s |
-| places | 27,096 · 9.2 MB · 9 s | 10,856 · 3.9 MB · 2 s |
-| **all six** | **24 s** | **16–20 s** |
-
-Alternative: Overture's own CLI does the same without SQL — `uvx overturemaps download --bbox=-121.40,38.72,-120.52,39.20 -f geojson --type=segment -o roads.geojson` (one call per type, same bucket).
-
-**Hazard** comes from CAL FIRE's ArcGIS feature services ([`scripts/fetch-hazard.sh`](scripts/fetch-hazard.sh) pages through them with `f=geojson`, so the server reprojects from California State Plane feet to lon/lat for us). **Shelters** are hand-checked from county releases: only Sierra College is `verified` (it was the Mosquito Fire shelter in 2022); everything else is `candidate`.
-
-</details>
-
 ---
 
 ## Phase 2 — Map artifacts · the three files the app needs
@@ -342,7 +351,7 @@ curl -sSI -H "Range: bytes=0-15" "$WEB_URL/out/evac.pmtiles" | head -1     # HTT
 
 ### 2b · Routing graph
 
-OSRM needs its own graph, pre-computed once from an OpenStreetMap extract. The graph for the study area ships in the data bundle and the `osrm` container is already serving it.
+OSRM needs its own graph, pre-computed once from an OpenStreetMap extract — Overture's roads are for drawing, OSM's `.osm.pbf` carries the turn restrictions and speed limits a router needs.
 
 <details><summary><b>▸ Optional · Build the routing graph yourself, from an OpenStreetMap snapshot</b> (Geofabrik → osmium → OSRM; this is what Phase 4 does for your box)</summary>
 
@@ -362,6 +371,8 @@ Routing does not use the Overture roads: OSRM reads OpenStreetMap's own `.osm.pb
    The container then serves it: `osrm-routed --algorithm mld /data/study-area.osrm` (see `docker-compose.yml`).
 
 </details>
+
+**The routing graph is staged in `data/osrm/study-area.osrm.*`** (26 files, 99 MB, from the data bundle) and the `osrm` container is already serving it — this is the second artifact, used by 2c and by the routing in Phase 3.
 
 **Verify the graph answers** — two HTTP calls; the whole routing API is URLs like these:
 ```bash
@@ -428,7 +439,7 @@ Each row is a plain JSON file of MapLibre layers in [`02-web/steps/`](02-web/ste
 
 <img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
 
-**Base map** (the third button) needs nothing added: OpenStreetMap under the shelters, internet required. The three views are strictly one at a time — switching only flips layer visibility; nothing is drawn on top of something else.
+**Base map** (the third button) needs nothing added: a standard street map under the shelters, internet required. It is the [Esri World Street Map](https://www.arcgis.com/home/item.html?id=3b93337983e9436f8db950e38a8629af) raster service (no API key, worldwide, attribution required) rather than `tile.openstreetmap.org` on purpose — the OSM tile servers' [usage policy](https://operations.osmfoundation.org/policies/tiles/) throttles bulk requests from a single address, and a workshop room behind one NAT address is exactly that. Any `{z}/{x}/{y}` raster service works here; it is one `tiles` URL in the style. The three views are strictly one at a time — switching only flips layer visibility; nothing is drawn on top of something else.
 
 ### 3c · Routing — in **Fire evac map** or **Shelter reach**, **Edit** → **Routing → Add**
 
@@ -650,7 +661,8 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | [`data/`](data/) | the GeoJSON inputs (in git) · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
 | `out/` | what you build: `evac.pmtiles`, `shelter-candidates.geojson` | 1 2 |
 | [`docker-compose.yml`](docker-compose.yml) · [`Caddyfile`](Caddyfile) · [`.devcontainer/`](.devcontainer/) | the three containers (tool shell, OSRM, Caddy) — options A and B share them | 0 |
-| [`slides/`](slides/) · [`instructor/`](instructor/) | Marp decks · prep checklist (also: how to regenerate the data bundle and build the slides), wifi runbook | — |
+| [`deck/`](deck/) | the slide deck shown in the room — `Routes-to-Safety-FOSS4G-NA-2026.pptx` and a PDF export | — |
+| [`slides/`](slides/) · [`instructor/`](instructor/) | Marp source for the same talk · prep checklist (also: how to regenerate the data bundle and build the slides), wifi runbook | — |
 | `docs/img/` | the screenshots on this page | — |
 
 ## The stack (pinned in [`versions.env`](versions.env))

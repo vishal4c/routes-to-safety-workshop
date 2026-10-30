@@ -49,7 +49,7 @@
 <div id="notice" role="status" aria-live="polite" title="click to dismiss"></div>
 <div id="view-toggle" role="group" aria-label="Map view">
   <button data-view="evac"   type="button" aria-pressed="true"  title="Our tiles: fire hazard severity, past fire perimeters, land cover, water, roads, shelters">Fire evac map</button>
-  <button data-view="normal" type="button" aria-pressed="false" title="Standard OpenStreetMap basemap (needs internet) with shelters and the route on top">Base map</button>
+  <button data-view="normal" type="button" aria-pressed="false" title="Standard street basemap — Esri World Street Map (needs internet) — with shelters and the route on top">Base map</button>
   <button data-view="reach"  type="button" aria-pressed="false" title="Drive-time isochrones on a plain base: the area each shelter can be reached from within 10 / 20 / 30 minutes by road (OSRM, no traffic). Click a shelter to see only its reach.">Shelter reach</button>
 </div>
 <button id="edit-btn" type="button" aria-expanded="false" title="Plug in the data for this view">Edit</button>
@@ -221,11 +221,13 @@ const map = new maplibregl.Map({
     // filled in by MapLibre; the URL must be absolute, so build it from the page location.
     glyphs: location.href.replace(/[^/]*$/, '') + 'fonts/{fontstack}/{range}.pbf',
     sources: {   // 'evac' (the PMTiles) is added by loadTiles() — the first row of the Edit panel
-      osm:  { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19,
-              attribution: '© OpenStreetMap contributors' }
+      // Esri World Street Map raster tiles (no API key, worldwide; note the {y}/{x} order). Not tile.openstreetmap.org:
+      // the OSM tile servers' usage policy throttles bulk requests from one address — a workshop room behind one NAT gets blocked.
+      osm:  { type: 'raster', tileSize: 256, maxzoom: 19, attribution: 'Basemap © Esri, HERE, Garmin, USGS · © OpenStreetMap contributors',
+              tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}'] }
     },
     layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#f7f5f0' } },
-             // the "Base map" view: standard OpenStreetMap raster tiles (internet needed), hidden until selected
+             // the "Base map" view: a standard street basemap (Esri World Street Map raster, internet needed), hidden until selected
              { id: 'basemap-osm', type: 'raster', source: 'osm', layout: { visibility: 'none' } }]
   }
 });
@@ -276,7 +278,7 @@ function setView(name) {
   document.getElementById('legend-evac').style.display = name === 'evac' ? 'block' : 'none';
   document.getElementById('legend-reach').style.display = name === 'reach' ? 'block' : 'none';
   if (name !== 'reach') setReachShelter(null);
-  if (name === 'normal' && !navigator.onLine) showNotice('Base map needs internet for the OpenStreetMap tiles.');
+  if (name === 'normal' && !navigator.onLine) showNotice('Base map needs internet for the Esri basemap tiles.');
   renderEditPanel();
 }
 for (const b of viewButtons) b.onclick = () => setView(b.dataset.view);

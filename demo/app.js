@@ -176,7 +176,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     VIEWS[name].hide.forEach((id) => vis(id, false));
     VIEWS[name].show.forEach((id) => vis(id, true));
     if (name !== 'reach') showShelterReach(null);
-    if (name === 'normal' && !navigator.onLine) notice('Base map needs internet for the OpenStreetMap tiles.');
+    if (name === 'normal' && !navigator.onLine) notice('Base map needs internet for the Esri basemap tiles.');
     buildLegend();
     updateUrl();
   }
