@@ -23,7 +23,7 @@ No pink line? Check the console (F12). A red `/osrm 404` means your port-8080 se
 ## Step 2 — Nearest shelter by road
 
 Comment out the step1 import, uncomment `…/steps/step2-scaffold.js`. Open that file, find
-`// ===== YOU WRITE THESE 6 LINES =====` and write six lines:
+`// ===== WE WRITE THESE 6 LINES =====` and write six lines:
 
 1. `/table` with `sources=0&annotations=duration,distance` (house first, then 10 shelters)
 2. `secs` = `durations[0]` without its first entry (house → house)

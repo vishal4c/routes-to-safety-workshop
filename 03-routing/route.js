@@ -123,7 +123,7 @@ async function findNearestShelter(house, exclude) {
   // house first, then every shelter, as "lon,lat;lon,lat;..." (ready-made for you)
   const coords = [house, ...shelters.map((s) => s.geometry.coordinates)].map((c) => c.join(',')).join(';');
 
-  // ===== YOU WRITE THESE 6 LINES =====
+  // ===== WE WRITE THESE 6 LINES =====
   // `shelters` = list of GeoJSON features; a shelter's [lon, lat] is s.geometry.coordinates
   // `exclude` = '' or '&exclude=motorway' — add it at the end of both OSRM URLs (step 3)
   // OSRM call 1 (/table): house first, then all shelters; durations[0][1..] are the drive times

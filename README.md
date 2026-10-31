@@ -2,9 +2,9 @@
 
 Hands-on workshop for **FOSS4G North America 2026** · Sacramento, CA · Mon Nov 2, 2026 · room Beavis.
 
-In three hours we will build an **evacuation-services map** for the **Placer County I-80 corridor** — shelters, fire-hazard zones and the roads that connect them — and use it to answer a route-based question: *which shelter can I reach by road, and how long does it take if I-80 is closed?* In the last phase we point the same pipeline at a community of your choice.
+In this workshop we will build an **evacuation-services map** for the **Placer County I-80 corridor** — shelters, fire-hazard zones and the roads that connect them — and use it to answer a route-based question: *which shelter can I reach by road, and how long does it take if I-80 is closed?* In the last phase we point the same pipeline at a community of our choice.
 
-**What you will learn**
+**Tech stack we will use**
 
 | | Topic | Hands-on with |
 |---|---|---|
@@ -32,7 +32,7 @@ flowchart LR
   P1["Phase 1 · Data prep<br/>DuckDB over the GeoJSON in data/"]:::ph
   P2["Phase 2 · Map artifacts<br/>tiles · routing graph · reach bands"]:::ph
   P3["Phase 3 · Application<br/>MapLibre, three views + routing"]:::ph
-  P4["Phase 4 · Adapt<br/>your own community"]:::ph
+  P4["Phase 4 · Adapt<br/>a community of our choice"]:::ph
   D[/"data/overture/*.geojson<br/>data/hazard/*.geojson<br/>data/shelters.geojson"/]:::file
   A2[/"out/evac.pmtiles<br/>data/osrm/*<br/>data/coverage/coverage_bands.geojson"/]:::file
   A3(["Fire evac map · Base map · Shelter reach<br/>+ nearest shelter by road"]):::out
@@ -46,10 +46,10 @@ flowchart LR
 | Phase | Steps | We end up with |
 |---|---|---|
 | 0 Setup | pick Codespaces / Docker / native · one checkpoint line | a shell with every tool, a web server on :8080 |
-| 1 Data prep | 1a look around · 1b shelters × hazard · 1c export | you can read and write GeoJSON with SQL |
+| 1 Data prep | 1a look around · 1b shelters × hazard · 1c export | we can read and write GeoJSON with SQL |
 | 2 Map artifacts | 2a tiles · 2b routing graph · 2c reach bands | the **three files** the app needs |
 | 3 Application | 3a style · 3b shelter reach · 3c routing · 3d finished app | the map, three views, nearest shelter by road |
-| 4 Adapt | one box → the same steps for your community | your town, same three views |
+| 4 Adapt | one box → the same steps for a community of our choice | our town, same three views |
 
 **This page is the whole workshop.** Every command is here, in order; folders are listed in the [repository map](#repository-map) at the end. Blocks that start with **▸ Optional** open on click and can be skipped on the day. Every command runs from the **repo root**; where to type them is explained once, in Phase 0.
 
@@ -73,7 +73,7 @@ flowchart LR
 | | For | Routing | Works without wifi |
 |---|---|---|---|
 | **A** Codespaces | no Docker on the laptop, corporate laptop | yes | no |
-| **B** Docker image — *recommended if you can run containers* | wants everything local | yes | yes* |
+| **B** Docker image — *recommended wherever containers can run* | wants everything local | yes | yes* |
 | **C** Native tools | containers blocked | **no** (pair with a neighbour) | yes* |
 
 \* Data, tiles and routing are all local. The one exception is the map page itself: it loads the MapLibre and PMTiles JavaScript libraries from unpkg.com, so the first page load needs a connection (the browser caches them afterwards).
@@ -85,10 +85,10 @@ flowchart LR
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/vishal4c/routes-to-safety-workshop?quickstart=1)
 
 Or: repository page → green **Code** button → **Codespaces** → **Create codespace on main**. Use a **personal** GitHub account (employer-managed accounts often block Codespaces); the free tier is enough.
-Three containers start (tool shell, OSRM, Caddy — the same images as option B, pulled; Codespaces adds one small layer for its Docker helper), the 143 MB data bundle downloads and `setup/check_setup.py` runs for you. After 3–5 minutes you land in a terminal.
-Open the map: **Ports** tab → row **8080** → globe icon. Never type `localhost:8080` into your own browser there, and **never forward port 5000** — routing is `/osrm` on port 8080. Smoke test: `docker ps` lists three containers.
+Three containers start (tool shell, OSRM, Caddy — the same images as option B, pulled; Codespaces adds one small layer for its Docker helper), the 143 MB data bundle downloads and `setup/check_setup.py` runs automatically. After 3–5 minutes we land in a terminal.
+Open the map: **Ports** tab → row **8080** → globe icon. Never type `localhost:8080` into the laptop's own browser there, and **never forward port 5000** — routing is `/osrm` on port 8080. Smoke test: `docker ps` lists three containers.
 
-### B — Docker image on your laptop
+### B — Docker image on the laptop
 
 Image: **`ghcr.io/vishal4c/routes-to-safety-workshop:latest`** (amd64 + arm64: DuckDB 2.0.0 + spatial, Temurin 21, Planetiler 0.10.2, go-pmtiles 1.31.2, Node 22, osmium-tool, uv).
 Needs a container runtime: **Finch** (`brew install --cask finch` or `winget install Amazon.Finch`, then `finch vm init` once — recommended on corporate laptops), Docker Desktop, OrbStack, Colima or Podman. Swap `docker` for `finch` / `podman` below; the scripts auto-detect `docker → finch → podman → nerdctl`.
@@ -107,7 +107,7 @@ python3 setup/check_setup.py
 
 | What | Where |
 |---|---|
-| The repo folder | bind-mounted at `/workspaces/routes-to-safety-workshop` — files you write appear on the laptop and are served at once |
+| The repo folder | bind-mounted at `/workspaces/routes-to-safety-workshop` — files written there appear on the laptop and are served at once |
 | Map and hands-on pages | <http://localhost:8080/02-web/> (Caddy answers Range requests, which PMTiles needs) |
 | OSRM | browser: same-origin `/osrm/…` · container shell: `$OSRM_URL` = `http://caddy:8080/osrm` |
 | Stop / restart | `docker compose down` · `docker compose up -d` |
@@ -161,7 +161,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 Alternative: `pixi install && pixi shell` (`pixi.toml`) gives DuckDB, Java 21, Node, osmium, uv — but **no pmtiles** (the conda-forge package of that name is a Python library); install the go-pmtiles binary as above.
 
-**Windows: Git Bash → PowerShell** — use Git Bash if you can. If you must use PowerShell:
+**Windows: Git Bash → PowerShell** — use Git Bash where possible. If PowerShell is the only option:
 
 | Git Bash | PowerShell |
 |---|---|
@@ -179,10 +179,10 @@ Alternative: `pixi install && pixi shell` (`pixi.toml`) gives DuckDB, Java 21, N
 
 ### Where to type — read once, it holds for every phase
 
-- **Options A and B:** every command on this page runs in the **tool container shell** — the terminal Codespaces opens, or `docker compose exec workshop bash` on your laptop (prompt `vscode ➜ /workspaces/routes-to-safety-workshop`). It has every tool. `$WEB_URL` (`http://caddy:8080`) and `$OSRM_URL` (`http://caddy:8080/osrm`) are preset there; `localhost` *inside* that shell is the container itself, not the web server.
-- **Your browser** reaches the same server at `http://localhost:8080` (Codespaces: Ports → 8080 → globe).
-- **Two exceptions, marked "laptop terminal" where they appear:** `docker compose …` (start / stop / restart the containers) and `scripts/build-osrm.sh` (it runs the OSRM container, so it needs Docker where you type it). In Codespaces the one terminal does both.
-- **Option C:** everything is your laptop terminal, with `WEB_URL` and `OSRM_URL` exported as above.
+- **Options A and B:** every command on this page runs in the **tool container shell** — the terminal Codespaces opens, or `docker compose exec workshop bash` on the laptop (prompt `vscode ➜ /workspaces/routes-to-safety-workshop`). It has every tool. `$WEB_URL` (`http://caddy:8080`) and `$OSRM_URL` (`http://caddy:8080/osrm`) are preset there; `localhost` *inside* that shell is the container itself, not the web server.
+- **The browser** reaches the same server at `http://localhost:8080` (Codespaces: Ports → 8080 → globe).
+- **Two exceptions, marked "laptop terminal" where they appear:** `docker compose …` (start / stop / restart the containers) and `scripts/build-osrm.sh` (it runs the OSRM container, so it needs Docker where it is typed). In Codespaces the one terminal does both.
+- **Option C:** everything is the laptop terminal, with `WEB_URL` and `OSRM_URL` exported as above.
 - Always from the **repo root** (the folder with `versions.env`).
 
 ### Phase 0 checkpoint
@@ -218,9 +218,9 @@ flowchart LR
   D --> S1 --> S2 --> S3 --> O
 ```
 
-<details><summary><b>▸ Optional · Fetch the data yourself — Overture themes with DuckDB, straight from S3</b> (already done for you; Phase 4 does this for your box)</summary>
+<details><summary><b>▸ Optional · Fetch the data ourselves — Overture themes with DuckDB, straight from S3</b> (already done; Phase 4 does this for our own box)</summary>
 
-Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB can read those files in place and skip every row group outside your box, so a county-sized extract takes **seconds**, not a planet download. One theme, as DuckDB SQL:
+Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB can read those files in place and skip every row group outside the box, so a county-sized extract takes **seconds**, not a planet download. One theme, as DuckDB SQL:
 
 ```sql
 INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
@@ -270,7 +270,7 @@ Alternative: Overture's own CLI does the same without SQL — `uvx overturemaps 
 | `data/hazard/fhsz.geojson` · `fire_perimeters.geojson` | Fire Hazard Severity Zones (Moderate / High / Very High) · Mosquito 2022 and River 2021 | CAL FIRE | 355 · 2 |
 | `data/shelters.geojson` | the hand-checked shelter list: `id, name, status, type, town, source` | by hand | 10 (1 verified) |
 
-**DuckDB** is a SQL engine that reads those files in place — no database to set up. `duckdb -c "…"` runs one command and exits; `.read file.sql` runs every statement in that file, so each step below is one SQL file you can open and read, and **the output you should see is written above every query**. Two spatial idioms you will see everywhere: `LOAD spatial;` switches the geo extension on, and `ST_Read('file.geojson')` opens a GeoJSON file as a table (column `geom` is the shape).
+**DuckDB** is a SQL engine that reads those files in place — no database to set up. `duckdb -c "…"` runs one command and exits; `.read file.sql` runs every statement in that file, so each step below is one SQL file we can open and read, and **the expected output is written above every query**. Two spatial idioms appear everywhere: `LOAD spatial;` switches the geo extension on, and `ST_Read('file.geojson')` opens a GeoJSON file as a table (column `geom` is the shape).
 
 **1a · Look around** — what is in the data before touching it
 ```bash
@@ -293,13 +293,13 @@ First filters Overture places by category and confidence (19 "community centers"
 ```bash
 duckdb -c ".read 00-data/03-export.sql"
 ```
-`COPY (query) TO 'file.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')` — this is how every file in `data/` was made. Here the query is the "shelter-ish" filter from 1b, reshaped into the columns of `shelters.geojson` with `status = 'candidate'`. Phase 4 runs this same file for your own community and you keep the real ones.
+`COPY (query) TO 'file.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')` — this is how every file in `data/` was made. Here the query is the "shelter-ish" filter from 1b, reshaped into the columns of `shelters.geojson` with `status = 'candidate'`. Phase 4 runs this same file for our own community and we keep the real ones.
 
 **Checkpoint**
 ```bash
 duckdb -c "LOAD spatial; SELECT type, count(*) FROM ST_Read('out/shelter-candidates.geojson') GROUP BY type ORDER BY 2 DESC"
 ```
-95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 `stadium_arena`. Nothing later depends on this file — if you are behind, move on.
+95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 `stadium_arena`. Nothing later depends on this file — anyone behind can move on.
 
 <details><summary><b>▸ Optional · tour every Overture theme</b> (which theme each file came from, one breakdown per file)</summary>
 
@@ -353,11 +353,11 @@ curl -sSI -H "Range: bytes=0-15" "$WEB_URL/out/evac.pmtiles" | head -1     # HTT
 
 OSRM needs its own graph, pre-computed once from an OpenStreetMap extract — Overture's roads are for drawing, OSM's `.osm.pbf` carries the turn restrictions and speed limits a router needs.
 
-<details><summary><b>▸ Optional · Build the routing graph yourself, from an OpenStreetMap snapshot</b> (Geofabrik → osmium → OSRM; this is what Phase 4 does for your box)</summary>
+<details><summary><b>▸ Optional · Build the routing graph ourselves, from an OpenStreetMap snapshot</b> (Geofabrik → osmium → OSRM; this is what Phase 4 does for our own box)</summary>
 
 Routing does not use the Overture roads: OSRM reads OpenStreetMap's own `.osm.pbf` format, with turn restrictions and speed limits.
 
-1. **Get a snapshot.** [Geofabrik](https://download.geofabrik.de) publishes one `.osm.pbf` per continent / country / state / sub-region, refreshed daily. Pick the smallest region that contains your box (Northern California: `norcal-latest.osm.pbf`, ≈ 1 GB; a small US state 100–400 MB) and put its URL in `OSM_EXTRACT_URL` in `versions.env`. Similar sites: [BBBike extracts](https://extract.bbbike.org) (draw your own box), [Protomaps](https://protomaps.com/downloads) (smaller areas).
+1. **Get a snapshot.** [Geofabrik](https://download.geofabrik.de) publishes one `.osm.pbf` per continent / country / state / sub-region, refreshed daily. Pick the smallest region that contains the box (Northern California: `norcal-latest.osm.pbf`, ≈ 1 GB; a small US state 100–400 MB) and put its URL in `OSM_EXTRACT_URL` in `versions.env`. Similar sites: [BBBike extracts](https://extract.bbbike.org) (draw any box), [Protomaps](https://protomaps.com/downloads) (smaller areas).
 2. **Cut the box out of it** — `osmium extract` keeps every way that touches the box complete (`-s smart`):
    ```bash
    scripts/fetch-osm.sh                      # downloads OSM_EXTRACT_URL once (data/osm/), then → data/osm/study-area.osm.pbf  (17 MB for the Placer box)
@@ -407,11 +407,11 @@ flowchart LR
   PM --> S --> V --> R --> D
 ```
 
-Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The map is blank. Click **Edit** (top-left): a panel lists the data files, one row each. Every row has a text box **prefilled with the workshop file** (a path from the repo root) and an **Add** button; clicking **Add** puts that file into the map. **You type and edit nothing in this phase** — leave the boxes as they are, every step below is one click. (The boxes exist for Phase 4: type another path or a URL to plug in your own file.) What you add stays until you refresh the page.
+Open <http://localhost:8080/02-web/> (Codespaces: Ports → 8080 → globe → add `/02-web/`). The map is blank. Click **Edit** (top-left): a panel lists the data files, one row each. Every row has a text box **prefilled with the workshop file** (a path from the repo root) and an **Add** button; clicking **Add** puts that file into the map. **Nothing is typed or edited in this phase** — leave the boxes as they are, every step below is one click. (The boxes exist for Phase 4: type another path or a URL to plug in another file.) What is added stays until the page is refreshed.
 
 ### 3a · Style — stay on **Fire evac map**, click **Edit**, then **Add** on each row, top to bottom
 
-**0 · Tiles → Add.** The row turns green and lists what is in the file (1607 tiles · zoom 4–14 · 8 layers: buildings, fire_perimeters, hazard, land_cover, roads, shelters, towns, water), a **dashed box** shows the area the tiles cover, and rows 1–4 unlock. Nothing else is drawn yet — the tiles are data; rows 1–4 are the drawing instructions. (A note "Using the prebuilt tiles" means your `out/evac.pmtiles` from 2a was not found — fine, carry on.)
+**0 · Tiles → Add.** The row turns green and lists what is in the file (1607 tiles · zoom 4–14 · 8 layers: buildings, fire_perimeters, hazard, land_cover, roads, shelters, towns, water), a **dashed box** shows the area the tiles cover, and rows 1–4 unlock. Nothing else is drawn yet — the tiles are data; rows 1–4 are the drawing instructions. (A note "Using the prebuilt tiles" means `out/evac.pmtiles` from 2a was not found — fine, carry on.)
 
 <img src="docs/img/p3-step0-tiles.jpg" width="80%" alt="Edit panel after Add on row 0: green tick with 1607 tiles and 8 layer names, dashed box around the study area, rows 1–4 now clickable"/>
 
@@ -435,7 +435,7 @@ Each row is a plain JSON file of MapLibre layers in [`02-web/steps/`](02-web/ste
 
 ### 3b · Shelter reach — click **Shelter reach** (top-left), then **Edit**
 
-**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0, 1 and 2 are already green if you did 3a; if not, Add them first. Row 2 is relabelled here — "Water, shelters, town labels" — because hazard and land cover stay hidden in this view.)
+**Reach rings → Add.** Hexagon bands around every shelter: green ≤ 10 min · blue ≤ 20 · light red ≤ 30 min drive (Phase 2c output). Click a shelter to see only its rings; click the map to see all again. (Rows 0, 1 and 2 are already green after 3a; if not, Add them first. Row 2 is relabelled here — "Water, shelters, town labels" — because hazard and land cover stay hidden in this view.)
 
 <img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
 
@@ -455,13 +455,13 @@ Nearest on the map ≠ nearest by road: from Foresthill, Georgetown School is 12
 
 > A real closure is not a URL parameter. This is the calculation, not detection; shelter status, traffic, smoke and capacity are not in the data.
 
-<details><summary><b>▸ Optional · Write the routing yourself</b> — the same module in three steps, instead of clicking Add</summary>
+<details><summary><b>▸ Optional · Write the routing ourselves</b> — the same module in three steps, instead of clicking Add</summary>
 
-The Routing row loads [`03-routing/route.js`](03-routing/route.js). To build it yourself, open `02-web/index.html`, find the three commented `import('../03-routing/…')` lines at the end, and work through them (each module exports `start(map, maplibregl)`):
+The Routing row loads [`03-routing/route.js`](03-routing/route.js). To build it by hand, open `02-web/index.html`, find the three commented `import('../03-routing/…')` lines at the end, and work through them (each module exports `start(map, maplibregl)`):
 
-**Step 1 · Hello route** — uncomment `import('../03-routing/steps/step1-route.js')`, reload → a pink line Foresthill → Placer High School; console: `Route: 35.8 min, 31.8 km`. No line? Console (F12): a red `/osrm 404` means your :8080 server is not Caddy.
+**Step 1 · Hello route** — uncomment `import('../03-routing/steps/step1-route.js')`, reload → a pink line Foresthill → Placer High School; console: `Route: 35.8 min, 31.8 km`. No line? Console (F12): a red `/osrm 404` means the :8080 server is not Caddy.
 
-**Step 2 · Nearest shelter by road** — switch the import to `steps/step2-scaffold.js`; in it, fill the block `YOU WRITE THESE 6 LINES`:
+**Step 2 · Nearest shelter by road** — switch the import to `steps/step2-scaffold.js`; in it, fill the block `WE WRITE THESE 6 LINES`:
 1. `/table` with `sources=0&annotations=duration,distance` (pin first, then the 10 shelters)
 2. `secs = durations[0]` without its first entry (pin → pin)
 3. `best = argmin(secs)`
@@ -493,11 +493,11 @@ The same three views + the router with a side panel (view switch, legend, I-80 t
 
 ---
 
-## Phase 4 — Adapt · your own community
+## Phase 4 — Adapt · a community of our choice
 
 Everything above was driven by **one box** — the four `BBOX_*` lines in [`versions.env`](versions.env). Phase 4 is the same steps with a different box. Network needed; the OpenStreetMap region download is the big one.
 
-> **Phase 4 overwrites the Placer data in this clone** — `versions.env`, `data/overture/*`, `data/hazard/*`, `data/shelters.geojson`, `data/coverage/*`, the OSM clip and the OSRM graph, plus the two edited page files. Start on a branch so you can get back:
+> **Phase 4 overwrites the Placer data in this clone** — `versions.env`, `data/overture/*`, `data/hazard/*`, `data/shelters.geojson`, `data/coverage/*`, the OSM clip and the OSRM graph, plus the two edited page files. Start on a branch so we can get back:
 > ```bash
 > git switch -c my-town                                                            # before step 1
 > git checkout -- . && git switch main && bash scripts/get-bundle.sh              # undo: Placer data, graph and tiles return
@@ -537,19 +537,19 @@ OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest
 **2 · Overture themes for the box** (about 20 s; the table in Phase 1 has the per-theme times):
 ```bash
 scripts/fetch-overture.sh                          # → data/overture/{roads,water,towns,land_cover,buildings,places}.geojson
-duckdb -c ".read 00-data/01-explore.sql"           # the same three queries over your roads and places
+duckdb -c ".read 00-data/01-explore.sql"           # the same three queries over the new roads and places
 ```
 
-**3 · Hazard.** In California, CAL FIRE's zones and perimeters for your box (`FIRE_PERIMETERS_WHERE` in `versions.env` picks the fires, e.g. `YEAR_ >= 2015`). Anywhere else there is no CAL FIRE: write two empty layers so the pipeline runs, and swap in your own polygons later (below).
+**3 · Hazard.** In California, CAL FIRE's zones and perimeters for the box (`FIRE_PERIMETERS_WHERE` in `versions.env` picks the fires, e.g. `YEAR_ >= 2015`). Anywhere else there is no CAL FIRE: write two empty layers so the pipeline runs, and swap in local polygons later (below).
 ```bash
 scripts/fetch-hazard.sh            # California → data/hazard/fhsz.geojson + fire_perimeters.geojson
 scripts/fetch-hazard.sh --none     # elsewhere → the two files exist with no features
 ```
 
-**4 · Shelters.** Run the Phase 1c export for your box, open the result, keep the places that really are shelters, and save them as `data/shelters.geojson` — same columns (`id, name, status, type, town, source`), short unique `id`s, `status = candidate` until a county source confirms one.
+**4 · Shelters.** Run the Phase 1c export for the box, open the result, keep the places that really are shelters, and save them as `data/shelters.geojson` — same columns (`id, name, status, type, town, source`), short unique `id`s, `status = candidate` until a county source confirms one.
 ```bash
 duckdb -c ".read 00-data/03-export.sql"           # → out/shelter-candidates.geojson (schools, community centers, colleges, town halls, fairgrounds, arenas)
-duckdb -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson')"   # read the list, note the ids you trust
+duckdb -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson')"   # read the list, note the ids to keep
 duckdb -c "LOAD spatial; SET geometry_always_xy = true;
   COPY (SELECT * FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN ('id-1', 'id-2', 'id-3'))
   TO 'data/shelters.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"                                   # keep only those → data/shelters.geojson
@@ -560,21 +560,21 @@ duckdb -c "LOAD spatial; SET geometry_always_xy = true;
 scripts/fetch-osm.sh                               # container shell · downloads OSM_EXTRACT_URL once (a US state: 100 MB – 1 GB), clips → data/osm/study-area.osm.pbf
 scripts/build-osrm.sh                              # laptop terminal (option B) or Codespaces terminal · → data/osrm/study-area.osrm.*
 docker compose restart osrm                        # laptop terminal · Codespaces: docker restart $(docker ps -qf name=osrm)
-curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"    # back in the container shell · a point inside your box → {"code":"Ok","waypoints":[{"distance":<a few metres> …
+curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"    # back in the container shell · a point inside the box → {"code":"Ok","waypoints":[{"distance":<a few metres> …
 ```
-`"code":"Ok"` alone proves nothing — OSRM snaps to the nearest road it has, even 900 km away. Look at `distance`: a few metres means your graph is serving; thousands of metres means the old graph is still loaded (restart again).
+`"code":"Ok"` alone proves nothing — OSRM snaps to the nearest road it has, even 900 km away. Look at `distance`: a few metres means the new graph is serving; thousands of metres means the old graph is still loaded (restart again).
 
 **6 · Tiles** and **7 · Reach bands** — exactly Phase 2a and 2c:
 ```bash
-01-tiles/build.sh                                  # → out/evac.pmtiles ;  pmtiles show out/evac.pmtiles shows YOUR bounds
+01-tiles/build.sh                                  # → out/evac.pmtiles ;  pmtiles show out/evac.pmtiles shows the NEW bounds
 scripts/make-coverage.py --osrm http://osrm:5000   # → data/coverage/*.geojson  (option C / laptop terminal: --osrm http://localhost:8080/osrm)
 ```
 
 **8 · The pages.**
-- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files you just rebuilt, and the map fits itself to your tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside your box), then **Routing → Add**.
+- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
 - **`demo/`**: `cp out/evac.pmtiles data/prebuilt/evac.pmtiles`, then edit the three marked lines at the top of [`demo/app.js`](demo/app.js) (`BBOX`, `CENTER`, `ZOOM`). Without a hazard layer the Fire evac view shows roads, water, land cover and towns; the other two views are unchanged.
 
-**9 · Check and publish.** `sha256sum data/overture/*.geojson data/hazard/*.geojson data/shelters.geojson > my-checksums.sha256` records what you built; `out/evac.pmtiles` + `data/coverage/` + `data/shelters.geojson` + `02-web/` + `demo/` on any static host that answers Range requests is a published map. Keep the attribution line and the disclaimer.
+**9 · Check and publish.** `sha256sum data/overture/*.geojson data/hazard/*.geojson data/shelters.geojson > my-checksums.sha256` records what was built; `out/evac.pmtiles` + `data/coverage/` + `data/shelters.geojson` + `02-web/` + `demo/` on any static host that answers Range requests is a published map. Keep the attribution line and the disclaimer.
 
 <details><summary><b>▸ Worked example · Bellevue, WA — a 4 × 4 mile box</b></summary>
 
@@ -591,7 +591,7 @@ Box `-122.244, 47.581, -122.159, 47.639` (downtown Bellevue, the I-405 / I-90 in
 
 </details>
 
-<details><summary><b>▸ Swap the hazard</b> — flood zones, live fire feeds, your county's polygons</summary>
+<details><summary><b>▸ Swap the hazard</b> — flood zones, live fire feeds, a county's own polygons</summary>
 
 The hazard layer is one polygon file with a class column (`FHSZ_Description` = Moderate / High / Very High). Replace the file, keep the SQL and the style — or rename the class in `02-web/steps/step2-hazard-water.json` and `demo/style.json` (`match` on `FHSZ_Description`).
 
@@ -602,7 +602,7 @@ The hazard layer is one polygon file with a class column (`FHSZ_Description` = M
 | **Evacuation zones, live** — Cal OES | `https://services.arcgis.com/BLN4oKB0N1YSgvY8/arcgis/rest/services/CA_EVACUATIONS_CalOESHosted_view/FeatureServer/0` | only publishes zones with an active order / warning; empty most days |
 | **Wildfire, static** — CAL FIRE FHSZ (what we use) | `CALFIRE_FHSZ_URL` in `versions.env` | `scripts/fetch-hazard.sh` |
 
-> ⚠️ **Going live raises the stakes on every caveat in the disclaimer.** A static hazard layer that is out of date is embarrassing; a live perimeter that is out of date, or a "safe" route through a road nobody has mapped as closed, can hurt someone. Before you wire a live feed into anything people will use: show the feed's own timestamp on the map, say what the data does *not* contain (shelter status, closures, capacity; drive time ≠ evacuation time), and send people to the official sources.
+> ⚠️ **Going live raises the stakes on every caveat in the disclaimer.** A static hazard layer that is out of date is embarrassing; a live perimeter that is out of date, or a "safe" route through a road nobody has mapped as closed, can hurt someone. Before wiring a live feed into anything people will use: show the feed's own timestamp on the map, say what the data does *not* contain (shelter status, closures, capacity; drive time ≠ evacuation time), and send people to the official sources.
 
 </details>
 
@@ -613,7 +613,7 @@ The hazard layer is one polygon file with a class column (`FHSZ_Description` = M
 | DuckDB reads Overture over S3 with bbox pushdown | Same query, bigger box. For a state or country, write one file per region and keep using the `bbox` columns, not `ST_Intersects`, to prune. |
 | Planetiler `generate-custom` from GeoJSON, 4 s | Planetiler's built-in profiles read OSM PBF directly and build a planet on one large machine; `--bounds` limits it to a region. Output is the same PMTiles. |
 | PMTiles on any static host (Range requests) | S3 + CloudFront / Cloudflare R2. No tile server. |
-| OSRM MLD graph for 0.4 sq. degrees, 99 MB, 15 s | Large graphs need far more RAM and disk; use regional Geofabrik extracts, or Valhalla / GraphHopper / OpenRouteService if you need isochrones, traffic profiles or alternatives built in. |
+| OSRM MLD graph for 0.4 sq. degrees, 99 MB, 15 s | Large graphs need far more RAM and disk; use regional Geofabrik extracts, or Valhalla / GraphHopper / OpenRouteService when isochrones, traffic profiles or alternatives are needed built in. |
 | `/table` 10 shelters × ~3,300 hexes | `--max-table-size` grows memory quadratically; batch the requests (as `scripts/make-coverage.py` does). |
 
 </details>
@@ -631,11 +631,11 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 
 ## If something is red
 
-| You see | It means | Do |
+| Symptom | It means | Do |
 |---|---|---|
 | Blank map, row 0 red, or `curl … Range` answers `200` | the web server ignores Range requests | serve with Caddy (`docker compose up -d`) or `npx serve`, never `python -m http.server` |
 | "Using the prebuilt tiles" on row 0 | `out/evac.pmtiles` not found | fine — or run 2a |
-| Console: `/osrm 404` · "Routing needs OSRM" | your :8080 server is not Caddy, or no OSRM (option C) | use Caddy, or pair up |
+| Console: `/osrm 404` · "Routing needs OSRM" | the :8080 server is not Caddy, or no OSRM (option C) | use Caddy, or pair up |
 | `osrm` container logs "waiting for data/osrm" | the graph is not there yet | `bash scripts/get-bundle.sh` (or Phase 4 step 5) |
 | `check_setup.py`: OSRM / web server red on option C | expected without containers | continue; routing needs a neighbour |
 | `java: command not found` · `Unsupported class file major version` | no Temurin 21 | option C install commands |
@@ -651,15 +651,15 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | Folder / file | What is in it | Phase |
 |---|---|---|
 | [`versions.env`](versions.env) | **the one config file**: the box, the OSM region, every tool and image pin | all |
-| [`setup/`](setup/) | `check_setup.py` (green / red per tool, your tier, the next command) · `hello-geo.sql` (the checkpoint) | 0 |
+| [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) | 0 |
 | [`00-data/`](00-data/) | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` · `04-overture-themes.sql` (optional tour) · `exercises.md` | 1 |
 | [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) | 2a |
 | [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
 | [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) | 3a 3b |
-| [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it yourself) · `grid.sql`, `exercises.md` | 3c |
+| [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it by hand) · `grid.sql`, `exercises.md` | 3c |
 | [`demo/`](demo/) | the finished app: `index.html`, `app.js`, `style.json`, `dev-fixtures/` | 3d |
 | [`data/`](data/) | the GeoJSON inputs (in git) · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
-| `out/` | what you build: `evac.pmtiles`, `shelter-candidates.geojson` | 1 2 |
+| `out/` | what we build: `evac.pmtiles`, `shelter-candidates.geojson` | 1 2 |
 | [`docker-compose.yml`](docker-compose.yml) · [`Caddyfile`](Caddyfile) · [`.devcontainer/`](.devcontainer/) | the three containers (tool shell, OSRM, Caddy) — options A and B share them | 0 |
 | [`deck/`](deck/) | the slide deck shown in the room — `Routes-to-Safety-FOSS4G-NA-2026.pptx` and a PDF export | — |
 | [`slides/`](slides/) · [`instructor/`](instructor/) | Marp source for the same talk · prep checklist (also: how to regenerate the data bundle and build the slides), wifi runbook | — |

@@ -105,7 +105,7 @@ async function findNearestShelter(house, exclude) {
   // house first, then every shelter, as "lon,lat;lon,lat;..." (ready-made for you)
   const coords = [house, ...shelters.map((s) => s.geometry.coordinates)].map((c) => c.join(',')).join(';');
 
-  // ===== YOU WRITE THESE 6 LINES =====
+  // ===== WE WRITE THESE 6 LINES =====
   // Helpers you can call:  osrm(path) -> JSON      setRoute(geometry)      showPopup([lon, lat], htmlText)
   // `shelters` = array of GeoJSON features: name = s.properties.name, position = s.geometry.coordinates
   // `exclude`  = '' for now; step 3 turns it into '&exclude=motorway' — add it to the end of both URLs.
