@@ -497,10 +497,10 @@ The same three views + the router with a side panel (view switch, legend, I-80 t
 
 Everything above was driven by **one box** — the four `BBOX_*` lines in [`versions.env`](versions.env). Phase 4 is the same steps with a different box. Network needed; the OpenStreetMap region download is the big one.
 
-> **Phase 4 overwrites the Placer data in this clone** — `versions.env`, `data/overture/*`, `data/hazard/*`, `data/shelters.geojson`, `data/coverage/*`, the OSM clip and the OSRM graph, plus the two edited page files. Start on a branch so we can get back:
+> **Phase 4 overwrites the Placer files** — `versions.env`, what the scripts generate in `data/`, `out/evac.pmtiles`, and two page files in step 8. No git needed: keep a copy, start clean, rebuild.
 > ```bash
-> git switch -c my-town                                                            # before step 1
-> git checkout -- . && git switch main && bash scripts/get-bundle.sh              # undo: Placer data, graph and tiles return
+> cp -R data data.placer                                                          # keep Placer — undo later with: rm -rf data && mv data.placer data
+> rm -f data/overture/*.geojson data/hazard/*.geojson data/coverage/*.geojson data/shelters.geojson out/evac.pmtiles   # start clean; steps 2–7 regenerate every one of these
 > ```
 > Every step below runs in the **container shell** unless the comment says *laptop terminal*.
 
@@ -640,7 +640,7 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | `check_setup.py`: OSRM / web server red on option C | expected without containers | continue; routing needs a neighbour |
 | `java: command not found` · `Unsupported class file major version` | no Temurin 21 | option C install commands |
 | `planetiler.jar` missing | not in git | `bash scripts/get-bundle.sh` or `curl -L -o 01-tiles/planetiler.jar https://github.com/onthegomap/planetiler/releases/download/v0.10.2/planetiler.jar` |
-| `data/overture/roads.geojson missing` | staged data gone | `git checkout data/` (also undoes a Phase 4 box) — or `scripts/fetch-overture.sh` |
+| `data/overture/roads.geojson missing` | staged data gone | `scripts/fetch-overture.sh` — or, after a Phase 4 box, `rm -rf data && mv data.placer data` |
 | Points in the ocean off Africa | lon/lat swapped | the SQL files start with `SET geometry_always_xy = true;` — keep it |
 | `.read` plus another statement in one `-c` does nothing | DuckDB dot-commands must be alone | one `.read` per run |
 | Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` |
