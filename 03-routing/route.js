@@ -4,7 +4,7 @@
 
 // PHASE 4: the two lines to change for your own community
 const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same four numbers as BBOX_* in versions.env
-const START = [-120.8182, 39.0199];                    // where the pin drops first: Foresthill (lon, lat) — must be inside the box
+const START = [-120.8182, 39.0199];                    // where the pin drops first (lon, lat) — must be inside the box; Placer: Foresthill
 const ROUTE_COLOR = '#d81b60';
 
 let OSRM = null;           // base URL of the routing server (found by detectOsrm)
@@ -24,7 +24,7 @@ function say(text) {
 
 // Try each OSRM address in order; the first one that answers "Ok" wins.
 async function detectOsrm() {
-  const test = '/nearest/v1/driving/-121.08,38.90';
+  const test = `/nearest/v1/driving/${(STUDY_BBOX[0] + STUDY_BBOX[2]) / 2},${(STUDY_BBOX[1] + STUDY_BBOX[3]) / 2}`;   // a health check at the box centre
   const candidates = ['/osrm', 'http://localhost:5000'];
   if (location.protocol === 'https:') candidates.push('https://router.project-osrm.org');
   for (const base of candidates) {
@@ -105,7 +105,7 @@ async function routeToDroppedShelter() {
 async function update() {
   const house = houseMarker.getLngLat().toArray();
   if (!insideStudyArea(house)) {
-    say('This demo covers the Placer I-80 corridor only');
+    say('Outside the study area — drop the pin inside the box (STUDY_BBOX)');
     return;
   }
   say('');

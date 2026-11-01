@@ -45,7 +45,7 @@ services:
   caddy:
     image: ${CADDY_IMAGE:-caddy:2-alpine}
     ports:
-      - "8080:8080"
+      - "${WEB_PORT:-8080}:8080"     # :8080 taken?  WEB_PORT=8090 docker compose up -d  → http://localhost:8090/…
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - .:/srv:ro

@@ -499,7 +499,7 @@ Everything above was driven by **one box** — the four `BBOX_*` lines in [`vers
 
 > **Phase 4 overwrites the Placer files** — `versions.env`, what the scripts generate in `data/`, `out/evac.pmtiles`, and two page files in step 8. No git needed: keep a copy, start clean, rebuild.
 > ```bash
-> cp -R data data.placer                                                          # keep Placer — undo later with: rm -rf data && mv data.placer data
+> cp -R data data.placer                                                          # keep Placer (≈ 170 MB, mostly the routing graph) — undo later with: rm -rf data && mv data.placer data
 > rm -f data/overture/*.geojson data/hazard/*.geojson data/coverage/*.geojson data/shelters.geojson out/evac.pmtiles   # start clean; steps 2–7 regenerate every one of these
 > ```
 > Every step below runs in the **container shell** unless the comment says *laptop terminal*.
@@ -534,7 +534,7 @@ BUILDINGS_N=47.639
 OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf   # the Geofabrik region that contains the box
 ```
 
-**2 · Overture themes for the box** (about 20 s; the table in Phase 1 has the per-theme times):
+**2 · Overture themes for the box** (20–40 s — buildings take longest, 20,000 of them ≈ 17 s; the table in Phase 1 has the per-theme times). A theme with nothing in the box (land cover in a city centre) is written as an *empty layer* — one feature, no geometry — so the tile build still runs; the map simply has no such layer.
 ```bash
 scripts/fetch-overture.sh                          # → data/overture/{roads,water,towns,land_cover,buildings,places}.geojson
 duckdb -c ".read 00-data/01-explore.sql"           # the same three queries over the new roads and places
@@ -545,34 +545,37 @@ duckdb -c ".read 00-data/01-explore.sql"           # the same three queries over
 scripts/fetch-hazard.sh            # California → data/hazard/fhsz.geojson + fire_perimeters.geojson
 scripts/fetch-hazard.sh --none     # elsewhere → the two files exist with no features
 ```
+A city box can come back in a second with one zone and no perimeters — that is the real answer, not a failure (downtown Los Angeles: 1 FHSZ polygon, 0 fires since 2015).
 
 **4 · Shelters.** Run the Phase 1c export for the box, open the result, keep the places that really are shelters, and save them as `data/shelters.geojson` — same columns (`id, name, status, type, town, source`), short unique `id`s, `status = candidate` until a county source confirms one.
 ```bash
 duckdb -c ".read 00-data/03-export.sql"           # → out/shelter-candidates.geojson (schools, community centers, colleges, town halls, fairgrounds, arenas)
-duckdb -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson')"   # read the list, note the ids to keep
+duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson') ORDER BY type, name" > out/shelter-candidates.csv   # the whole list (the terminal stops after 40 rows); open it, note the ids to keep
 duckdb -c "LOAD spatial; SET geometry_always_xy = true;
   COPY (SELECT * FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN ('id-1', 'id-2', 'id-3'))
   TO 'data/shelters.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"                                   # keep only those → data/shelters.geojson
 ```
+In a city the list is long and `college` is noisy (downtown Los Angeles: 175 candidates, 88 of them `college` — departments and academies); the `GROUP BY type` query in the header of `03-export.sql` shows the mix. Keep 6–10 places that sit well inside the box — one on the edge may get no reach cells in step 7.
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
 ```bash
-scripts/fetch-osm.sh                               # container shell · downloads OSM_EXTRACT_URL once (a US state: 100 MB – 1 GB), clips → data/osm/study-area.osm.pbf
-scripts/build-osrm.sh                              # laptop terminal (option B) or Codespaces terminal · → data/osrm/study-area.osrm.*
+scripts/fetch-osm.sh                               # container shell · downloads OSM_EXTRACT_URL once (a Geofabrik state or sub-region: 100 MB – 1 GB; socal 641 MB ≈ 1 min), clips → data/osm/study-area.osm.pbf
+scripts/build-osrm.sh                              # LAPTOP TERMINAL (option B) or Codespaces terminal → data/osrm/study-area.osrm.*  — inside the container it only prints what it would do and exits 0; the old graph stays
 docker compose restart osrm                        # laptop terminal · Codespaces: docker restart $(docker ps -qf name=osrm)
 curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"    # back in the container shell · a point inside the box → {"code":"Ok","waypoints":[{"distance":<a few metres> …
 ```
-`"code":"Ok"` alone proves nothing — OSRM snaps to the nearest road it has, even 900 km away. Look at `distance`: a few metres means the new graph is serving; thousands of metres means the old graph is still loaded (restart again).
+`"code":"Ok"` alone proves nothing — OSRM snaps to the nearest road it has, even 900 km away. Look at `distance`: a few metres means the new graph is serving; thousands of metres means the old graph is still loaded (restart again). The region file stays in `data/osm/` for the next clip; delete it when done (`rm data/osm/<region>-latest.osm.pbf`).
 
 **6 · Tiles** and **7 · Reach bands** — exactly Phase 2a and 2c:
 ```bash
-01-tiles/build.sh                                  # → out/evac.pmtiles ;  pmtiles show out/evac.pmtiles shows the NEW bounds
+01-tiles/build.sh                                  # → out/evac.pmtiles ;  pmtiles show out/evac.pmtiles shows the NEW bounds and 5–8 layers (an empty layer is left out)
 scripts/make-coverage.py --osrm http://osrm:5000   # → data/coverage/*.geojson  (option C / laptop terminal: --osrm http://localhost:8080/osrm)
 ```
 
 **8 · The pages.**
 - **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
 - **`demo/`**: `cp out/evac.pmtiles data/prebuilt/evac.pmtiles`, then edit the three marked lines at the top of [`demo/app.js`](demo/app.js) (`BBOX`, `CENTER`, `ZOOM`). Without a hazard layer the Fire evac view shows roads, water, land cover and towns; the other two views are unchanged.
+- **Words that still say Placer** (cosmetic, optional): the two page titles, the **I-80 closed** label (it sends `exclude=motorway`, so it closes every freeway in the new box — rename it, keep it), the perimeter names in the `demo/index.html` legend, and `schema_description` in [`01-tiles/evac.yml`](01-tiles/evac.yml) (what `pmtiles show` prints). `grep -n -E 'Placer|I-80|Auburn|Foresthill' 02-web/index.html demo/index.html demo/app.js 03-routing/route.js 01-tiles/evac.yml` lists every line.
 
 **9 · Check and publish.** `sha256sum data/overture/*.geojson data/hazard/*.geojson data/shelters.geojson > my-checksums.sha256` records what was built; `out/evac.pmtiles` + `data/coverage/` + `data/shelters.geojson` + `02-web/` + `demo/` on any static host that answers Range requests is a published map. Keep the attribution line and the disclaimer.
 
@@ -588,6 +591,22 @@ Box `-122.244, 47.581, -122.159, 47.639` (downtown Bellevue, the I-405 / I-90 in
 | 6 `build.sh` | 47 tiles · `pmtiles show` → bounds -122.244 … 47.639 · **6 layers** — hazard and fire_perimeters are empty, so Planetiler leaves them out; the map page says "6 layers" and rows 2–3 simply draw nothing |
 | 7 `make-coverage.py` | a few dozen H3 cells; bands mostly ≤ 10 min — it is a small box |
 | 8 | `route.js`: `STUDY_BBOX = [-122.244, 47.581, -122.159, 47.639]`, `START = [-122.2015, 47.6101]` · `demo/app.js`: `BBOX` same, `CENTER = [-122.20, 47.61]`, `ZOOM = 13` |
+
+</details>
+
+<details><summary><b>▸ Worked example · Downtown Los Angeles — a 4 × 4 mile city box</b></summary>
+
+Box `-118.29, 34.02, -118.22, 34.07` (City Hall and the 110 / 101 / 10 freeway interchanges), `OSM_EXTRACT_URL = …/us/california/socal-latest.osm.pbf`, `FIRE_PERIMETERS_WHERE="YEAR_ >= 2015"`. Run from the pulled images (Phase 0 option B), start to finish, by someone who had only this page.
+
+| Step | Result |
+|---|---|
+| 2 `fetch-overture.sh` | 33 s · roads 3,870 · water 147 · towns 1 · **land cover 0** (written as an empty layer) · buildings 20,933 · places 38,394 |
+| 3 `fetch-hazard.sh` | 1 s · 1 FHSZ polygon · 0 perimeters since 2015 — a city centre |
+| 4 `03-export.sql` | 175 candidates: 88 colleges, 44 schools, 20 community centers, 14 arenas, 8 town halls, 1 fairground. Most "colleges" are departments and academies; keep ~8 — City Hall, the schools and community centers well inside the box |
+| 5 `fetch-osm.sh` → `build-osrm.sh` | SoCal extract 641 MB in ≈ 50 s (once); clip 12 s → 4 MB; graph 3 s, 17 MB · `/nearest` at City Hall → `distance` 19.5 m |
+| 6 `build.sh` | 25 tiles · zoom 4–14 · 955 kB · **6 layers** (buildings, hazard, roads, shelters, towns, water) |
+| 7 `make-coverage.py` | 45 H3 cells in 7 bands; a shelter on the box edge got 0 cells |
+| 8 | `route.js`: `STUDY_BBOX = [-118.29, 34.02, -118.22, 34.07]`, `START = [-118.249, 34.045]` · `demo/app.js`: `BBOX` same, `CENTER = [-118.255, 34.045]`, `ZOOM = 13` · a click near City Hall → "Los Angeles City Hall · ~3 min drive · 2 km" |
 
 </details>
 
@@ -643,7 +662,9 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | `data/overture/roads.geojson missing` | staged data gone | `scripts/fetch-overture.sh` — or, after a Phase 4 box, `rm -rf data && mv data.placer data` |
 | Points in the ocean off Africa | lon/lat swapped | the SQL files start with `SET geometry_always_xy = true;` — keep it |
 | `.read` plus another statement in one `-c` does nothing | DuckDB dot-commands must be alone | one `.read` per run |
-| Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` |
+| Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` — or leave it and move: `WEB_PORT=8090 docker compose up -d`, then `localhost:8090` wherever this page says 8080 |
+| `01-tiles/build.sh`: `Worker <layer>_read-1 died` · `NullPointerException` | that GeoJSON has zero features; Planetiler 0.10 cannot read an empty FeatureCollection | `scripts/fetch-*.sh` write an *empty layer* in that case (one feature, `"geometry": null`); for a file made another way, replace its contents with `{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}` |
+| Two copies of the repo on one machine | Compose names the project after the folder | a second copy in a same-named folder, or one started with `-p <name>`, needs that same `-p <name>` on every `docker compose` command (`up`, `exec`, `restart`, `down`) |
 | Codespace fails to create | the Docker helper feature | remove `docker-outside-of-docker` from `.devcontainer/devcontainer.json` and retry |
 
 ## Repository map

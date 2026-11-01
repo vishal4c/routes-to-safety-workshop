@@ -38,3 +38,7 @@ duck_run() {
 }
 
 bbox_args() { echo "xmin=$BBOX_W ymin=$BBOX_S xmax=$BBOX_E ymax=$BBOX_N"; }
+
+# Planetiler 0.10 cannot read a FeatureCollection with zero features (NullPointerException in <layer>_read).
+# An "empty" layer is one feature with no geometry: every reader accepts it, and Planetiler writes no tiles for it.
+empty_layer() { printf '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}\n' > "$1"; }

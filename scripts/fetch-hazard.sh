@@ -7,8 +7,8 @@
 #                                      (swap in your own polygons later — README.md Phase 4 → "Swap the hazard")
 . "$(dirname "$0")/lib.sh"
 HZ="$REPO_ROOT/data/hazard"; mkdir -p "$HZ"
-# An "empty" layer holds one feature without geometry: Planetiler 0.10 cannot parse a FeatureCollection with zero features.
-empty() { printf '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}\n' > "$HZ/$1.geojson"; log "$1.geojson: empty layer (no features)"; }
+# An "empty" layer holds one feature without geometry (empty_layer, lib.sh): Planetiler 0.10 cannot parse zero features.
+empty() { empty_layer "$HZ/$1.geojson"; log "$1.geojson: empty layer (no features)"; }
 if [ "${1:-}" = "--none" ]; then empty fhsz; empty fire_perimeters; exit 0; fi
 
 need python3; need duckdb

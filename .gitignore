@@ -5,6 +5,9 @@ out/*
 # Phase 4: the attendee's copy of the Placer data (cp -R data data.placer)
 data.placer/
 
+# A participant's local compose overrides (ports, volumes)
+docker-compose.override.yml
+
 # Shipped via data-bundle.zip (GitHub Release / USB), not git
 data/osm/*
 !data/osm/.gitkeep

@@ -52,7 +52,8 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     for (const [base, label] of cands) {
       try {
         // /nearest is a cheap health check; a static server answers 404/HTML, which fails the JSON/code test.
-        const r = await fetch(base + '/nearest/v1/driving/-121.08,38.90', { signal: AbortSignal.timeout(4000) });
+        const probe = `/nearest/v1/driving/${(BBOX[0] + BBOX[2]) / 2},${(BBOX[1] + BBOX[3]) / 2}`;   // the box centre, so it works for any region
+        const r = await fetch(base + probe, { signal: AbortSignal.timeout(4000) });
         const j = await r.json();
         if (j.code === 'Ok') return { base, label };
       } catch (e) { /* next */ }
@@ -92,7 +93,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     if (!state.start) return;
     const [lng, lat] = state.start;
     const out = $('result');
-    if (!inBbox(lng, lat)) { out.textContent = 'This demo covers the Placer I-80 corridor only'; $('list').replaceChildren(); return; }
+    if (!inBbox(lng, lat)) { out.textContent = 'Outside the study area — click inside the mapped box'; $('list').replaceChildren(); return; }
     if (!state.osrm) { out.textContent = 'Routing needs OSRM (Docker or Codespaces) — map and shelters still work'; return; }
     const seq = ++state.seq;
     out.textContent = 'Routing…';
@@ -152,7 +153,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
       startMarker.on('dragend', () => { const l = startMarker.getLngLat(); setStart(l.lng, l.lat); });
     } else startMarker.setLngLat([lng, lat]);
     updateUrl();
-    if (!fromUrl && !inBbox(lng, lat)) notice('This demo covers the Placer I-80 corridor only');
+    if (!fromUrl && !inBbox(lng, lat)) notice('Outside the study area — click inside the mapped box');
     run();
   }
 

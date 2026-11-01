@@ -28,7 +28,11 @@ fetch() {
 COPY (SELECT $cols FROM read_parquet('$BASE/theme=$theme/type=$type/*') WHERE $where)
 TO '$OUT/$name.geojson' $GEOJSON;"
   n=$(duckdb -noheader -csv -c "LOAD spatial; SELECT count(*) FROM ST_Read('$OUT/$name.geojson')")
-  log "$name.geojson: $n features, $(du -h "$OUT/$name.geojson" | cut -f1), $(( $(date +%s) - t0 )) s"
+  if [ "$n" = 0 ]; then   # nothing in the box (land cover in a city centre, say) → empty layer, so 01-tiles/build.sh still runs
+    empty_layer "$OUT/$name.geojson"; log "$name.geojson: 0 features in the box → empty layer (one feature, no geometry; Planetiler skips it)"
+  else
+    log "$name.geojson: $n features, $(du -h "$OUT/$name.geojson" | cut -f1), $(( $(date +%s) - t0 )) s"
+  fi
 }
 
 THEMES=("$@"); [ ${#THEMES[@]} -eq 0 ] && THEMES=(roads water towns land_cover buildings places)

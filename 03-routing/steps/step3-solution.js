@@ -23,7 +23,7 @@ function say(text) {
 
 // Try each OSRM address in order; the first one that answers "Ok" wins.
 async function detectOsrm() {
-  const test = '/nearest/v1/driving/-121.08,38.90';
+  const test = `/nearest/v1/driving/${(STUDY_BBOX[0] + STUDY_BBOX[2]) / 2},${(STUDY_BBOX[1] + STUDY_BBOX[3]) / 2}`;   // a health check at the box centre
   const candidates = ['/osrm', 'http://localhost:5000'];
   if (location.protocol === 'https:') candidates.push('https://router.project-osrm.org');
   for (const base of candidates) {
@@ -104,7 +104,7 @@ async function routeToDroppedShelter() {
 async function update() {
   const house = houseMarker.getLngLat().toArray();
   if (!insideStudyArea(house)) {
-    say('This demo covers the Placer I-80 corridor only');
+    say('Outside the study area — drop the pin inside the box (STUDY_BBOX)');
     return;
   }
   say('');
