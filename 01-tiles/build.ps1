@@ -3,7 +3,7 @@
 $ErrorActionPreference = "Stop"
 $Root = Resolve-Path (Join-Path $PSScriptRoot "..")
 Set-Location $Root
-$env = Get-Content versions.env | Where-Object { $_ -match '^\s*[A-Z_]+=' } | ForEach-Object { $k,$v = $_ -split '=',2; @{ $k = $v } }
+$env = Get-Content versions.env | Where-Object { $_ -match '^\s*[A-Z_]+=' } | ForEach-Object { $k,$v = $_ -split '=',2; $v = ($v -replace '\s+#.*$', '').Trim().Trim('"'); @{ $k = $v } }
 $V = @{}; $env | ForEach-Object { $V += $_ }
 $Jar = "01-tiles\planetiler.jar"
 if (-not (Test-Path $Jar)) { Invoke-WebRequest "https://github.com/onthegomap/planetiler/releases/download/v$($V.PLANETILER_VERSION)/planetiler.jar" -OutFile $Jar }

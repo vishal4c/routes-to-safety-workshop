@@ -17,7 +17,8 @@ import argparse, json, os, re, sys, time, urllib.error, urllib.request
 import duckdb
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV = dict(l.strip().split("=", 1) for l in open(f"{ROOT}/versions.env") if "=" in l and not l.startswith("#"))
+# versions.env the way the shell reads it: "KEY=value", full-line and trailing "# comments" dropped, quotes around the value removed
+ENV = {k.strip(): v.strip().strip("\"'") for k, v in (re.sub(r"(^|\s)#.*$", "", l).split("=", 1) for l in open(f"{ROOT}/versions.env") if "=" in re.sub(r"(^|\s)#.*$", "", l))}
 ap = argparse.ArgumentParser(); ap.add_argument("--osrm", default=os.environ.get("OSRM_URL", "http://localhost:8080/osrm").rstrip("/"), help="OSRM base URL (default: $OSRM_URL)"); ap.add_argument("--res", type=int, default=8)
 ap.add_argument("--radius", type=int, default=1500, help="max snapping distance (m) from hex centroid to a road")
 a = ap.parse_args()

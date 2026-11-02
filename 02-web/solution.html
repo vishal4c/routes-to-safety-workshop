@@ -296,7 +296,7 @@ function editItems() {
   const tiles = { key: 'tiles', label: '0 · Tiles — the PMTiles you built in Phase 2a (falls back to the prebuilt copy). Draws only a dashed box around the covered area; rows 1–4 draw from it', info: tilesInfo, run: loadTiles };
   const step = (s) => needTiles({ key: s.key, label: s.n + ' · ' + (view === 'reach' && s.reachLabel ? s.reachLabel : s.label), run: () => loadStep(s) });
   const reach = { key: 'reach', label: 'Reach rings — 10 / 20 / 30 min drive to each shelter', run: loadReach };
-  const routing = { key: 'routing', label: 'Routing — click the map for the nearest shelter by road, I-80 toggle', run: loadRouting, once: true };
+  const routing = { key: 'routing', label: 'Routing — a pin drops; drag it for the nearest shelter by road, I-80 toggle', run: loadRouting, once: true };
   if (view === 'evac') return [tiles, ...STEPS.map(step), routing];
   if (view === 'reach') return [tiles, step(STEPS[0]), step(STEPS[1]), reach, routing];
   return [];

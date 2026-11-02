@@ -508,7 +508,7 @@ flowchart LR
   PM[/"out/evac.pmtiles<br/>coverage_bands.geojson"/]:::file
   S["3a · Fire evac map<br/>Edit → Add rows 0–4"]:::step
   V["3b · Shelter reach<br/>Edit → Add the rings"]:::step
-  R["3c · Routing<br/>Edit → Add → click · drag · I-80"]:::step
+  R["3c · Routing<br/>Edit → Add → drag the pin · I-80"]:::step
   D(["3d · demo/<br/>the finished app"]):::out
   PM --> S --> V --> R --> D
 ```
@@ -614,7 +614,7 @@ Everything above was driven by **one box** — the four `BBOX_*` lines in [`vers
 > cp -R data data.placer
 > rm -f data/overture/*.geojson data/hazard/*.geojson data/coverage/*.geojson data/shelters.geojson out/evac.pmtiles
 > ```
-> ✅ `data.placer/` keeps Placer (≈ 170 MB, mostly the routing graph) — undo later with `rm -rf data && mv data.placer data`. The second line starts clean; steps 2–7 regenerate every one of these files.
+> ✅ `data.placer/` keeps Placer (≈ 170 MB, mostly the routing graph; more if a region file from an earlier Phase 4 is still in `data/osm/`) — undo later with `rm -rf data && mv data.placer data`. The second line starts clean; steps 2–7 regenerate every one of these files.
 >
 > Every block below is labelled: most run in the 🐳 container shell, step 5 has one 💻 laptop-terminal block.
 
@@ -639,19 +639,22 @@ flowchart LR
 
 ✏️ edit the file `versions.env` (not a terminal paste)
 ```ini
-BBOX_W=-122.244    # west   (longitude, negative in the Americas)
-BBOX_S=47.581      # south
-BBOX_E=-122.159    # east
-BBOX_N=47.639      # north
-BUILDINGS_W=-122.244   # the box for 3D buildings — for a town-sized box, the same four numbers again
+# the box: west, south, east, north (longitude is negative in the Americas)
+BBOX_W=-122.244
+BBOX_S=47.581
+BBOX_E=-122.159
+BBOX_N=47.639
+# the box for 3D buildings — for a town-sized box, the same four numbers again
+BUILDINGS_W=-122.244
 BUILDINGS_S=47.581
 BUILDINGS_E=-122.159
 BUILDINGS_N=47.639
-OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf   # the Geofabrik region that contains the box
+# the Geofabrik region that contains the box
+OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf
 ```
-✅ `versions.env` holds the new box and region.
+✅ `versions.env` holds the new box and region. Comments go on their own line, as above — every script reads this file.
 
-**2 · Overture themes for the box** — the same script as Phase 1 · Fetch, for our own box (20–40 s — buildings take longest, 20,000 of them ≈ 17 s; the table in Phase 1 has the per-theme times). A theme with nothing in the box (land cover in a city centre) is written as an *empty layer* — one feature, no geometry — so the tile build still runs; the map simply has no such layer.
+**2 · Overture themes for the box** — the same script as Phase 1 · Fetch, for our own box (30–60 s — buildings take longest, 20,000 of them ≈ 17 s, 40,000 ≈ 25 s; the table in Phase 1 has the per-theme times). A theme with nothing in the box (land cover in a city centre) is written as an *empty layer* — one feature, no geometry — so the tile build still runs; the map simply has no such layer.
 
 🐳 Container shell
 ```bash
@@ -671,7 +674,7 @@ scripts/fetch-hazard.sh
 scripts/fetch-hazard.sh --none
 ```
 ✅ `data/hazard/fhsz.geojson` + `fire_perimeters.geojson` exist (with `--none`: no features).
-A city box can come back in a second with one zone and no perimeters — that is the real answer, not a failure (downtown Los Angeles: 1 FHSZ polygon, 0 fires since 2015).
+A city box can come back in a second with one zone and no perimeters — that is the real answer, not a failure (downtown Los Angeles: 1 FHSZ polygon, 0 fires since 2015; downtown San Diego: 3 zones over the canyons, 0 fires).
 
 **4 · Shelters.** Run the Phase 1c export for the box, open the result, keep the places that really are shelters, and save them as `data/shelters.geojson` — same columns (`id, name, status, type, town, source`), short unique `id`s, `status = candidate` until a county source confirms one.
 
@@ -681,7 +684,7 @@ duckdb -c ".read 00-data/03-export.sql"
 duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson') ORDER BY type, name" > out/shelter-candidates.csv
 cat out/shelter-candidates.csv
 ```
-✅ The candidates printed, one per line as `id,name,type,town` (schools, community centers, colleges, town halls, fairgrounds, arenas) — `id` is the name as a slug (`Placer High School` → `placer-high-school`). Note the ids to keep.
+✅ The candidates printed, one per line as `id,name,type,town` (schools, community centers, colleges, town halls, fairgrounds, arenas) — `id` is the name as a slug (`Placer High School` → `placer-high-school`; two places with the same name get `-1`, `-2`). The list is a match on the place type, so a "college" can be one department and a "fairground" a business — keep the real ones and note their ids.
 
 🐳 Container shell · ✏️ edit first: the ids
 ```bash
@@ -720,10 +723,10 @@ curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"
 01-tiles/build.sh
 scripts/make-coverage.py
 ```
-✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and 5–8 layers; an empty layer is left out) and `data/coverage/*.geojson`. `make-coverage.py` uses `$OSRM_URL` and stops with a clear line if OSRM still serves the old graph ("the nearest road to the box centre is 595 km away" → step 5 again).
+✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and tile count; `pmtiles show out/evac.pmtiles --metadata` lists the layers — 5–8, an empty layer is left out — as does row 0 of the map page) and `data/coverage/*.geojson`. `make-coverage.py` uses `$OSRM_URL` and stops with a clear line if OSRM still serves the old graph ("the nearest road to the box centre is 595 km away" → step 5 again).
 
 **8 · The pages.**
-- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
+- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box; the box centre is a safe choice), then **Routing → Add**: the pin drops on `START` with the route to the nearest shelter; drag it anywhere in the box, as in 3c.
 - **`demo/`**: `cp out/evac.pmtiles data/prebuilt/evac.pmtiles`, then edit the three marked lines at the top of [`demo/app.js`](demo/app.js) (`BBOX`, `CENTER`, `ZOOM`). Without a hazard layer the Fire evac view shows roads, water, land cover and towns; the other two views are unchanged.
 - **Words that still say Placer** (cosmetic, optional): the two page titles, the **I-80 closed** label (it sends `exclude=motorway`, so it closes every freeway in the new box — rename it, keep it), the perimeter names in the `demo/index.html` legend, and `schema_description` in [`01-tiles/evac.yml`](01-tiles/evac.yml) (what `pmtiles show` prints). `grep -n -E 'Placer|I-80|Auburn|Foresthill' 02-web/index.html demo/index.html demo/app.js 03-routing/route.js 01-tiles/evac.yml` lists every line.
 
@@ -738,7 +741,7 @@ Box `-122.244, 47.581, -122.159, 47.639` (downtown Bellevue, the I-405 / I-90 in
 | 2 `fetch-overture.sh` | 16–20 s · roads 2,499 · water 138 · towns 4 · land cover 21 · buildings 14,541 · places 10,856 |
 | 4 `03-export.sql` | 12 candidates: 4 schools, 3 community centers, 3 town halls, 2 for-profit colleges (Bellevue College itself sits just outside the box). Drop the colleges and "service center" rows → 5–8 shelters, all `candidate` |
 | 5 `fetch-osm.sh` → `build-osrm.sh` | Washington extract ≈ 365 MB (once); clip ≈ 9 s, graph ≈ 2 s |
-| 6 `build.sh` | 47 tiles · `pmtiles show` → bounds -122.244 … 47.639 · **6 layers** — hazard and fire_perimeters are empty, so Planetiler leaves them out; the map page says "6 layers" and rows 2–3 simply draw nothing |
+| 6 `build.sh` | 47 tiles · `pmtiles show` → bounds -122.244 … 47.639 · `--metadata` → **6 layers** — hazard and fire_perimeters are empty, so Planetiler leaves them out; the map page says "6 layers" and rows 2–3 simply draw nothing |
 | 7 `make-coverage.py` | a few dozen H3 cells; bands mostly ≤ 10 min — it is a small box |
 | 8 | `route.js`: `STUDY_BBOX = [-122.244, 47.581, -122.159, 47.639]`, `START = [-122.2015, 47.6101]` · `demo/app.js`: `BBOX` same, `CENTER = [-122.20, 47.61]`, `ZOOM = 13` |
 
@@ -783,7 +786,7 @@ Every colour on the map is one line in a MapLibre layer; the layers live in `02-
 ```bash
 cp 02-web/steps/step4-final.json out/my-style.json
 ```
-Open `out/my-style.json` (the repo folder is the same on the laptop) and change the colours:
+Open `out/my-style.json` (the repo folder is the same on the laptop) — a JSON list of layers, each with an `id` and a `paint` block — and change the colours:
 
 | Layer `id` | Property | Now | Try |
 |---|---|---|---|
