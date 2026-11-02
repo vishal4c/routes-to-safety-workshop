@@ -39,7 +39,9 @@ Comment out the step1 import, uncomment `…/steps/step2-scaffold.js`. Open that
 Check it yourself: drag the pink shelter marker onto Georgetown School (-120.833, 38.909) → the popup shows the long way round.
 
 **Drag the pink shelter marker** to any spot: the route is redrawn to where you dropped it (the popup says "Your chosen spot").
-Drag a marker outside the bbox → *"Outside the study area — drop the pin inside the box (STUDY_BBOX)"* and no OSRM call.
+Drag a marker outside the bbox → *"Outside the study area — click inside the box (BBOX_* in versions.env)"* and no OSRM call.
+
+No dragging needed: **click the map** to move the start, **right-click** or **Shift+click** to pick the destination.
 
 Not routing? → open `03-routing/steps/step3-solution.js` (or point the import at `../03-routing/route.js`).
 

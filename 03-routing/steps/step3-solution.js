@@ -6,6 +6,7 @@ const STUDY_BBOX = [-121.40, 38.72, -120.52, 39.20];   // W, S, E, N — same as
 const START = [-120.8182, 39.0199];                    // Foresthill (lon, lat)
 const ROUTE_COLOR = '#d81b60';
 
+let studyBox = STUDY_BBOX;  // replaced by the BBOX_* lines of versions.env when the server has that file (loadStudyBox)
 let OSRM = null;           // base URL of the routing server (found by detectOsrm)
 let OSRM_IS_PUBLIC = false;
 let shelters = [];         // GeoJSON features from data/shelters.geojson
@@ -21,9 +22,33 @@ function say(text) {
   el.style.display = text ? 'block' : 'none';
 }
 
+// The box comes from versions.env (served with the repo), so a Phase 4 box needs no edit here.
+// No versions.env (the public Pages site) → the STUDY_BBOX line above.
+async function loadStudyBox() {
+  try {
+    const r = await fetch('../versions.env', { cache: 'no-store' });
+    if (!r.ok) return STUDY_BBOX;
+    const text = await r.text();
+    const v = ['W', 'S', 'E', 'N'].map((k) => parseFloat((text.match(new RegExp('^\\s*BBOX_' + k + '\\s*=\\s*([-0-9.]+)', 'm')) || [])[1]));
+    return v.every(Number.isFinite) ? v : STUDY_BBOX;
+  } catch (e) { return STUDY_BBOX; }
+}
+
+function boxCentre() {
+  return [(studyBox[0] + studyBox[2]) / 2, (studyBox[1] + studyBox[3]) / 2];
+}
+
+// Where the pin drops first: START when it is inside the box (Placer: Foresthill),
+// otherwise the road point nearest the box centre (the centre itself may be a lake).
+async function firstStart() {
+  if (insideStudyArea(START)) return START;
+  try { return (await osrm(`/nearest/v1/driving/${boxCentre().join(',')}`)).waypoints[0].location; }
+  catch (e) { return boxCentre(); }
+}
+
 // Try each OSRM address in order; the first one that answers "Ok" wins.
 async function detectOsrm() {
-  const test = `/nearest/v1/driving/${(STUDY_BBOX[0] + STUDY_BBOX[2]) / 2},${(STUDY_BBOX[1] + STUDY_BBOX[3]) / 2}`;   // a health check at the box centre
+  const test = `/nearest/v1/driving/${boxCentre().join(',')}`;   // a health check at the box centre
   const candidates = ['/osrm', 'http://localhost:5000'];
   if (location.protocol === 'https:') candidates.push('https://router.project-osrm.org');
   for (const base of candidates) {
@@ -47,7 +72,7 @@ async function osrm(path) {
 }
 
 function insideStudyArea([lon, lat]) {
-  const [w, s, e, n] = STUDY_BBOX;
+  const [w, s, e, n] = studyBox;
   return lon >= w && lon <= e && lat >= s && lat <= n;
 }
 
@@ -79,7 +104,8 @@ function addClosureToggle() {
   panel.style.cssText = 'position:absolute;top:8px;right:50px;z-index:5;background:#fffffff0;border-radius:4px;padding:6px 10px;font-size:13px;box-shadow:0 1px 4px #0004;cursor:help';
   panel.title = 'Real closures aren\'t a parameter — nobody flags a downed power line before you drive into it. '
               + 'This shows the calculation, not detection.';
-  panel.innerHTML = '<input type="checkbox" id="i80-closed"> I-80 closed';
+  panel.innerHTML = '<input type="checkbox" id="i80-closed"> I-80 closed'
+                  + '<div style="font-size:11px;color:#555;margin-top:2px">click: start · right-click / Shift+click: destination</div>';
   document.body.appendChild(panel);
   const box = panel.querySelector('input');
   if (OSRM_IS_PUBLIC) {   // the public demo server rejects exclude=motorway
@@ -104,10 +130,11 @@ async function routeToDroppedShelter() {
 async function update() {
   const house = houseMarker.getLngLat().toArray();
   if (!insideStudyArea(house)) {
-    say('Outside the study area — drop the pin inside the box (STUDY_BBOX)');
+    say('Outside the study area — click inside the box (BBOX_* in versions.env)');
     return;
   }
   say('');
+  if (!shelters.length) { say('data/shelters.geojson has no shelters — Phase 4 step 4'); return; }
   if (shelterDragged) { routeToDroppedShelter().catch((e) => say(e.message)); return; }
   const exclude = closureParam();
   try {
@@ -141,6 +168,7 @@ async function findNearestShelter(house, exclude) {
 export async function start(mapArg, maplibreArg) {
   map = mapArg;
   maplibregl = maplibreArg;
+  studyBox = await loadStudyBox();
 
   OSRM = await detectOsrm();
   if (!OSRM) {
@@ -160,11 +188,28 @@ export async function start(mapArg, maplibreArg) {
   addClosureToggle();
   popup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '300px' });
 
-  houseMarker = new maplibregl.Marker({ draggable: true }).setLngLat(START).addTo(map);
-  shelterMarker = new maplibregl.Marker({ draggable: true, color: ROUTE_COLOR }).setLngLat(START).addTo(map);
+  const first = await firstStart();
+  houseMarker = new maplibregl.Marker({ draggable: true }).setLngLat(first).addTo(map);
+  shelterMarker = new maplibregl.Marker({ draggable: true, color: ROUTE_COLOR }).setLngLat(first).addTo(map);
+  if (!map.getBounds().contains(first)) map.easeTo({ center: first });
 
   houseMarker.on('dragend', () => { shelterDragged = false; update(); });
   shelterMarker.on('dragend', () => { shelterDragged = true; routeToDroppedShelter().catch((e) => say(e.message)); });
+
+  // Click the map: the start moves there. Right-click or Shift+click: the destination moves there.
+  // A click on a shelter circle keeps its popup and moves nothing.
+  const onShelter = (e) => map.getLayer('shelters') && map.queryRenderedFeatures(e.point, { layers: ['shelters'] }).length > 0;
+  const setDestination = (e) => {
+    if (!insideStudyArea(e.lngLat.toArray())) return say('Outside the study area — click inside the box (BBOX_* in versions.env)');
+    shelterMarker.setLngLat(e.lngLat); shelterDragged = true;
+    routeToDroppedShelter().catch((err) => say(err.message));
+  };
+  map.on('click', (e) => {
+    if (onShelter(e)) return;
+    if (e.originalEvent.shiftKey) return setDestination(e);
+    houseMarker.setLngLat(e.lngLat); shelterDragged = false; update();
+  });
+  map.on('contextmenu', (e) => { e.preventDefault(); setDestination(e); });
 
   update();
 }

@@ -557,7 +557,7 @@ More to try: [`02-web/exercises.md`](02-web/exercises.md) (**A** recolour street
 
 <img src="docs/img/p3-routing.jpg" width="80%" alt="Pin on Foresthill, pink route to Placer High School, popup 36 min"/>
 
-**Drag the pin**, then tick **I-80 closed** (top-right). The route recomputes without the motorway. From Gold Run: Sierra Vista CC 13 min → **21 min**.
+**Click the map** to move the start (or drag the pin); **right-click** or **Shift+click** to route to any spot instead of the nearest shelter. Then tick **I-80 closed** (top-right). The route recomputes without the motorway. From Gold Run: Sierra Vista CC 13 min → **21 min**.
 
 <img src="docs/img/p3-routing-i80.jpg" width="80%" alt="I-80 closed ticked: pin at Gold Run, detour route to Sierra Vista Community Center, 21 min"/>
 
@@ -725,8 +725,8 @@ scripts/make-coverage.py --osrm http://osrm:5000
 ✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and 5–8 layers; an empty layer is left out) and `data/coverage/*.geojson`. Option C: `--osrm http://localhost:8080/osrm`.
 
 **8 · The pages.**
-- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
-- **`demo/`**: `cp out/evac.pmtiles data/prebuilt/evac.pmtiles`, then edit the three marked lines at the top of [`demo/app.js`](demo/app.js) (`BBOX`, `CENTER`, `ZOOM`). Without a hazard layer the Fire evac view shows roads, water, land cover and towns; the other two views are unchanged.
+- **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, **Routing → Add**: [`03-routing/route.js`](03-routing/route.js) reads the box from `versions.env`, drops the pin on the road nearest the box centre (the map moves to it), and routes to the nearest shelter. Click the map to move the start; right-click or Shift+click to pick the destination.
+- **`demo/`**: `cp out/evac.pmtiles data/prebuilt/evac.pmtiles`, then refresh: [`demo/app.js`](demo/app.js) reads the box from `versions.env` too and opens fitted to it. Click the map to drop the start. Without a hazard layer the Fire evac view shows roads, water, land cover and towns; the other two views are unchanged.
 - **Words that still say Placer** (cosmetic, optional): the two page titles, the **I-80 closed** label (it sends `exclude=motorway`, so it closes every freeway in the new box — rename it, keep it), the perimeter names in the `demo/index.html` legend, and `schema_description` in [`01-tiles/evac.yml`](01-tiles/evac.yml) (what `pmtiles show` prints). `grep -n -E 'Placer|I-80|Auburn|Foresthill' 02-web/index.html demo/index.html demo/app.js 03-routing/route.js 01-tiles/evac.yml` lists every line.
 
 **9 · Check and publish.** `sha256sum data/overture/*.geojson data/hazard/*.geojson data/shelters.geojson > my-checksums.sha256` records what was built; `out/evac.pmtiles` + `data/coverage/` + `data/shelters.geojson` + `02-web/` + `demo/` on any static host that answers Range requests is a published map. Keep the attribution line and the disclaimer.
@@ -742,7 +742,7 @@ Box `-122.244, 47.581, -122.159, 47.639` (downtown Bellevue, the I-405 / I-90 in
 | 5 `fetch-osm.sh` → `build-osrm.sh` | Washington extract ≈ 365 MB (once); clip ≈ 9 s, graph ≈ 2 s |
 | 6 `build.sh` | 47 tiles · `pmtiles show` → bounds -122.244 … 47.639 · **6 layers** — hazard and fire_perimeters are empty, so Planetiler leaves them out; the map page says "6 layers" and rows 2–3 simply draw nothing |
 | 7 `make-coverage.py` | a few dozen H3 cells; bands mostly ≤ 10 min — it is a small box |
-| 8 | `route.js`: `STUDY_BBOX = [-122.244, 47.581, -122.159, 47.639]`, `START = [-122.2015, 47.6101]` · `demo/app.js`: `BBOX` same, `CENTER = [-122.20, 47.61]`, `ZOOM = 13` |
+| 8 | no code edits: the routing row and `demo/` read the box from `versions.env`; the pin drops on the road nearest the box centre — click to move it |
 
 </details>
 
@@ -758,7 +758,7 @@ Box `-118.29, 34.02, -118.22, 34.07` (City Hall and the 110 / 101 / 10 freeway i
 | 5 `fetch-osm.sh` → `build-osrm.sh` | SoCal extract 641 MB in ≈ 50 s (once); clip 12 s → 4 MB; graph 3 s, 17 MB · `/nearest` at City Hall → `distance` 19.5 m |
 | 6 `build.sh` | 25 tiles · zoom 4–14 · 955 kB · **6 layers** (buildings, hazard, roads, shelters, towns, water) |
 | 7 `make-coverage.py` | 45 H3 cells in 7 bands; a shelter on the box edge got 0 cells |
-| 8 | `route.js`: `STUDY_BBOX = [-118.29, 34.02, -118.22, 34.07]`, `START = [-118.249, 34.045]` · `demo/app.js`: `BBOX` same, `CENTER = [-118.255, 34.045]`, `ZOOM = 13` · a click near City Hall → "Los Angeles City Hall · ~3 min drive · 2 km" |
+| 8 | no code edits (the box comes from `versions.env`) · a click near City Hall → "Los Angeles City Hall · ~3 min drive · 2 km" |
 
 </details>
 
