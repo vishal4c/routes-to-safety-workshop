@@ -684,10 +684,9 @@ duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shel
 
 🐳 Container shell · ✏️ edit first: the ids
 ```bash
-scripts/pick-shelters.sh id-1 id-2 id-3
+scripts/pick-shelters.sh colfax-high-school placer-high-school
 ```
-✅ `data/shelters.geojson` holds only the kept places, listed back with `id, name, type, town`. Under the hood it is the Phase 1c `COPY … TO` in reverse — `SELECT … FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN (…)` — plus two checks: an id that is not in the candidates is reported (a typo, or a Placer id in a new box), and a pick that matches **nothing** falls back to the schools in the box so steps 6–8 still run: up to 10 **high schools** from `data/overture/places.geojson`, or any K-12 campus if the box has no high school, every one `status = candidate` ([`scripts/shelters-fallback.sql`](scripts/shelters-fallback.sql)); a box with no school at all gets one *placeholder shelter* at its south-west corner (`BBOX_W, BBOX_S`). `scripts/pick-shelters.sh --auto` asks for that fallback outright — the quick way through step 4. A file with zero features would crash the tile build (`shelters:read … Unexpected token type: START_OBJECT`) and give `make-coverage.py` a `400`; `01-tiles/build.sh` and `make-coverage.py` apply the same fallback if they meet one.
-In a city the list is long and `college` is noisy (downtown Los Angeles: 175 candidates, 88 of them `college` — departments and academies); the `GROUP BY type` query in the header of `03-export.sql` shows the mix. Keep 6–10 places that sit well inside the box — one on the edge may get no reach cells in step 7.
+✅ `data/shelters.geojson` holds the kept places, all `status = candidate`. The ids are the `id` column of `out/shelter-candidates.csv` (the name as a slug: `Placer High School` → `placer-high-school`). Nothing matched? The high schools in the box stand in (any K-12 school if there is none); `--auto` asks for that outright.
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
 
