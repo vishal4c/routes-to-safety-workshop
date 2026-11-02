@@ -679,14 +679,15 @@ A city box can come back in a second with one zone and no perimeters — that is
 ```bash
 duckdb -c ".read 00-data/03-export.sql"
 duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shelter-candidates.geojson') ORDER BY type, name" > out/shelter-candidates.csv
+cat out/shelter-candidates.csv
 ```
-✅ `out/shelter-candidates.geojson` (schools, community centers, colleges, town halls, fairgrounds, arenas) and `out/shelter-candidates.csv` — the whole list (the terminal stops after 40 rows). Open the CSV and note the ids to keep.
+✅ The candidates printed, one per line as `id,name,type,town` (schools, community centers, colleges, town halls, fairgrounds, arenas) — `id` is the name as a slug (`Placer High School` → `placer-high-school`). Note the ids to keep.
 
 🐳 Container shell · ✏️ edit first: the ids
 ```bash
 scripts/pick-shelters.sh colfax-high-school placer-high-school
 ```
-✅ `data/shelters.geojson` holds the kept places, all `status = candidate`. The ids are the `id` column of `out/shelter-candidates.csv` (the name as a slug: `Placer High School` → `placer-high-school`). Nothing matched? The high schools in the box stand in (any K-12 school if there is none); `--auto` asks for that outright.
+✅ `data/shelters.geojson` holds the kept places, all `status = candidate`; the ids are the first column of the list above. Nothing matched? The high schools in the box stand in (any K-12 school if there is none); `--auto` asks for that outright.
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
 
