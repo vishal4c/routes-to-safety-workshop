@@ -40,7 +40,7 @@ to
 ```
 Then in the **Edit** panel, type `out/my-style.json` into the row 4 box and click **Reload**.
 The local streets turn brown; motorways and primary roads keep their own colours (they are `roads-major`).
-A typo in the JSON shows up as a red notice with the line and column.
+A typo in the JSON shows up as a notice naming the file (the browser's own JSON error — Chrome adds the line); the map keeps the last good version.
 </details>
 
 ## B — Show only the verified shelter

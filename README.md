@@ -791,7 +791,7 @@ Open `out/my-style.json` (the repo folder is the same on the laptop) and change 
 | `roads-major` — motorway/trunk, then primary/secondary | `"line-color"`: `["match", ["get","class"], [motorway…], "#555555", "#777777"]` | two greys | `"#c62828"`, `"#ef6c00"` (red freeways, orange highways) |
 | `buildings` — 3D footprints from zoom 13 | `"fill-extrusion-color"` | `"#d9d9d9"` | `"#b0bec5"`, or by height: `["interpolate", ["linear"], ["get","height"], 0, "#eceff1", 30, "#546e7a"]` |
 
-In the **Edit** panel type `out/my-style.json` into the row 4 box and click **Reload**. A layer with the same `id` replaces the one on the map; a JSON typo shows up as a red notice with line and column. For the finished app, make the same edits in `demo/style.json` and refresh. Widths (`line-width`), opacity and the zoom at which a layer appears (`minzoom`) are edited the same way — [`02-web/exercises.md`](02-web/exercises.md) has more.
+In the **Edit** panel type `out/my-style.json` into the row 4 box and click **Reload**. A layer with the same `id` replaces the one on the map; a JSON typo shows up as a notice naming the file (the browser's own JSON error — Chrome adds the line) and the map keeps the last good version. For the finished app, make the same edits in `demo/style.json` and refresh. Widths (`line-width`), opacity and the zoom at which a layer appears (`minzoom`) are edited the same way — [`02-web/exercises.md`](02-web/exercises.md) has more.
 
 </details>
 
