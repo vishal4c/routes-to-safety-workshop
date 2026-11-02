@@ -607,6 +607,8 @@ The same three views + the router with a side panel (view switch, legend, I-80 t
 
 Everything above was driven by **one box** — the four `BBOX_*` lines in [`versions.env`](versions.env). Phase 4 is the same steps with a different box. Network needed; the OpenStreetMap region download is the big one.
 
+> Stuck? `scripts/check-phase4.sh` (after step 7) names the step to redo; [`troubleshooting/phase4.md`](troubleshooting/phase4.md) explains every red line, with a worked Bellevue run.
+>
 > **Phase 4 overwrites the Placer files** — `versions.env`, what the scripts generate in `data/`, `out/evac.pmtiles`, and two page files in step 8. No git needed: keep a copy, start clean, rebuild.
 >
 > 🐳 Container shell
@@ -682,13 +684,13 @@ duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shel
 ```
 ✅ `out/shelter-candidates.geojson` (schools, community centers, colleges, town halls, fairgrounds, arenas) and `out/shelter-candidates.csv` — the whole list (the terminal stops after 40 rows). Open the CSV and note the ids to keep.
 
-🐳 Container shell · ✏️ edit first: `'id-1', 'id-2', 'id-3'`
+🐳 Container shell · ✏️ edit first: the ids (real ones from the `id` column of the CSV)
 ```bash
-duckdb -c "LOAD spatial; SET geometry_always_xy = true;
-  COPY (SELECT * FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN ('id-1', 'id-2', 'id-3'))
-  TO 'data/shelters.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"
+scripts/pick-shelters.sh bellevue-high-school medina-city-hall mercer-island-community-event-center
 ```
-✅ `data/shelters.geojson` holds only the kept places.
+✅ `data/shelters.geojson: 3 shelters`. The script writes only the ids it finds and warns about any place outside the box.
+
+❌ `'id-1' is a placeholder` or `not in out/shelter-candidates.geojson: …` → nothing was written; copy the ids from the CSV.
 In a city the list is long and `college` is noisy (downtown Los Angeles: 175 candidates, 88 of them `college` — departments and academies); the `GROUP BY type` query in the header of `03-export.sql` shows the mix. Keep 6–10 places that sit well inside the box — one on the edge may get no reach cells in step 7.
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
@@ -723,6 +725,16 @@ curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"
 scripts/make-coverage.py --osrm http://osrm:5000
 ```
 ✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and 5–8 layers; an empty layer is left out) and `data/coverage/*.geojson`. Option C: `--osrm http://localhost:8080/osrm`.
+
+❌ `make-coverage.py` stops with `0 shelters` (step 4) or `OSRM snaps … km away` (step 5: the old graph is still loaded) → redo that step.
+
+**Check · every output is for this box** · 🐳 Container shell
+```bash
+scripts/check-phase4.sh
+```
+✅ Seven `OK` lines (Overture roads, hazard, shelters, OSRM, tiles, reach bands, web server) and `All Phase 4 checks passed.`
+
+❌ A `FAIL` line names the step to redo; fix the first one and run it again. More: [`troubleshooting/phase4.md`](troubleshooting/phase4.md).
 
 **8 · The pages.**
 - **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
@@ -803,8 +815,13 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 
 ## If something is red
 
+More detail, symptom by symptom: [`troubleshooting/`](troubleshooting/).
+
 | Symptom | It means | Do |
 |---|---|---|
+| Browser: `Wrong magic number for PMTiles archive` | the page got bytes that are not a PMTiles archive (stale cache, an old half-written build, or no Range support) | `01-tiles/build.sh`, hard-refresh, **Reload** row 0; check with `scripts/check-phase4.sh` ([details](troubleshooting/phase4.md#browser-outevacpmtiles-wrong-magic-number-for-pmtiles-archive)) |
+| `make-coverage.py`: `0 shelters` · `HTTP Error 400` | `data/shelters.geojson` is empty (placeholder ids in Phase 4 step 4) | `scripts/pick-shelters.sh <real ids>` |
+| `make-coverage.py`: `OSRM snaps … km away` · `/nearest` distance in the hundreds of km | OSRM still serves the old graph | Phase 4 step 5: `build-osrm.sh` in the laptop terminal, then restart osrm |
 | Blank map, row 0 red, or `curl … Range` answers `200` | the web server ignores Range requests | serve with Caddy (`docker compose up -d`) or `npx serve`, never `python -m http.server` |
 | "Using the prebuilt tiles" on row 0 | `out/evac.pmtiles` not found | fine — or run 2a |
 | Console: `/osrm 404` · "Routing needs OSRM" | the :8080 server is not Caddy, or no OSRM (option C) | use Caddy, or pair up |
@@ -830,12 +847,13 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) · `exercises.md` | 0 |
 | [`00-data/`](00-data/) | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` · `04-overture-themes.sql` (optional tour) · `exercises.md` | 1 |
 | [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) · `exercises.md` (2a–2c) | 2a |
-| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
+| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `pick-shelters.sh`, `check-phase4.sh` (Phase 4) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
 | [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) · `exercises.md` | 3a 3b |
 | [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it by hand) · `grid.sql`, `exercises.md` | 3c |
 | [`demo/`](demo/) | the finished app: `index.html`, `app.js`, `style.json`, `dev-fixtures/` | 3d |
 | [`data/`](data/) | `overture/`, `hazard/` (written by Phase 1 · Fetch, not in git) · `shelters.geojson` · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
 | [`staged_data/`](staged_data/) | committed copies of the Fetch output (`overture/`, `hazard/`) — the offline fallback, `scripts/stage-data.sh` | 1 |
+| [`troubleshooting/`](troubleshooting/) | symptom → cause → check → fix, starting with Phase 4 | 4 |
 | `out/` | what we build: `evac.pmtiles`, `shelter-candidates.geojson` | 1 2 |
 | [`docker-compose.yml`](docker-compose.yml) · [`Caddyfile`](Caddyfile) · [`.devcontainer/`](.devcontainer/) | the three containers (tool shell, OSRM, Caddy) — options A and B share them | 0 |
 | [`deck/`](deck/) | the slide deck shown in the room — `Routes-to-Safety-FOSS4G-NA-2026.pptx` and a PDF export | — |

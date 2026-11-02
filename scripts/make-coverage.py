@@ -13,11 +13,13 @@
 Usage:  scripts/make-coverage.py [--osrm http://localhost:5000] [--res 8]
 This is Phase 2c (reach bands / isochrones) — the same /table call as 03-routing/exercises.md Stretch A, with more points, dissolved with DuckDB spatial.
 """
-import argparse, json, os, sys, time, urllib.request
+import argparse, json, os, re, sys, time, urllib.request
 import duckdb
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ENV = dict(l.strip().split("=", 1) for l in open(f"{ROOT}/versions.env") if "=" in l and not l.startswith("#"))
+# KEY=value lines; an inline "# comment" and surrounding quotes are not part of the value (BBOX_W=-122.244   # west)
+ENV = {k.strip(): re.sub(r"\s+#.*$", "", v).strip().strip("'\"") for k, v in
+       (l.split("=", 1) for l in open(f"{ROOT}/versions.env") if "=" in l and not l.lstrip().startswith("#"))}
 ap = argparse.ArgumentParser(); ap.add_argument("--osrm", default="http://localhost:5000"); ap.add_argument("--res", type=int, default=8)
 ap.add_argument("--radius", type=int, default=1500, help="max snapping distance (m) from hex centroid to a road")
 a = ap.parse_args()
@@ -46,6 +48,23 @@ cells = con.execute("SELECT h3, lon, lat FROM cells ORDER BY h3").fetchall()
 shelters = json.load(open(f"{ROOT}/data/shelters.geojson"))["features"]
 sh = [(f["properties"]["id"], f["properties"]["name"], f["properties"]["status"], *f["geometry"]["coordinates"]) for f in shelters]
 print(f"{len(cells)} road-bearing hex cells at res {a.res}; {len(sh)} shelters ({time.time()-t0:.1f}s)", file=sys.stderr)
+# Phase 4 guards: each one names the step to redo instead of ending in an OSRM "HTTP Error 400".
+if not sh:
+    sys.exit("data/shelters.geojson has 0 shelters — Phase 4 step 4: scripts/pick-shelters.sh <ids from out/shelter-candidates.csv>")
+if not cells:
+    sys.exit("no road-bearing cells in the box — data/overture/roads.geojson is empty or for another box (Phase 4 step 2)")
+outside = [name for _, name, _, x, y in sh if not (W <= x <= E and S <= y <= N)]
+if outside:
+    sys.exit(f"{len(outside)} of {len(sh)} shelters are outside the box in versions.env ({', '.join(outside[:3])}…) — Phase 4 step 4")
+# The graph OSRM serves must cover this box: "code":"Ok" alone proves nothing, the snapping distance does.
+def snap_m(x, y):
+    with urllib.request.urlopen(f"{a.osrm}/nearest/v1/driving/{x:.6f},{y:.6f}", timeout=30) as r:
+        return json.load(r)["waypoints"][0]["distance"]
+for name, x, y in [("the box centre", (W + E) / 2, (S + N) / 2)] + [(n, x, y) for _, n, _, x, y in sh]:
+    d = snap_m(x, y)
+    if d > 5000:
+        sys.exit(f"OSRM snaps {name} to a road {d/1000:.0f} km away: it still serves a graph for another area — "
+                 "Phase 4 step 5 (scripts/build-osrm.sh, then restart osrm)")
 
 # 2. OSRM /table in batches: sources = hex centroids, destinations = shelters
 dest = ";".join(f"{x:.6f},{y:.6f}" for *_, x, y in sh)
@@ -58,8 +77,11 @@ for i in range(0, len(cells), batch):
     dst = ";".join(str(len(chunk) + k) for k in range(len(sh)))
     rad = ";".join([str(a.radius)] * len(chunk) + ["unlimited"] * len(sh))
     url = f"{a.osrm}/table/v1/driving/{coords}?sources={src}&destinations={dst}&annotations=duration,distance&radiuses={rad}"
-    with urllib.request.urlopen(url, timeout=120) as r:
-        d = json.load(r)
+    try:
+        with urllib.request.urlopen(url, timeout=120) as r:
+            d = json.load(r)
+    except urllib.error.HTTPError as e:
+        sys.exit(f"OSRM /table answered {e.code}: {e.read().decode(errors='replace')[:200]} — scripts/check-phase4.sh names the step to redo")
     if d.get("code") != "Ok": sys.exit(f"OSRM error: {d}")
     for (h3, lon, lat), durs, dists in zip(chunk, d["durations"], d["distances"]):
         best = min(((t, j) for j, t in enumerate(durs) if t is not None), default=None)

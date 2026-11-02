@@ -16,7 +16,11 @@ done
 [ -f data/shelters.geojson ] || die "data/shelters.geojson missing"
 mkdir -p out
 START=$(date +%s)
-log "java -Xmx2g -jar $JAR generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force --bounds=$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N --minzoom=4 --maxzoom=14 $*"
-java -Xmx2g -jar "$JAR" generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force \
-  --bounds="$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N" --minzoom=4 --maxzoom=14 "$@"
+# Build into a temporary file and move it into place at the end: the web server never serves a half-written archive
+# (the browser would say "Wrong magic number for PMTiles archive").
+TMP=out/evac.building.pmtiles
+log "java -Xmx2g -jar $JAR generate-custom --schema=01-tiles/evac.yml --output=$TMP --force --bounds=$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N --minzoom=4 --maxzoom=14 $*"
+java -Xmx2g -jar "$JAR" generate-custom --schema=01-tiles/evac.yml --output="$TMP" --force \
+  --bounds="$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N" --minzoom=4 --maxzoom=14 "$@" || { rm -f "$TMP"; die "Planetiler failed — out/evac.pmtiles left as it was"; }
+mv -f "$TMP" out/evac.pmtiles
 log "built out/evac.pmtiles in $(( $(date +%s) - START ))s ($(du -h out/evac.pmtiles | cut -f1))"

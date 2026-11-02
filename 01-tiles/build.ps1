@@ -15,6 +15,10 @@ foreach ($f in "data\hazard\fhsz.geojson","data\hazard\fire_perimeters.geojson")
 }
 New-Item -ItemType Directory -Force out | Out-Null
 $sw = [Diagnostics.Stopwatch]::StartNew()
-java -Xmx2g -jar $Jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force `
+# Build into a temporary file and move it into place: the web server never serves a half-written archive.
+$Tmp = "out\evac.building.pmtiles"
+java -Xmx2g -jar $Jar generate-custom --schema=01-tiles/evac.yml --output=$Tmp --force `
   --bounds="$($V.BBOX_W),$($V.BBOX_S),$($V.BBOX_E),$($V.BBOX_N)" --minzoom=4 --maxzoom=14
+if ($LASTEXITCODE -ne 0) { Remove-Item -Force -ErrorAction SilentlyContinue $Tmp; throw "Planetiler failed - out\evac.pmtiles left as it was" }
+Move-Item -Force $Tmp out\evac.pmtiles
 Write-Host ("built out/evac.pmtiles in {0}s ({1:N1} MB)" -f [int]$sw.Elapsed.TotalSeconds, ((Get-Item out\evac.pmtiles).Length/1MB))
