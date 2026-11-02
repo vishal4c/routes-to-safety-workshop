@@ -65,10 +65,23 @@ bbox_args() { echo "xmin=$BBOX_W ymin=$BBOX_S xmax=$BBOX_E ymax=$BBOX_N"; }
 # An "empty" layer is one feature with no geometry: every reader accepts it, and Planetiler writes no tiles for it.
 empty_layer() { printf '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}\n' > "$1"; }
 
-# No shelter picked for this box (Phase 4 step 4 matched nothing) → one placeholder shelter at the box's south-west
-# corner (BBOX_W, BBOX_S), same columns as data/shelters.geojson, so tiles, reach bands and the pages still build.
-# Replace it with real shelters: scripts/pick-shelters.sh <id> …
+# No shelter picked for this box (Phase 4 step 4 matched nothing) → the schools in the box stand in: up to 10 high
+# schools, or any K-12 campus if there is no high school (scripts/shelters-fallback.sql, all status = candidate). No
+# school either → one placeholder at the box's south-west corner (shelter_placeholder). Either way tiles, reach bands
+# and the pages still build. Replace them with real shelters: scripts/pick-shelters.sh <id> …
+shelter_fallback() {   # shelter_fallback  → data/shelters.geojson (run from anywhere)
+  local n=0
+  if command -v duckdb >/dev/null 2>&1 && [ -f "$REPO_ROOT/data/overture/places.geojson" ]; then
+    (cd "$REPO_ROOT" && duckdb -c ".read scripts/shelters-fallback.sql" >/dev/null) && n="$(count_features "$REPO_ROOT/data/shelters.geojson")"
+  fi
+  if [ "$n" -gt 0 ]; then
+    log "no shelters picked → data/shelters.geojson is $n school(s) from Overture places, all 'candidate' (scripts/shelters-fallback.sql); replace them: scripts/pick-shelters.sh <id> …"
+  else
+    shelter_placeholder "$REPO_ROOT/data/shelters.geojson"
+  fi
+}
+# Last resort: no school in the box either → one placeholder shelter at the box's south-west corner (BBOX_W, BBOX_S).
 shelter_placeholder() {
   printf '{"type":"FeatureCollection","name":"shelters","features":[{"type":"Feature","properties":{"id":"placeholder","name":"Placeholder shelter (no shelter picked)","status":"candidate","type":"placeholder","town":"","source":"placeholder at the south-west corner of the box in versions.env - no shelter picked yet; replace with real shelters (scripts/pick-shelters.sh)"},"geometry":{"type":"Point","coordinates":[%s,%s]}}]}\n' "$BBOX_W" "$BBOX_S" > "$1"
-  log "no shelters → $1 is one placeholder at the box's south-west corner ($BBOX_W, $BBOX_S); replace it with real ones: scripts/pick-shelters.sh <id> …"
+  log "no shelters, no school in the box → $1 is one placeholder at the box's south-west corner ($BBOX_W, $BBOX_S); replace it with real ones: scripts/pick-shelters.sh <id> …"
 }

@@ -14,8 +14,8 @@ for f in data/hazard/fhsz.geojson data/hazard/fire_perimeters.geojson; do
   [ -f "$f" ] || die "$f missing — run scripts/fetch-hazard.sh (California) or scripts/fetch-hazard.sh --none (anywhere else) · offline: scripts/stage-data.sh"
 done
 [ -f data/shelters.geojson ] || die "data/shelters.geojson missing"
-# zero features (a Phase 4 pick that matched nothing) would crash Planetiler's reader → one placeholder shelter instead (lib.sh)
-if command -v python3 >/dev/null 2>&1 && [ "$(count_features data/shelters.geojson)" = 0 ]; then shelter_placeholder data/shelters.geojson; fi
+# zero features (a Phase 4 pick that matched nothing) would crash Planetiler's reader → the schools in the box stand in (lib.sh)
+if command -v python3 >/dev/null 2>&1 && [ "$(count_features data/shelters.geojson)" = 0 ]; then shelter_fallback; fi
 mkdir -p out
 START=$(date +%s)
 log "java -Xmx2g -jar $JAR generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force --bounds=$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N --minzoom=4 --maxzoom=14 $*"

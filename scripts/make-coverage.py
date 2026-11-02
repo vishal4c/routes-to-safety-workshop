@@ -44,12 +44,20 @@ WHERE EXISTS (SELECT 1 FROM ST_Read('{ROOT}/data/overture/roads.geojson') s
 """)
 cells = con.execute("SELECT h3, lon, lat FROM cells ORDER BY h3").fetchall()
 shelters = json.load(open(f"{ROOT}/data/shelters.geojson"))["features"]
-if not shelters:   # a Phase 4 pick that matched nothing → one placeholder shelter at the box's south-west corner (same as shelter_placeholder, scripts/lib.sh)
+if not shelters and os.path.isfile(f"{ROOT}/data/overture/places.geojson"):
+    # a Phase 4 pick that matched nothing → the schools in the box stand in (same SQL as scripts/lib.sh shelter_fallback)
+    cwd = os.getcwd(); os.chdir(ROOT)
+    try: con.execute(open("scripts/shelters-fallback.sql").read())
+    finally: os.chdir(cwd)
+    shelters = json.load(open(f"{ROOT}/data/shelters.geojson"))["features"]
+    if shelters:
+        print(f"no shelters picked → data/shelters.geojson is {len(shelters)} school(s) from Overture places, all 'candidate' (scripts/shelters-fallback.sql); replace them: scripts/pick-shelters.sh <id> …", file=sys.stderr)
+if not shelters:   # no school in the box either → one placeholder shelter at the box's south-west corner (same as shelter_placeholder, scripts/lib.sh)
     shelters = [{"type": "Feature", "properties": {"id": "placeholder", "name": "Placeholder shelter (no shelter picked)", "status": "candidate", "type": "placeholder", "town": "",
                  "source": "placeholder at the south-west corner of the box in versions.env - no shelter picked yet; replace with real shelters (scripts/pick-shelters.sh)"},
                  "geometry": {"type": "Point", "coordinates": [W, S]}}]
     json.dump({"type": "FeatureCollection", "name": "shelters", "features": shelters}, open(f"{ROOT}/data/shelters.geojson", "w"))
-    print(f"no shelters → data/shelters.geojson is one placeholder at the box's south-west corner ({W}, {S}); replace it: scripts/pick-shelters.sh <id> …", file=sys.stderr)
+    print(f"no shelters, no school in the box → data/shelters.geojson is one placeholder at the box's south-west corner ({W}, {S}); replace it: scripts/pick-shelters.sh <id> …", file=sys.stderr)
 sh = [(f["properties"]["id"], f["properties"]["name"], f["properties"]["status"], *f["geometry"]["coordinates"]) for f in shelters]
 print(f"{len(cells)} road-bearing hex cells at res {a.res}; {len(sh)} shelters ({time.time()-t0:.1f}s)", file=sys.stderr)
 
