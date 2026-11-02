@@ -1,5 +1,7 @@
 # Phase 1 exercises (optional)
 
+Needs Phase 1 · Fetch first (or `scripts/stage-data.sh`), so `data/overture/` and `data/hazard/` hold their GeoJSON.
+
 Run from the repo root. Solutions are collapsed — try first.
 
 ## A — How many `primary`-or-bigger roads?

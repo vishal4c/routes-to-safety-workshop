@@ -48,6 +48,7 @@ Workshop: Mon 2026-11-02, 09:00–12:00, room Beavis. Check a box only after you
 - [ ] Ask the room for the **wifi capacity** and the guest password; write both on the door slide.
 - [ ] Door slide up before 09:00; Codespaces users seated next to Docker users (seat map for the pairing rule).
 - [ ] A/B roles assigned, B has the timer and red card. Hard-stop cut order printed: Phase 4 live part → Phase 3c finish-early → Phase 3a optional parts → S35/S37.
+- [ ] **Test Phase 1 · Fetch on the venue wifi** (morning): `time scripts/fetch-overture.sh` and `time scripts/fetch-hazard.sh`; record both times here. Slow or failing → announce `scripts/stage-data.sh` up front at the Phase 1 card.
 - [ ] Local OSRM running on the instructor laptop (for the demo and for narrated build). **Do not** forward port 5000 in Codespaces.
 
 ## Regenerate the data and the bundle (instructor)
@@ -56,7 +57,8 @@ Every step reads `versions.env`. From the repo root, in the tool container unles
 
 ```bash
 scripts/fetch-overture.sh                      # data/overture/*.geojson  (24 s for the Placer box)
-scripts/fetch-hazard.sh                        # data/hazard/*.geojson    (CAL FIRE)
+scripts/fetch-hazard.sh                        # data/hazard/*.geojson    (CAL FIRE, ≈ 8 s)
+cp data/overture/*.geojson staged_data/overture/ && cp data/hazard/*.geojson staged_data/hazard/   # refresh the committed copies (offline fallback)
 scripts/fetch-osm.sh                           # data/osm/study-area.osm.pbf  (downloads norcal-latest, ~1 GB, once)
 osmium extract --overwrite -b -121.02,39.05,-120.90,39.13 -s smart -o data/osm/colfax.osm.pbf data/osm/study-area.osm.pbf   # Phase 2b demo clip
 scripts/build-osrm.sh                          # data/osrm/  — laptop terminal (needs Docker) or Codespaces

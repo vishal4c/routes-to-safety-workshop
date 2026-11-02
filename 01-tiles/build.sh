@@ -8,10 +8,10 @@ need java
 JAR="01-tiles/planetiler.jar"
 [ -f "$JAR" ] || { log "downloading Planetiler v$PLANETILER_VERSION"; curl -L --fail -o "$JAR" "https://github.com/onthegomap/planetiler/releases/download/v$PLANETILER_VERSION/planetiler.jar"; }
 for f in data/overture/roads.geojson data/overture/water.geojson data/overture/towns.geojson data/overture/land_cover.geojson data/overture/buildings.geojson; do
-  [ -f "$f" ] || die "$f missing — run scripts/fetch-overture.sh"
+  [ -f "$f" ] || die "$f missing — run scripts/fetch-overture.sh · offline: scripts/stage-data.sh"
 done
 for f in data/hazard/fhsz.geojson data/hazard/fire_perimeters.geojson; do
-  [ -f "$f" ] || die "$f missing — run scripts/fetch-hazard.sh (California) or scripts/fetch-hazard.sh --none (anywhere else)"
+  [ -f "$f" ] || die "$f missing — run scripts/fetch-hazard.sh (California) or scripts/fetch-hazard.sh --none (anywhere else) · offline: scripts/stage-data.sh"
 done
 [ -f data/shelters.geojson ] || die "data/shelters.geojson missing"
 mkdir -p out

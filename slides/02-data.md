@@ -18,22 +18,22 @@ size: 16:9
   - **6,654** water rows · **12,606** buildings (Auburn only)
 - Built from OpenStreetMap + other sources; licences differ by theme (ODbL / CDLA-Permissive)
 
-<div class="credit">Attribution: © OpenStreetMap contributors · © Overture Maps Foundation — keep it on every map you publish.</div>
+<div class="credit">Attribution: © OpenStreetMap contributors · © Overture Maps Foundation — keep it on every map we publish.</div>
 
 ---
 
 <!-- S14 · ~1 min -->
 <!-- Say: "The whole planet is huge. We never download it — we ask for a rectangle, and the file format lets us read only that rectangle." -->
 
-# bbox pushdown: read only your rectangle
+# bbox pushdown: read only our rectangle
 
-Study area: **-121.40, 38.72, -120.85, 39.15** (W, S, E, N)
+Study area: **-121.40, 38.72, -120.52, 39.20** (W, S, E, N)
 
 ```sql
 SELECT count(*)
 FROM read_parquet('s3://overturemaps-us-west-2/release/2026-09-23.1/theme=transportation/type=segment/*')
-WHERE bbox.xmin > -121.40 AND bbox.xmax < -120.85
-  AND bbox.ymin >   38.72 AND bbox.ymax <   39.15;
+WHERE bbox.xmin > -121.40 AND bbox.xmax < -120.52
+  AND bbox.ymin >   38.72 AND bbox.ymax <   39.20;
 ```
 
 - Parquet stores a `bbox` struct per row, so DuckDB can **skip** files and row groups outside it
@@ -90,7 +90,7 @@ WHERE  ST_Intersects(s.geom, h.geom)
 
 # Columns cheat sheet
 
-| You want | Raw Overture (S3) | Our `data/overture/*.geojson` |
+| We want | Raw Overture (S3) | Our `data/overture/*.geojson` |
 |---|---|---|
 | a place's name | `names.primary` | `name` |
 | a place's category | `taxonomy.primary` | `category` |
@@ -98,36 +98,37 @@ WHERE  ST_Intersects(s.geom, h.geom)
 | road type | `class`, `subclass` | same |
 | the shape | `geometry` | same |
 
-- `scripts/fetch-overture.sh` already flattened these — today you type the right-hand column
+- `scripts/fetch-overture.sh` already flattened these — today we type the right-hand column
 - `categories` was removed (Sep 2026) → `taxonomy.primary` · there is **no `fairground`** category
 - Never `SELECT *` on export — list columns (`road_flags[]`-style lists break the GeoJSON writer)
 
 ---
 
-<!-- S18 · ~1 min -->
-<!-- Say: "How did data/overture/ get here? We ran the extract ahead of time. You don't today — it's committed in the repo." -->
+<!-- S18 · ~3 min -->
+<!-- Say: "First step of Phase 1: we pull our study area out of the open releases ourselves. Two commands. Overture takes 25 to 60 seconds, CAL FIRE about 8. If the wifi is slow or a source is down, the script says so on its last line: run scripts/stage-data.sh — it copies the committed copies, same files, same counts." -->
 
-# How `data/overture/` was made
-
-**We ran it; you don't today.**
+# Fetch: pull our box out of the open releases
 
 ```
-duckdb → read Overture (S3) → filter to bbox
-       → COPY … TO 'data/overture/<theme>.geojson'
+scripts/fetch-overture.sh
+scripts/fetch-hazard.sh
 ```
 
-- Files: `roads`, `water`, `towns`, `land_cover`, `buildings`, `places` — six themes, all GeoJSON, 24 s for the whole box
-- Committed to git — no network needed in the room
-- Re-run for your own town: `scripts/fetch-overture.sh` (Phase 4)
+- Overture: six themes from S3 → `data/overture/*.geojson` — **25–60 s**
+- CAL FIRE: hazard zones + fire perimeters → `data/hazard/*.geojson` — **≈ 8 s**
+- Each script checks its counts (roads **36,294**)
+- Slow wifi, S3 or CAL FIRE down → `scripts/stage-data.sh` (committed copies, no network)
+- Same two scripts for another town in Phase 4
 
 ---
 
 <!-- _class: card -->
-<!-- S19 · 🧪 stays on screen for Phase 1 · working dir = repo root; out/ exists · 1a 6+2 · 1b 8+2 · 1c 6+2 · exercises 5 -->
+<!-- S19 · 🧪 stays on screen for Phase 1 · working dir = repo root; out/ exists · fetch 2+1 · 1a 6+2 · 1b 8+2 · 1c 6+2 · exercises 2 -->
 <!-- Say: "Open a terminal at the repo root. Phase 1a — three queries, each has an expected result. Hands up when you match it." -->
 
 # 🧪 Phase 1 — Extract the data
 
+**Fetch (3 min)** — `scripts/fetch-overture.sh` · `scripts/fetch-hazard.sh` → eight files, roads **36,294** · offline: `scripts/stage-data.sh`
 **1a Look around (6 min)** — `DESCRIBE` roads · roads by `class` · places by `category` → *Expected:* output on the printed card 👀
 **1b Candidate shelters (8 min)** — category filter + `confidence >= 0.7` → spot the noise (a Chevrolet dealer tagged `community_center`) → open `data/shelters.geojson` → `ST_Intersects` with FHSZ 👀
 
@@ -138,7 +139,7 @@ COPY (SELECT …, geom AS geometry FROM ST_Read('data/overture/places.geojson')
       WHERE category IN (…shelter-ish…) AND confidence >= 0.7)
 TO 'out/shelter-candidates.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
 ```
-`duckdb -c ".read 00-data/03-export.sql"` → *Expected:* 95 candidates (39 schools, 19 community centers …) 👀 — Phase 4 reuses this for your town
+`duckdb -c ".read 00-data/03-export.sql"` → *Expected:* 95 candidates (39 schools, 19 community centers …) 👀 — Phase 4 reuses this for our town
 
 **Exercises:** **A** count `primary`+ roads · **B** crow-flies nearest shelter to Foresthill (remember it!) · **C (finish early)** Colfax bbox re-export
 🎯 `duckdb -c "LOAD spatial; SELECT count(*) FROM ST_Read('data/overture/roads.geojson')"` → **36,294**

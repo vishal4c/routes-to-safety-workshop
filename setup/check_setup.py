@@ -201,10 +201,12 @@ def path(*p):
 
 def check_data():
     missing_bundle = False
-    for rel, req in (("data/overture/roads.geojson", True), ("data/shelters.geojson", True)):
+    for rel, req in (("data/overture/roads.geojson", False), ("data/shelters.geojson", True)):
         fp = path(*rel.split("/"))
         if os.path.isfile(fp):
-            add(rel, "ok", "%.1f MB" % (os.path.getsize(fp) / 1e6))
+            add(rel, "ok", "%.1f MB" % (os.path.getsize(fp) / 1e6), required=req)
+        elif not req:
+            add(rel, "skip", "not fetched yet — Phase 1 · Fetch (scripts/fetch-overture.sh) or scripts/stage-data.sh", required=False)
         else:
             add(rel, "fail", "missing — are you in the repo root? try `git pull` / re-clone with `git clone --depth 1`")
     fp = path("data", "prebuilt", "evac.pmtiles")

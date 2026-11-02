@@ -14,6 +14,10 @@ data/osm/*
 data/osrm/*
 !data/osrm/.gitkeep
 data/prebuilt/evac.pmtiles
+
+# Phase 1 · Fetch writes these (scripts/fetch-*.sh); the committed copies live in staged_data/
+data/overture/*.geojson
+data/hazard/*.geojson
 data/tmp/
 01-tiles/planetiler.jar
 dist/
@@ -35,4 +39,5 @@ node_modules/
 *.mbtiles
 *.zip
 
-# NOTE: data/**/*.geojson IS committed (about 50 MB, plain Git, no LFS). No Parquet anywhere: every staged file is GeoJSON.
+# NOTE: staged_data/**/*.geojson IS committed (about 48 MB, plain Git, no LFS): the offline copy of Phase 1 · Fetch.
+# Also committed: data/shelters.geojson and data/coverage/*.geojson. No Parquet anywhere.

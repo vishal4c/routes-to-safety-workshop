@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pull the Overture Maps themes for the box in versions.env straight from the public release into GeoJSON.
-# This is how data/overture/*.geojson was made, and Phase 4 step 2 for your own community.
+# Phase 1 · Fetch (writes data/overture/*.geojson), and Phase 4 step 2 for another box.
 #
 #   scripts/fetch-overture.sh                 all six files
 #   scripts/fetch-overture.sh roads towns     only these: roads | water | towns | land_cover | buildings | places
@@ -8,8 +8,9 @@
 # How it works (https://docs.overturemaps.org/getting-data/): Overture publishes each theme as Parquet files on S3,
 # one row per feature with a bbox column. DuckDB reads those files in place (httpfs), uses the bbox to skip every
 # row group outside your box, and writes what is left as GeoJSON (spatial extension, GDAL writer). No account, no
-# download tool. Times for two boxes are in README.md (Phase 1 → "How the data was fetched").
+# download tool. Times for two boxes are in README.md Phase 1 · Fetch.
 . "$(dirname "$0")/lib.sh"
+offline_fallback_hint
 need duckdb
 OUT="${OVERTURE_OUT:-$REPO_ROOT/data/overture}"; mkdir -p "$OUT"
 BASE="$OVERTURE_S3/$OVERTURE_RELEASE"
@@ -33,6 +34,7 @@ TO '$OUT/$name.geojson' $GEOJSON;"
   else
     log "$name.geojson: $n features, $(du -h "$OUT/$name.geojson" | cut -f1), $(( $(date +%s) - t0 )) s"
   fi
+  check_count "overture/$name" "$n"
 }
 
 THEMES=("$@"); [ ${#THEMES[@]} -eq 0 ] && THEMES=(roads water towns land_cover buildings places)
