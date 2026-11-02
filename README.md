@@ -258,6 +258,8 @@ Same line on every screen → ready.
 
 ❌ Still red after the fixes `check_setup.py` prints → switch option, or follow along on the demo site.
 
+More to try while others catch up: [`setup/exercises.md`](setup/exercises.md) (**A** shelters per status · **B** nearest shelter to Auburn · **C** tool versions against the pins · **D** OSRM's nearest road).
+
 ---
 
 ## Phase 1 — Data prep · look at the data with SQL
@@ -490,6 +492,8 @@ scripts/make-coverage.py --osrm http://osrm:5000
 ✅ About 2 s; writes `data/coverage/coverage_hex.geojson` + `coverage_bands.geojson`. Run it as written (uv shebang). Option C: `--osrm $OSRM_URL`.
 "Isochrone" just means "same-time line". OSRM has no isochrone call, so the script asks for many point-to-shelter times and draws the rings itself with DuckDB spatial.
 
+More to try: [`01-tiles/exercises.md`](01-tiles/exercises.md) (**A** layers and zooms · **B–C** change `evac.yml` and compare sizes · **D** hazard classes · **E** OSM input size · **F** which shelter reaches the most ground).
+
 ---
 
 ## Phase 3 — Application · the map, three views, nearest shelter by road
@@ -544,6 +548,8 @@ Each row is a plain JSON file of MapLibre layers in [`02-web/steps/`](02-web/ste
 <img src="docs/img/p3-reach-rings.jpg" width="80%" alt="Shelter reach view with 10/20/30-minute drive-time bands"/>
 
 **Base map** (the third button) needs nothing added: a standard street map under the shelters, internet required. It is the [Esri World Street Map](https://www.arcgis.com/home/item.html?id=3b93337983e9436f8db950e38a8629af) raster service (no API key, worldwide, attribution required) rather than `tile.openstreetmap.org` on purpose — the OSM tile servers' [usage policy](https://operations.osmfoundation.org/policies/tiles/) throttles bulk requests from a single address, and a workshop room behind one NAT address is exactly that. Any `{z}/{x}/{y}` raster service works here; it is one `tiles` URL in the style. The three views are strictly one at a time — switching only flips layer visibility; nothing is drawn on top of something else.
+
+More to try: [`02-web/exercises.md`](02-web/exercises.md) (**A** recolour streets · **B** verified shelter only · **C** Very High hazard only · **D** why some shelters have fewer rings) — on a copy in `out/`, loaded through the row 4 box.
 
 ### 3c · Routing — in **Fire evac map** or **Shelter reach**, **Edit** → **Routing → Add**
 
@@ -821,11 +827,11 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | Folder / file | What is in it | Phase |
 |---|---|---|
 | [`versions.env`](versions.env) | **the one config file**: the box, the OSM region, every tool and image pin | all |
-| [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) | 0 |
+| [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) · `exercises.md` | 0 |
 | [`00-data/`](00-data/) | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` · `04-overture-themes.sql` (optional tour) · `exercises.md` | 1 |
-| [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) | 2a |
+| [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) · `exercises.md` (2a–2c) | 2a |
 | [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
-| [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) | 3a 3b |
+| [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) · `exercises.md` | 3a 3b |
 | [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it by hand) · `grid.sql`, `exercises.md` | 3c |
 | [`demo/`](demo/) | the finished app: `index.html`, `app.js`, `style.json`, `dev-fixtures/` | 3d |
 | [`data/`](data/) | `overture/`, `hazard/` (written by Phase 1 · Fetch, not in git) · `shelters.geojson` · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
