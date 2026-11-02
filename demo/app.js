@@ -5,9 +5,9 @@
    Module scope keeps everything out of window. */
 import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-gl.mjs';
 {
-  // ---- PHASE 4: the three lines to change for your own community ---------------------------------------------
-  const BBOX = [-121.40, 38.72, -120.52, 39.20];     // W,S,E,N — same four numbers as BBOX_* in versions.env
-  const CENTER = [-121.10, 38.93], ZOOM = 10;        // where the map opens
+  // ---- PHASE 4: the box is read from versions.env (BBOX_*); these lines are the fallback (the public Pages site) ----
+  let BBOX = [-121.40, 38.72, -120.52, 39.20];       // W,S,E,N — Placer, same four numbers as BBOX_* in versions.env
+  const CENTER = [-121.10, 38.93], ZOOM = 10;        // where the map opens for the Placer box; another box is fitted instead
   const PMTILES_URL = new URL('../data/prebuilt/evac.pmtiles', location.href).href;   // your tiles: cp out/evac.pmtiles data/prebuilt/
   // ------------------------------------------------------------------------------------------------------------
   const $ = (id) => document.getElementById(id);
@@ -242,8 +242,21 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     });
   }
 
+  // BBOX_* from versions.env when the server has it (Caddy / npx serve from the repo root); otherwise keep BBOX.
+  async function loadBox() {
+    try {
+      const r = await fetch('../versions.env', { cache: 'no-store' });
+      if (!r.ok) return BBOX;
+      const text = await r.text();
+      const v = ['W', 'S', 'E', 'N'].map((k) => parseFloat((text.match(new RegExp('^\\s*BBOX_' + k + '\\s*=\\s*([-0-9.]+)', 'm')) || [])[1]));
+      return v.every(Number.isFinite) ? v : BBOX;
+    } catch (e) { return BBOX; }
+  }
+
   // ---- startup -----------------------------------------------------------------
   async function init() {
+    const placer = BBOX.join(',');
+    BBOX = await loadBox();
     const style = await (await fetch('style.json')).json();
     style.sources.evac.url = 'pmtiles://' + PMTILES_URL;
     // Label fonts are vendored in 02-web/fonts (Noto Sans, OFL) so labels also work offline / in the room.
@@ -258,6 +271,7 @@ import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.14.0/dist/maplibre-
     style.sources.coverage_bands.data = bands;
     maplibregl.addProtocol('pmtiles', new pmtiles.Protocol().tile);
     map = new maplibregl.Map({ container: 'map', style, center: CENTER, zoom: ZOOM, attributionControl: false });
+    if (BBOX.join(',') !== placer) map.fitBounds([[BBOX[0], BBOX[1]], [BBOX[2], BBOX[3]]], { padding: 40, duration: 0 });
     map.addControl(new maplibregl.AttributionControl({ compact: false }));
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
