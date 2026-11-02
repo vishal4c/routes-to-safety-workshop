@@ -775,6 +775,26 @@ The hazard layer is one polygon file with a class column (`FHSZ_Description` = M
 
 </details>
 
+<details><summary><b>▸ Change the look</b> — road and building colours</summary>
+
+Every colour on the map is one line in a MapLibre layer; the layers live in `02-web/steps/step4-final.json` (what row 4 loads), `02-web/solution.html` and `demo/style.json`. Work on a copy so the workshop files stay untouched:
+
+🐳 Container shell
+```bash
+cp 02-web/steps/step4-final.json out/my-style.json
+```
+Open `out/my-style.json` (the repo folder is the same on the laptop) and change the colours:
+
+| Layer `id` | Property | Now | Try |
+|---|---|---|---|
+| `roads-minor` — local streets | `"line-color"` | `"#aaaaaa"` | `"#8d6e63"` (brown) |
+| `roads-major` — motorway/trunk, then primary/secondary | `"line-color"`: `["match", ["get","class"], [motorway…], "#555555", "#777777"]` | two greys | `"#c62828"`, `"#ef6c00"` (red freeways, orange highways) |
+| `buildings` — 3D footprints from zoom 13 | `"fill-extrusion-color"` | `"#d9d9d9"` | `"#b0bec5"`, or by height: `["interpolate", ["linear"], ["get","height"], 0, "#eceff1", 30, "#546e7a"]` |
+
+In the **Edit** panel type `out/my-style.json` into the row 4 box and click **Reload**. A layer with the same `id` replaces the one on the map; a JSON typo shows up as a red notice with line and column. For the finished app, make the same edits in `demo/style.json` and refresh. Widths (`line-width`), opacity and the zoom at which a layer appears (`minzoom`) are edited the same way — [`02-web/exercises.md`](02-web/exercises.md) has more.
+
+</details>
+
 <details><summary><b>▸ Laptop → planet</b> — what changes at scale</summary>
 
 | What we did on a laptop | What changes at scale |
