@@ -63,7 +63,7 @@ scripts/fetch-osm.sh                           # data/osm/study-area.osm.pbf  (d
 osmium extract --overwrite -b -121.02,39.05,-120.90,39.13 -s smart -o data/osm/colfax.osm.pbf data/osm/study-area.osm.pbf   # Phase 2b demo clip
 scripts/build-osrm.sh                          # data/osrm/  — laptop terminal (needs Docker) or Codespaces
 docker compose restart osrm                    # laptop terminal
-scripts/make-coverage.py --osrm http://osrm:5000   # data/coverage/*.geojson
+scripts/make-coverage.py                           # data/coverage/*.geojson  (talks to $OSRM_URL)
 01-tiles/build.sh && cp out/evac.pmtiles data/prebuilt/evac.pmtiles
 scripts/make-bundle.sh                         # dist/data-bundle.zip + CHECKSUMS.sha256 (then: cp the CHECKSUMS into data/)
 gh release upload data-v2 dist/data-bundle.zip --clobber    # or: gh release create data-v2 dist/data-bundle.zip

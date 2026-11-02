@@ -487,9 +487,9 @@ curl "$OSRM_URL/route/v1/driving/-120.8182,39.0199;-121.0709,38.8952?overview=fa
 
 Drive time from every road-bearing H3 cell (res 8, 3,341 cells) to all 10 shelters in a handful of OSRM `/table` calls, dissolved into non-overlapping 0–10 / 10–20 / 20–30-minute rings per shelter · 🐳 Container shell
 ```bash
-scripts/make-coverage.py --osrm http://osrm:5000
+scripts/make-coverage.py
 ```
-✅ About 2 s; writes `data/coverage/coverage_hex.geojson` + `coverage_bands.geojson`. Run it as written (uv shebang). Option C: `--osrm $OSRM_URL`.
+✅ About 2 s; writes `data/coverage/coverage_hex.geojson` + `coverage_bands.geojson`. Run it as written (uv shebang); it talks to `$OSRM_URL` (`--osrm <url>` to point it elsewhere). It first checks that the graph OSRM serves covers the box, and names any OSRM error (`NoSegment`, `InvalidQuery`) instead of a bare `HTTP Error 400`.
 "Isochrone" just means "same-time line". OSRM has no isochrone call, so the script asks for many point-to-shelter times and draws the rings itself with DuckDB spatial.
 
 More to try: [`01-tiles/exercises.md`](01-tiles/exercises.md) (**A** layers and zooms · **B–C** change `evac.yml` and compare sizes · **D** hazard classes · **E** OSM input size · **F** which shelter reaches the most ground).
@@ -628,7 +628,7 @@ flowchart LR
   VE[/"1 · versions.env<br/>BBOX_W/S/E/N · OSM_EXTRACT_URL"/]:::file
   OV["2 · fetch-overture.sh<br/>six themes → GeoJSON"]:::tool
   HZ["3 · fetch-hazard.sh<br/>(or --none)"]:::tool
-  SH["4 · shelters<br/>03-export.sql → pick → data/shelters.geojson"]:::step
+  SH["4 · shelters<br/>03-export.sql → pick-shelters.sh → data/shelters.geojson"]:::step
   RG["5 · fetch-osm.sh → build-osrm.sh<br/>routing graph"]:::tool
   TL["6 · build.sh → tiles<br/>7 · make-coverage.py → reach bands"]:::tool
   AP(["8 · the same pages<br/>Edit → Add · demo"]):::chk
@@ -682,13 +682,11 @@ duckdb -csv -c "LOAD spatial; SELECT id, name, type, town FROM ST_Read('out/shel
 ```
 ✅ `out/shelter-candidates.geojson` (schools, community centers, colleges, town halls, fairgrounds, arenas) and `out/shelter-candidates.csv` — the whole list (the terminal stops after 40 rows). Open the CSV and note the ids to keep.
 
-🐳 Container shell · ✏️ edit first: `'id-1', 'id-2', 'id-3'`
+🐳 Container shell · ✏️ edit first: the ids
 ```bash
-duckdb -c "LOAD spatial; SET geometry_always_xy = true;
-  COPY (SELECT * FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN ('id-1', 'id-2', 'id-3'))
-  TO 'data/shelters.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')"
+scripts/pick-shelters.sh id-1 id-2 id-3
 ```
-✅ `data/shelters.geojson` holds only the kept places.
+✅ `data/shelters.geojson` holds only the kept places, listed back with `id, name, type, town`. Under the hood it is the Phase 1c `COPY … TO` in reverse — `SELECT … FROM ST_Read('out/shelter-candidates.geojson') WHERE id IN (…)` — plus two checks: an id that is not in the candidates is reported (a typo, or a Placer id in a new box), and a pick that matches **nothing** writes one *placeholder shelter* at the south-west corner of the box (`BBOX_W, BBOX_S`) so steps 6–8 still run; replace it by running the script again with real ids. A file with zero features would crash the tile build (`shelters:read … Unexpected token type: START_OBJECT`) and give `make-coverage.py` a `400`; `01-tiles/build.sh` and `make-coverage.py` apply the same placeholder rule if they meet one.
 In a city the list is long and `college` is noisy (downtown Los Angeles: 175 candidates, 88 of them `college` — departments and academies); the `GROUP BY type` query in the header of `03-export.sql` shows the mix. Keep 6–10 places that sit well inside the box — one on the edge may get no reach cells in step 7.
 
 **5 · Routing graph** — the OpenStreetMap snapshot, clipped, then the three OSRM commands (details: Phase 2b ▸ Optional):
@@ -720,9 +718,9 @@ curl "$OSRM_URL/nearest/v1/driving/<lon>,<lat>"
 🐳 Container shell
 ```bash
 01-tiles/build.sh
-scripts/make-coverage.py --osrm http://osrm:5000
+scripts/make-coverage.py
 ```
-✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and 5–8 layers; an empty layer is left out) and `data/coverage/*.geojson`. Option C: `--osrm http://localhost:8080/osrm`.
+✅ `out/evac.pmtiles` (`pmtiles show out/evac.pmtiles` shows the NEW bounds and 5–8 layers; an empty layer is left out) and `data/coverage/*.geojson`. `make-coverage.py` uses `$OSRM_URL` and stops with a clear line if OSRM still serves the old graph ("the nearest road to the box centre is 595 km away" → step 5 again).
 
 **8 · The pages.**
 - **`02-web/`**: refresh, **Edit → Add** the rows as in Phase 3 — they already point at the files just rebuilt, and the map fits itself to the new tiles. For routing, edit the two marked lines at the top of [`03-routing/route.js`](03-routing/route.js) (`STUDY_BBOX`, `START` — the pin must drop inside the box), then **Routing → Add**.
@@ -818,7 +816,8 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | Points in the ocean off Africa | lon/lat swapped | the SQL files start with `SET geometry_always_xy = true;` — keep it |
 | `.read` plus another statement in one `-c` does nothing | DuckDB dot-commands must be alone | one `.read` per run |
 | Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` — or leave it and move: `WEB_PORT=8090 docker compose up -d`, then `localhost:8090` wherever this page says 8080 |
-| `01-tiles/build.sh`: `Worker <layer>_read-1 died` · `NullPointerException` | that GeoJSON has zero features; Planetiler 0.10 cannot read an empty FeatureCollection | `scripts/fetch-*.sh` write an *empty layer* in that case (one feature, `"geometry": null`); for a file made another way, replace its contents with `{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}` |
+| `01-tiles/build.sh`: `WAR [<layer>:read] … Unexpected token type: START_OBJECT` · `Worker <layer>_read-1 died` · `NullPointerException` | that GeoJSON has zero features; Planetiler 0.10 cannot read an empty FeatureCollection (the warning names the token it *expected*) | `shelters`: the step-4 ids matched nothing — `scripts/pick-shelters.sh <ids from out/shelter-candidates.csv>` (`build.sh` itself substitutes a placeholder shelter at the box's south-west corner). Other layers: `scripts/fetch-*.sh` write an *empty layer* (one feature, `"geometry": null`); for a file made another way, replace its contents with `{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}` |
+| `make-coverage.py`: `HTTP Error 400` (older copy) · `OSRM … does not cover this box` · `OSRM InvalidQuery` | `NoSegment` / "595 km away": OSRM still serves the Placer graph · `InvalidQuery`: `data/shelters.geojson` has no features | Phase 4 step 5 on the **laptop** terminal (`scripts/build-osrm.sh`, `docker compose restart osrm`), check `curl "$OSRM_URL/nearest/…"` → `distance` of a few metres · step 4 again (`scripts/pick-shelters.sh`) |
 | Two copies of the repo on one machine | Compose names the project after the folder | a second copy in a same-named folder, or one started with `-p <name>`, needs that same `-p <name>` on every `docker compose` command (`up`, `exec`, `restart`, `down`) |
 | Codespace fails to create | the Docker helper feature | remove `docker-outside-of-docker` from `.devcontainer/devcontainer.json` and retry |
 
@@ -830,7 +829,7 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) · `exercises.md` | 0 |
 | [`00-data/`](00-data/) | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` · `04-overture-themes.sql` (optional tour) · `exercises.md` | 1 |
 | [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) · `exercises.md` (2a–2c) | 2a |
-| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
+| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `pick-shelters.sh` (Phase 4 step 4) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
 | [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) · `exercises.md` | 3a 3b |
 | [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it by hand) · `grid.sql`, `exercises.md` | 3c |
 | [`demo/`](demo/) | the finished app: `index.html`, `app.js`, `style.json`, `dev-fixtures/` | 3d |

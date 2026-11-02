@@ -64,3 +64,11 @@ bbox_args() { echo "xmin=$BBOX_W ymin=$BBOX_S xmax=$BBOX_E ymax=$BBOX_N"; }
 # Planetiler 0.10 cannot read a FeatureCollection with zero features (NullPointerException in <layer>_read).
 # An "empty" layer is one feature with no geometry: every reader accepts it, and Planetiler writes no tiles for it.
 empty_layer() { printf '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":null}]}\n' > "$1"; }
+
+# No shelter picked for this box (Phase 4 step 4 matched nothing) → one placeholder shelter at the box's south-west
+# corner (BBOX_W, BBOX_S), same columns as data/shelters.geojson, so tiles, reach bands and the pages still build.
+# Replace it with real shelters: scripts/pick-shelters.sh <id> …
+shelter_placeholder() {
+  printf '{"type":"FeatureCollection","name":"shelters","features":[{"type":"Feature","properties":{"id":"placeholder","name":"Placeholder shelter (no shelter picked)","status":"candidate","type":"placeholder","town":"","source":"placeholder at the south-west corner of the box in versions.env - no shelter picked yet; replace with real shelters (scripts/pick-shelters.sh)"},"geometry":{"type":"Point","coordinates":[%s,%s]}}]}\n' "$BBOX_W" "$BBOX_S" > "$1"
+  log "no shelters → $1 is one placeholder at the box's south-west corner ($BBOX_W, $BBOX_S); replace it with real ones: scripts/pick-shelters.sh <id> …"
+}

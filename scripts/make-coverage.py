@@ -10,15 +10,15 @@
   3. coverage_hex.geojson   = one hex per cell: nearest shelter by road + minutes + km
      coverage_bands.geojson = per shelter, dissolved 0–10 / 10–20 / 20–30-minute rings (non-overlapping)
 
-Usage:  scripts/make-coverage.py [--osrm http://localhost:5000] [--res 8]
+Usage:  scripts/make-coverage.py [--osrm $OSRM_URL] [--res 8]        (--osrm defaults to $OSRM_URL, then http://localhost:8080/osrm)
 This is Phase 2c (reach bands / isochrones) — the same /table call as 03-routing/exercises.md Stretch A, with more points, dissolved with DuckDB spatial.
 """
-import argparse, json, os, sys, time, urllib.request
+import argparse, json, os, re, sys, time, urllib.error, urllib.request
 import duckdb
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENV = dict(l.strip().split("=", 1) for l in open(f"{ROOT}/versions.env") if "=" in l and not l.startswith("#"))
-ap = argparse.ArgumentParser(); ap.add_argument("--osrm", default="http://localhost:5000"); ap.add_argument("--res", type=int, default=8)
+ap = argparse.ArgumentParser(); ap.add_argument("--osrm", default=os.environ.get("OSRM_URL", "http://localhost:8080/osrm").rstrip("/"), help="OSRM base URL (default: $OSRM_URL)"); ap.add_argument("--res", type=int, default=8)
 ap.add_argument("--radius", type=int, default=1500, help="max snapping distance (m) from hex centroid to a road")
 a = ap.parse_args()
 W, S, E, N = (float(ENV[k]) for k in ("BBOX_W", "BBOX_S", "BBOX_E", "BBOX_N"))
@@ -44,8 +44,35 @@ WHERE EXISTS (SELECT 1 FROM ST_Read('{ROOT}/data/overture/roads.geojson') s
 """)
 cells = con.execute("SELECT h3, lon, lat FROM cells ORDER BY h3").fetchall()
 shelters = json.load(open(f"{ROOT}/data/shelters.geojson"))["features"]
+if not shelters:   # a Phase 4 pick that matched nothing → one placeholder shelter at the box's south-west corner (same as shelter_placeholder, scripts/lib.sh)
+    shelters = [{"type": "Feature", "properties": {"id": "placeholder", "name": "Placeholder shelter (no shelter picked)", "status": "candidate", "type": "placeholder", "town": "",
+                 "source": "placeholder at the south-west corner of the box in versions.env - no shelter picked yet; replace with real shelters (scripts/pick-shelters.sh)"},
+                 "geometry": {"type": "Point", "coordinates": [W, S]}}]
+    json.dump({"type": "FeatureCollection", "name": "shelters", "features": shelters}, open(f"{ROOT}/data/shelters.geojson", "w"))
+    print(f"no shelters → data/shelters.geojson is one placeholder at the box's south-west corner ({W}, {S}); replace it: scripts/pick-shelters.sh <id> …", file=sys.stderr)
 sh = [(f["properties"]["id"], f["properties"]["name"], f["properties"]["status"], *f["geometry"]["coordinates"]) for f in shelters]
 print(f"{len(cells)} road-bearing hex cells at res {a.res}; {len(sh)} shelters ({time.time()-t0:.1f}s)", file=sys.stderr)
+
+def osrm_get(url):
+    """GET an OSRM URL; on HTTP 400 return OSRM's own JSON (code + message) instead of a bare HTTPError."""
+    try:
+        with urllib.request.urlopen(url, timeout=120) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        body = e.read().decode(errors="replace")
+        try: return json.loads(body)
+        except ValueError: sys.exit(f"OSRM {e.code} at {a.osrm}: {body[:300]}")
+    except urllib.error.URLError as e:
+        sys.exit(f"cannot reach OSRM at {a.osrm}: {e.reason} — in the container shell $OSRM_URL is set; on a laptop use --osrm http://localhost:8080/osrm")
+
+# Is the graph OSRM serves the one for this box? /nearest snaps to the closest road it has — even 900 km away — so look at the distance.
+probe = osrm_get(f"{a.osrm}/nearest/v1/driving/{(W + E) / 2:.6f},{(S + N) / 2:.6f}")
+if probe.get("code") != "Ok":
+    sys.exit(f"OSRM at {a.osrm} answered {probe.get('code')}: {probe.get('message')}")
+far = probe["waypoints"][0]["distance"]
+if far > 2000:
+    sys.exit(f"OSRM at {a.osrm} serves a graph that does not cover this box: the nearest road to the box centre is {far / 1000:.0f} km away "
+             f"(the old graph is still loaded — README Phase 4 step 5: scripts/build-osrm.sh on the laptop terminal, then docker compose restart osrm)")
 
 # 2. OSRM /table in batches: sources = hex centroids, destinations = shelters
 dest = ";".join(f"{x:.6f},{y:.6f}" for *_, x, y in sh)
@@ -58,9 +85,20 @@ for i in range(0, len(cells), batch):
     dst = ";".join(str(len(chunk) + k) for k in range(len(sh)))
     rad = ";".join([str(a.radius)] * len(chunk) + ["unlimited"] * len(sh))
     url = f"{a.osrm}/table/v1/driving/{coords}?sources={src}&destinations={dst}&annotations=duration,distance&radiuses={rad}"
-    with urllib.request.urlopen(url, timeout=120) as r:
-        d = json.load(r)
-    if d.get("code") != "Ok": sys.exit(f"OSRM error: {d}")
+    d = osrm_get(url)
+    while d.get("code") == "NoSegment":          # one coordinate has no road within --radius: drop that cell and ask again
+        k = int((re.search(r"coordinate (\d+)", d.get("message", "")) or [0, -1])[1])
+        if not 0 <= k < len(chunk):
+            sys.exit(f"OSRM NoSegment on a shelter: {d.get('message')} — a shelter outside the graph? check data/shelters.geojson against the box")
+        h3, lon, lat = chunk.pop(k)
+        print(f"  cell {h3} ({lon:.5f}, {lat:.5f}): no road within {a.radius} m in the graph — skipped", file=sys.stderr)
+        if not chunk: break
+        coords = ";".join(f"{lon:.6f},{lat:.6f}" for _, lon, lat in chunk) + ";" + dest
+        src = ";".join(str(k) for k in range(len(chunk))); dst = ";".join(str(len(chunk) + k) for k in range(len(sh)))
+        rad = ";".join([str(a.radius)] * len(chunk) + ["unlimited"] * len(sh))
+        d = osrm_get(f"{a.osrm}/table/v1/driving/{coords}?sources={src}&destinations={dst}&annotations=duration,distance&radiuses={rad}")
+    if not chunk: continue
+    if d.get("code") != "Ok": sys.exit(f"OSRM {d.get('code')}: {d.get('message')} ({a.osrm})")
     for (h3, lon, lat), durs, dists in zip(chunk, d["durations"], d["distances"]):
         best = min(((t, j) for j, t in enumerate(durs) if t is not None), default=None)
         if best is None: continue                      # no road within radius → no coverage
