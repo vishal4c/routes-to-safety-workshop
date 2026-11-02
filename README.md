@@ -29,7 +29,7 @@ flowchart LR
   classDef out  fill:#FEE3D8,stroke:#FF6101,color:#161D26
 
   P0["Phase 0 · Setup<br/>Codespaces / Docker / native"]:::ph
-  P1["Phase 1 · Data prep<br/>DuckDB over the GeoJSON in data/"]:::ph
+  P1["Phase 1 · Data prep<br/>fetch → DuckDB over data/"]:::ph
   P2["Phase 2 · Map artifacts<br/>tiles · routing graph · reach bands"]:::ph
   P3["Phase 3 · Application<br/>MapLibre, three views + routing"]:::ph
   P4["Phase 4 · Adapt<br/>a community of our choice"]:::ph
@@ -46,7 +46,7 @@ flowchart LR
 | Phase | Steps | We end up with |
 |---|---|---|
 | 0 Setup | pick Codespaces / Docker / native · one checkpoint line | a shell with every tool, a web server on :8080 |
-| 1 Data prep | 1a look around · 1b shelters × hazard · 1c export | we can read and write GeoJSON with SQL |
+| 1 Data prep | Fetch · 1a look around · 1b shelters × hazard · 1c export | we can read and write GeoJSON with SQL |
 | 2 Map artifacts | 2a tiles · 2b routing graph · 2c reach bands | the **three files** the app needs |
 | 3 Application | 3a style · 3b shelter reach · 3c routing · 3d finished app | the map, three views, nearest shelter by road |
 | 4 Adapt | one box → the same steps for a community of our choice | our town, same three views |
@@ -76,7 +76,7 @@ flowchart LR
 | **B** Docker image — *recommended wherever containers can run* | wants everything local | yes | yes* |
 | **C** Native tools | containers blocked | **no** (pair with a neighbour) | yes* |
 
-\* Data, tiles and routing are all local. The one exception is the map page itself: it loads the MapLibre and PMTiles JavaScript libraries from unpkg.com, so the first page load needs a connection (the browser caches them afterwards).
+\* Data, tiles and routing are all local, except Phase 1 · Fetch (S3 + CAL FIRE) — offline: `scripts/stage-data.sh`. The other exception is the map page itself: it loads the MapLibre and PMTiles JavaScript libraries from unpkg.com, so the first page load needs a connection (the browser caches them afterwards).
 
 `setup/check_setup.py` calls these tiers 1, 2 and 3. Browser only? <https://vishal4c.github.io/routes-to-safety-workshop/> has the slides, the demo and the map page (no routing, nothing to install).
 
@@ -111,7 +111,7 @@ python3 setup/check_setup.py
 | Map and hands-on pages | <http://localhost:8080/02-web/> (Caddy answers Range requests, which PMTiles needs) |
 | OSRM | browser: same-origin `/osrm/…` · container shell: `$OSRM_URL` = `http://caddy:8080/osrm` |
 | Stop / restart | `docker compose down` · `docker compose up -d` |
-| Offline room | `BUNDLE_ZIP=/path/data-bundle.zip bash scripts/get-bundle.sh` |
+| Offline room | `BUNDLE_ZIP=/path/data-bundle.zip bash scripts/get-bundle.sh` · Phase 1: `scripts/stage-data.sh` |
 
 ### C — native tools
 
@@ -166,6 +166,8 @@ Alternative: `pixi install && pixi shell` (`pixi.toml`) gives DuckDB, Java 21, N
 | Git Bash | PowerShell |
 |---|---|
 | `bash scripts/get-bundle.sh` | `powershell -ExecutionPolicy Bypass -File scripts\get-bundle.ps1` |
+| `bash scripts/stage-data.sh` | `Copy-Item staged_data\overture\*.geojson data\overture\; Copy-Item staged_data\hazard\*.geojson data\hazard\` |
+| `scripts/fetch-overture.sh` · `scripts/fetch-hazard.sh` | no PowerShell version — Git Bash only (or `stage-data` above) |
 | `01-tiles/build.sh` | `powershell -ExecutionPolicy Bypass -File 01-tiles\build.ps1` |
 | `python3 setup/check_setup.py` | `python setup\check_setup.py` |
 | `duckdb -c ".read 00-data/01-explore.sql"` | same |
@@ -206,6 +208,10 @@ flowchart LR
   classDef step fill:#FFFFFF,stroke:#8A939B,color:#161D26
   classDef chk  fill:#E6F5EA,stroke:#2E8B57,color:#161D26
 
+  SRC[/"Overture S3 · CAL FIRE"/]:::file
+  F["Fetch<br/>fetch-overture.sh · fetch-hazard.sh"]:::tool
+  ST[/"staged_data/<br/>committed copy"/]:::file
+  SD["stage-data.sh<br/>offline"]:::step
   OV[/"data/overture/*.geojson<br/>roads · water · towns · land cover<br/>buildings · places"/]:::file
   HZ[/"data/hazard/*.geojson<br/>FHSZ · fire perimeters"/]:::file
   D["DuckDB 2.0 + spatial"]:::tool
@@ -213,14 +219,32 @@ flowchart LR
   S2["1b · shelters × hazard<br/>02-shelters.sql"]:::step
   S3["1c · export<br/>03-export.sql"]:::step
   O(["out/shelter-candidates.geojson<br/>95 places"]):::chk
+  SRC --> F
+  F --> OV
+  F --> HZ
+  ST -.-> SD
+  SD -.-> OV
+  SD -.-> HZ
   OV --> D
   HZ --> D
   D --> S1 --> S2 --> S3 --> O
 ```
 
-<details><summary><b>▸ Optional · Fetch the data ourselves — Overture themes with DuckDB, straight from S3</b> (already done; Phase 4 does this for our own box)</summary>
+**Fetch · pull our study area out of the open releases** · 🐳 container shell (Codespaces: its terminal · option C: the laptop terminal · Windows: Git Bash)
+```bash
+scripts/fetch-overture.sh
+scripts/fetch-hazard.sh
+```
+About a minute on decent wifi: six Overture themes from S3 (≈ 25–60 s), then two CAL FIRE layers (≈ 8 s). Each script checks its counts against the table below.
 
-Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB can read those files in place and skip every row group outside the box, so a county-sized extract takes **seconds**, not a planet download. One theme, as DuckDB SQL:
+✅ Eight files in `data/overture/` and `data/hazard/`, with the counts in the table below.
+
+❌ No wifi, slow S3 or CAL FIRE down: the script ends with `→ offline fallback: scripts/stage-data.sh`. That copies the committed copies from `staged_data/` into `data/` — same files, same counts, no network:
+```bash
+scripts/stage-data.sh
+```
+
+Why it is fast: Overture publishes every theme as Parquet files on a public S3 bucket, one row per feature with a `bbox` column ([docs.overturemaps.org/getting-data](https://docs.overturemaps.org/getting-data/)). DuckDB reads those files in place and skips every row group outside the box, so a county-sized extract takes **seconds**, not a planet download. For one theme, this is what [`scripts/fetch-overture.sh`](scripts/fetch-overture.sh) runs (with the box from `versions.env`):
 
 ```sql
 INSTALL spatial; LOAD spatial; INSTALL httpfs; LOAD httpfs;
@@ -232,12 +256,7 @@ COPY (
     AND bbox.xmin > -121.40 AND bbox.xmax < -120.52 AND bbox.ymin > 38.72 AND bbox.ymax < 39.20
 ) TO 'data/overture/roads.geojson' (FORMAT GDAL, DRIVER 'GeoJSON');
 ```
-Nested Overture columns (`names.primary`, `routes[1].ref`, `taxonomy.primary`) are flattened on the way out, and list-typed columns are left behind — the GeoJSON writer cannot store them. [`scripts/fetch-overture.sh`](scripts/fetch-overture.sh) runs six of these (one per file above) with the box from `versions.env`:
-
-```bash
-scripts/fetch-overture.sh             # all six → data/overture/*.geojson
-scripts/fetch-overture.sh roads       # just one
-```
+Nested Overture columns (`names.primary`, `routes[1].ref`, `taxonomy.primary`) are flattened on the way out, and list-typed columns are left behind — the GeoJSON writer cannot store them. `scripts/fetch-overture.sh roads` fetches just one theme.
 
 Measured on a laptop (≈ 100 Mbit/s); the time is mostly spent reading Parquet metadata on S3, so it barely grows with the box:
 
@@ -255,9 +274,8 @@ Alternative: Overture's own CLI does the same without SQL — `uvx overturemaps 
 
 **Hazard** comes from CAL FIRE's ArcGIS feature services ([`scripts/fetch-hazard.sh`](scripts/fetch-hazard.sh) pages through them with `f=geojson`, so the server reprojects from California State Plane feet to lon/lat for us). **Shelters** are hand-checked from county releases: only Sierra College is `verified` (it was the Mosquito Fire shelter in 2022); everything else is `candidate`.
 
-</details>
 
-**The data is staged in [`data/`](data/)** — plain **GeoJSON**, one file per theme, clipped to the study box. These are the files we explore in this phase and turn into map artifacts in Phase 2:
+**After Fetch, [`data/`](data/) holds** plain **GeoJSON**, one file per theme, clipped to the study box (a committed copy lives in `staged_data/` for offline use). These are the files we explore in this phase and turn into map artifacts in Phase 2:
 
 | File | What | From | Features |
 |---|---|---|---|
@@ -293,13 +311,13 @@ First filters Overture places by category and confidence (19 "community centers"
 ```bash
 duckdb -c ".read 00-data/03-export.sql"
 ```
-`COPY (query) TO 'file.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')` — this is how every file in `data/` was made. Here the query is the "shelter-ish" filter from 1b, reshaped into the columns of `shelters.geojson` with `status = 'candidate'`. Phase 4 runs this same file for our own community and we keep the real ones.
+`COPY (query) TO 'file.geojson' (FORMAT GDAL, DRIVER 'GeoJSON')` — this is how `scripts/fetch-overture.sh` wrote every file in `data/overture/`. Here the query is the "shelter-ish" filter from 1b, reshaped into the columns of `shelters.geojson` with `status = 'candidate'`. Phase 4 runs this same file for our own community and we keep the real ones.
 
 **Checkpoint**
 ```bash
 duckdb -c "LOAD spatial; SELECT type, count(*) FROM ST_Read('out/shelter-candidates.geojson') GROUP BY type ORDER BY 2 DESC"
 ```
-95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 `stadium_arena`. Nothing later depends on this file — anyone behind can move on.
+95 candidates: 39 schools, 19 community centers, 18 colleges, 8 town halls, 7 fairgrounds, 4 `stadium_arena`. Nothing later depends on this file — anyone behind can move on. Fetch's files are different: 1a, 1b and Phase 2 read them, so whoever is behind on Fetch runs `scripts/stage-data.sh` and moves on.
 
 <details><summary><b>▸ Optional · tour every Overture theme</b> (which theme each file came from, one breakdown per file)</summary>
 
@@ -534,13 +552,13 @@ BUILDINGS_N=47.639
 OSM_EXTRACT_URL=https://download.geofabrik.de/north-america/us/washington-latest.osm.pbf   # the Geofabrik region that contains the box
 ```
 
-**2 · Overture themes for the box** (20–40 s — buildings take longest, 20,000 of them ≈ 17 s; the table in Phase 1 has the per-theme times). A theme with nothing in the box (land cover in a city centre) is written as an *empty layer* — one feature, no geometry — so the tile build still runs; the map simply has no such layer.
+**2 · Overture themes for the box** — the same script as Phase 1 · Fetch, for our own box (20–40 s — buildings take longest, 20,000 of them ≈ 17 s; the table in Phase 1 has the per-theme times). A theme with nothing in the box (land cover in a city centre) is written as an *empty layer* — one feature, no geometry — so the tile build still runs; the map simply has no such layer.
 ```bash
 scripts/fetch-overture.sh                          # → data/overture/{roads,water,towns,land_cover,buildings,places}.geojson
 duckdb -c ".read 00-data/01-explore.sql"           # the same three queries over the new roads and places
 ```
 
-**3 · Hazard.** In California, CAL FIRE's zones and perimeters for the box (`FIRE_PERIMETERS_WHERE` in `versions.env` picks the fires, e.g. `YEAR_ >= 2015`). Anywhere else there is no CAL FIRE: write two empty layers so the pipeline runs, and swap in local polygons later (below).
+**3 · Hazard** — the same script as Phase 1 · Fetch, for our own box. In California, CAL FIRE's zones and perimeters for the box (`FIRE_PERIMETERS_WHERE` in `versions.env` picks the fires, e.g. `YEAR_ >= 2015`). Anywhere else there is no CAL FIRE: write two empty layers so the pipeline runs, and swap in local polygons later (below).
 ```bash
 scripts/fetch-hazard.sh            # California → data/hazard/fhsz.geojson + fire_perimeters.geojson
 scripts/fetch-hazard.sh --none     # elsewhere → the two files exist with no features
@@ -659,7 +677,7 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | `check_setup.py`: OSRM / web server red on option C | expected without containers | continue; routing needs a neighbour |
 | `java: command not found` · `Unsupported class file major version` | no Temurin 21 | option C install commands |
 | `planetiler.jar` missing | not in git | `bash scripts/get-bundle.sh` or `curl -L -o 01-tiles/planetiler.jar https://github.com/onthegomap/planetiler/releases/download/v0.10.2/planetiler.jar` |
-| `data/overture/roads.geojson missing` | staged data gone | `scripts/fetch-overture.sh` — or, after a Phase 4 box, `rm -rf data && mv data.placer data` |
+| `data/overture/roads.geojson missing` | Phase 1 · Fetch not run (or it failed) | `scripts/fetch-overture.sh && scripts/fetch-hazard.sh` · offline: `scripts/stage-data.sh` · after a Phase 4 box: `rm -rf data && mv data.placer data` |
 | Points in the ocean off Africa | lon/lat swapped | the SQL files start with `SET geometry_always_xy = true;` — keep it |
 | `.read` plus another statement in one `-c` does nothing | DuckDB dot-commands must be alone | one `.read` per run |
 | Something else holds :8080 | an old server | `lsof -nP -iTCP:8080 -sTCP:LISTEN` (Windows: `netstat -ano \| findstr :8080`), then `kill <PID>` — or leave it and move: `WEB_PORT=8090 docker compose up -d`, then `localhost:8090` wherever this page says 8080 |
@@ -675,11 +693,12 @@ Option C: `Ctrl-C` in the `npx serve` terminal. Codespaces: <https://github.com/
 | [`setup/`](setup/) | `check_setup.py` (green / red per tool, the tier, the next command) · `hello-geo.sql` (the checkpoint) | 0 |
 | [`00-data/`](00-data/) | `01-explore.sql` · `02-shelters.sql` · `03-export.sql` · `04-overture-themes.sql` (optional tour) · `exercises.md` | 1 |
 | [`01-tiles/`](01-tiles/) | `evac.yml` (the tile schema) · `build.sh` / `build.ps1` · `planetiler.jar` (from the bundle) | 2a |
-| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
+| [`scripts/`](scripts/) | `fetch-overture.sh` · `fetch-hazard.sh` (+ `fetch_arcgis.py`) · `stage-data.sh` (offline Fetch) · `fetch-osm.sh` · `build-osrm.sh` · `make-coverage.py` — the pipeline, one script per step · `get-bundle.sh` / `.ps1` · `lib.sh` · `check-versions.sh` (CI) · `make-bundle.sh`, `make-solution.py` (instructor) | 1 2 4 |
 | [`02-web/`](02-web/) | `index.html` (the page) · `steps/*.json` (one file of MapLibre layers per Add row) · `solution.html` · `style.json` (the finished style, standalone) · `fonts/` (Noto Sans glyphs, offline labels) | 3a 3b |
 | [`03-routing/`](03-routing/) | `route.js` (what the Routing row loads) · `steps/` (write it by hand) · `grid.sql`, `exercises.md` | 3c |
 | [`demo/`](demo/) | the finished app: `index.html`, `app.js`, `style.json`, `dev-fixtures/` | 3d |
-| [`data/`](data/) | the GeoJSON inputs (in git) · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
+| [`data/`](data/) | `overture/`, `hazard/` (written by Phase 1 · Fetch, not in git) · `shelters.geojson` · `osm/`, `osrm/`, `prebuilt/evac.pmtiles` (from the bundle) · `coverage/` · [`LICENSE-data.md`](data/LICENSE-data.md) — licences **and provenance of every file** | all |
+| [`staged_data/`](staged_data/) | committed copies of the Fetch output (`overture/`, `hazard/`) — the offline fallback, `scripts/stage-data.sh` | 1 |
 | `out/` | what we build: `evac.pmtiles`, `shelter-candidates.geojson` | 1 2 |
 | [`docker-compose.yml`](docker-compose.yml) · [`Caddyfile`](Caddyfile) · [`.devcontainer/`](.devcontainer/) | the three containers (tool shell, OSRM, Caddy) — options A and B share them | 0 |
 | [`deck/`](deck/) | the slide deck shown in the room — `Routes-to-Safety-FOSS4G-NA-2026.pptx` and a PDF export | — |

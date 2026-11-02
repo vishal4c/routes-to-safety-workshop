@@ -7,7 +7,7 @@
 --   land_cover.geojson  theme=base            type=land_cover  ESA WorldCover polygons, with the zoom range Overture suggests
 --   buildings.geojson   theme=buildings       type=building  Auburn box only (BUILDINGS_* in versions.env)
 --   places.geojson      theme=places          type=place     points of interest with a category and a confidence score
--- Not staged: transportation/connector (143,316 points where segments meet — OSRM has its own graph), addresses, infrastructure.
+-- Not fetched: transportation/connector (143,316 points where segments meet — OSRM has its own graph), addresses, infrastructure.
 -- The output you should see is written above each query.
 LOAD spatial;
 SET geometry_always_xy = true;

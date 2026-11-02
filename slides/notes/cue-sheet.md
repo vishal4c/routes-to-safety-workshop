@@ -40,7 +40,8 @@ Door slide before 09:00: "start your Codespace / `docker compose pull` as you si
 | 1 Demo | Live demo fails | Play the 90-s recorded video (no scripted line in outline) |
 | 2 Phase 1b | Attendees see the Chevrolet dealer tagged `community_center` | "this is exactly why shelters.geojson is hand-verified and carries a `status`; at real scale somebody still has to check" (teaching line, not a fallback) |
 | 2 Phase 1c | Not done by minute 5 | skip it — nothing downstream needs `out/shelter-candidates.geojson` |
-| 2 general | Behind | "Nothing in Phase 1 is needed later — the tiles read `data/` directly; catch up at the next card." |
+| 2 Phase 1 · Fetch | Fetch slow / S3 or CAL FIRE down | `scripts/stage-data.sh` — the committed copies, same counts, no network |
+| 2 general | Behind | "Fetch is the one step later phases need — run `scripts/stage-data.sh` if it has not finished; 1a–1c catch up at the next card." |
 | 3 Phase 2a | No PMTiles by minute 5 | `cp data/prebuilt/evac.pmtiles out/` |
 | 3 Phase 3a | Stuck past minute 8 | paste `steps/step3-styled.json` |
 | 3 general | Behind | `data/prebuilt/evac.pmtiles` · `steps/step1..4` · instructor Maputnik via `pmtiles serve` ZXY (no scripted line in outline) |

@@ -31,7 +31,7 @@ OSRM graph, coverage polygons) must be shared under ODbL 1.0 if you publish a de
 
 ## Provenance — how every file in `data/` was made
 
-All boxes come from `versions.env`; every file is GeoJSON (WGS84 lon/lat). Study area: Placer County I-80 corridor, W,S,E,N = -121.40, 38.72, -120.52, 39.20.
+`overture/*` and `hazard/*` are written by Phase 1 · Fetch (`scripts/fetch-overture.sh`, `scripts/fetch-hazard.sh`); the committed copies are in `staged_data/` (same names, restored by `scripts/stage-data.sh`). All boxes come from `versions.env`; every file is GeoJSON (WGS84 lon/lat). Study area: Placer County I-80 corridor, W,S,E,N = -121.40, 38.72, -120.52, 39.20.
 
 | File | Source | Made by | Features |
 |---|---|---|---|

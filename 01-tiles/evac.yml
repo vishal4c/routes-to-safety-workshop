@@ -1,6 +1,6 @@
 # Planetiler custommap schema for the Routes to Safety basemap.
 # Build (from repo root):  01-tiles/build.sh   = java -Xmx2g -jar 01-tiles/planetiler.jar generate-custom --schema=01-tiles/evac.yml --output=out/evac.pmtiles --force --bounds=…
-# Every source is a local GeoJSON file in data/ (what scripts/fetch-*.sh staged) → zero network calls; a missing file fails fast.
+# Every source is a local GeoJSON file in data/ (what Phase 1 · Fetch wrote, scripts/fetch-*.sh) → zero network calls; a missing file fails fast.
 schema_name: Routes to Safety
 schema_description: Wildfire evacuation basemap — Placer County I-80 corridor (FOSS4G NA 2026 workshop)
 attribution: >-

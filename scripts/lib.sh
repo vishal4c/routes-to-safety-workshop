@@ -37,6 +37,28 @@ duck_run() {
   rm -f "$tmp"
 }
 
+# Phase 1 · Fetch — the counts README Phase 1 expects for the Placer box. Another box (Phase 4) has none.
+PLACER_BBOX="-121.40,38.72,-120.52,39.20"
+is_placer_box() { [ "$BBOX_W,$BBOX_S,$BBOX_E,$BBOX_N" = "$PLACER_BBOX" ]; }
+expected_count() {
+  is_placer_box || return 0
+  case "$1" in
+    overture/roads) echo 36294 ;;      overture/water) echo 1920 ;;          overture/towns) echo 121 ;;
+    overture/land_cover) echo 2564 ;;  overture/buildings) echo 12606 ;;     overture/places) echo 27096 ;;
+    hazard/fhsz) echo 355 ;;           hazard/fire_perimeters) echo 2 ;;
+  esac
+}
+check_count() {   # check_count overture/roads 36294 — a mismatch fails the script
+  local want; want="$(expected_count "$1")"
+  [ -z "$want" ] || [ "$2" = "$want" ] || die "$1.geojson: $2 features, expected $want (download cut short, or the source changed)"
+}
+# On the Placer box, any failure (or Ctrl-C) ends with exactly one line pointing at the committed copies.
+offline_fallback_hint() {
+  is_placer_box || return 0
+  trap 'rc=$?; [ "$rc" -eq 0 ] || printf "\033[1;33m→ offline fallback: scripts/stage-data.sh\033[0m\n" >&2' EXIT
+}
+count_features() { python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['features']))" "$1"; }
+
 bbox_args() { echo "xmin=$BBOX_W ymin=$BBOX_S xmax=$BBOX_E ymax=$BBOX_N"; }
 
 # Planetiler 0.10 cannot read a FeatureCollection with zero features (NullPointerException in <layer>_read).

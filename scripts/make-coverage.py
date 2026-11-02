@@ -22,6 +22,8 @@ ap = argparse.ArgumentParser(); ap.add_argument("--osrm", default="http://localh
 ap.add_argument("--radius", type=int, default=1500, help="max snapping distance (m) from hex centroid to a road")
 a = ap.parse_args()
 W, S, E, N = (float(ENV[k]) for k in ("BBOX_W", "BBOX_S", "BBOX_E", "BBOX_N"))
+if not os.path.isfile(f"{ROOT}/data/overture/roads.geojson"):
+    sys.exit("data/overture/roads.geojson missing — run Phase 1 · Fetch (scripts/fetch-overture.sh) · offline: scripts/stage-data.sh")
 DRIVABLE = "('motorway','trunk','primary','secondary','tertiary','residential','unclassified','living_street','motorway_link','trunk_link','primary_link','secondary_link','tertiary_link')"
 
 con = duckdb.connect()

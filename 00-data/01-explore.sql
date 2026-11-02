@@ -1,6 +1,6 @@
 -- Phase 1a — Look around.  Run from the repo root:
 --     duckdb -c ".read 00-data/01-explore.sql"
--- Three queries over two of the staged files. Plain SQL: SELECT (which columns) / WHERE (which rows) / GROUP BY (count per group).
+-- Three queries over two of the fetched files. Plain SQL: SELECT (which columns) / WHERE (which rows) / GROUP BY (count per group).
 -- ST_Read() opens any GeoJSON (or Shapefile, GeoPackage …) as a table; LOAD spatial switches that on.
 -- The output you should see is written above each query (Overture release 2026-09-23.1).
 LOAD spatial;
@@ -8,18 +8,18 @@ SET geometry_always_xy = true;   -- lon/lat axis order (DuckDB 2.0 needs this fo
 
 -- Query 1 — what columns does the roads file have?  (36,294 drivable road segments in the box)
 -- Expected:
---   [90m┌─────────────────────────────────┐[00m[90m
---   [00m[90m│            [00m[1mDescribe[00m[90m             │[00m[90m
---   [00m[90m│                                 │[00m[90m
---   [00m[90m│ [00mOGC_FID[90m   [00m[90mbigint[00m[90m                [00m[90m│[00m[90m
---   [00m[90m│ [00mid[90m        [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00mclass[90m     [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00msubclass[90m  [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00mname[90m      [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00mroute_ref[90m [00m[90mvarchar[00m[90m               [00m[90m│[00m[90m
---   [00m[90m│ [00mgeom[90m      [00m[90mgeometry('ogc:crs84')[00m[90m [00m[90m│[00m[90m
---   [00m[90m└─────────────────────────────────┘[00m[90m
---   [00m
+--   ┌─────────────────────────────────┐
+--   │            Describe             │
+--   │                                 │
+--   │ OGC_FID   bigint                │
+--   │ id        varchar               │
+--   │ class     varchar               │
+--   │ subclass  varchar               │
+--   │ name      varchar               │
+--   │ route_ref varchar               │
+--   │ geom      geometry('ogc:crs84') │
+--   └─────────────────────────────────┘
+--   
 DESCRIBE SELECT * FROM ST_Read('data/overture/roads.geojson');
 
 -- Query 2 — roads by class.  Sum = 36,294 — the number every later step must reproduce.
